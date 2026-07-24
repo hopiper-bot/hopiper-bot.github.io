@@ -5,7 +5,7 @@
 
 import * as ui from './ui.js';
 import * as mayaEngine from './engines/maya.js';
-// import * as astroEngine from './engines/astro.js';
+import * as astroEngine from './engines/astro.js';
 // import * as baziEngine from './engines/bazi.js';
 // import * as ziweiEngine from './engines/ziwei.js';
 // import * as hdEngine from './engines/human-design.js';
@@ -142,10 +142,11 @@ async function calculate() {
   try {
     // 計算各系統
     const mayaResult = mayaEngine.calculate(birthData);
+    const astroResult = astroEngine.calculate(birthData);
 
     const results = {
       maya: mayaResult,
-      astro: { status: 'ok', html: '<div class="placeholder">🔭 星座模組開發中⋯<br>（太陽/月亮/上升星座計算）</div>' },
+      astro: astroResult,
       bazi: { status: 'ok', html: '<div class="placeholder">📜 八字模組開發中⋯<br>（四柱排盤 + 十神 + 五行）</div>' },
       ziwei: { status: 'ok', html: '<div class="placeholder">⭐ 紫微斗數模組開發中⋯<br>（十二宮 + 十四主星）</div>' },
       hd: { status: 'ok', html: '<div class="placeholder">🔷 人類圖模組開發中⋯<br>（九大能量中心 + 類型/策略/權威）</div>' },
