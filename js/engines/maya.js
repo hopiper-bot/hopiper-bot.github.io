@@ -286,12 +286,31 @@ function renderOracle(o) {
 
 function oracleCell(role, info, center = false) {
   const borderStyle = center ? 'border-color:var(--accent);background:linear-gradient(135deg,rgba(245,197,66,.16),rgba(123,108,246,.16));' : '';
-  return `<div style="background:var(--input-bg);border:1px solid rgba(123,108,246,.4);border-radius:14px;padding:12px 10px;width:150px;text-align:center;${borderStyle}">
+  const detailId = `oracle-${info.kin}`;
+  // 根據角色產生解說
+  const roleDetail = getOracleRoleDetail(role, info);
+  return `<div style="background:var(--input-bg);border:1px solid rgba(123,108,246,.4);border-radius:14px;padding:12px 10px;width:150px;text-align:center;cursor:pointer;${borderStyle}" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
     <div style="font-size:.75rem;color:var(--muted);letter-spacing:1px;">${role}</div>
     <div style="font-size:1.7rem;margin:4px 0;">${info.seal.glyph}</div>
     <div style="font-weight:700;font-size:.95rem;">${info.name}</div>
     <div style="font-size:.72rem;color:var(--muted);margin-top:2px;">KIN ${info.kin}</div>
+  </div>
+  <div id="${detailId}" style="display:none;width:100%;max-width:320px;margin:6px auto;padding:10px 12px;background:rgba(123,108,246,.08);border-radius:10px;font-size:.83rem;line-height:1.7;text-align:left;">
+    ${roleDetail}
   </div>`;
+}
+
+/** 神諭角色解說 */
+function getOracleRoleDetail(role, info) {
+  const sealText = info.seal.text.split("。").slice(0, 2).join("。") + "。";
+  const roleTexts = {
+    "主印記": `<b>主印記（你的本質）</b><br>這就是「你」— 你最核心的能量特質。<br><br>${sealText}`,
+    "引導": `<b>引導（你的方向）</b><br>當你迷路時，往這個方向走就對了。這是你的內在 GPS。<br><br>${sealText}`,
+    "支持": `<b>支持（你的助力）</b><br>這是你背後最大的靠山。這股能量天生就支持你，不需要努力就有。<br><br>${sealText}`,
+    "挑戰": `<b>挑戰（你的功課）</b><br>這是你這輩子要學會的東西。一開始可能不舒服，但學會了就是你最大的力量。<br><br>${sealText}`,
+    "隱藏推動": `<b>隱藏推動（你的深層動力）</b><br>這是你自己可能都沒意識到的內在驅動力。它在潛意識推動你前進。<br><br>${sealText}`,
+  };
+  return roleTexts[role] || sealText;
 }
 
 function renderWavespell(w, label) {
@@ -299,21 +318,39 @@ function renderWavespell(w, label) {
   for (let i = 0; i < 13; i++) {
     const k = w.start + i;
     const seal = SEALS[mod(k - 1, 20)];
+    const tone = TONES[i];
     const cur = (i + 1 === w.position);
     const curStyle = cur ? 'border-color:var(--accent);background:linear-gradient(135deg,rgba(245,197,66,.22),rgba(123,108,246,.16));transform:translateY(-3px);' : '';
     const toneStyle = cur ? 'color:var(--accent);font-weight:700;' : 'color:var(--muted);';
-    strip += `<div style="width:46px;padding:7px 2px;border-radius:10px;background:var(--input-bg);border:1px solid rgba(123,108,246,.3);text-align:center;${curStyle}">
+    const detailId = `wave-${w.start}-${i}`;
+    const stageInfo = TONE_STAGES[i];
+    strip += `<div style="width:46px;padding:7px 2px;border-radius:10px;background:var(--input-bg);border:1px solid rgba(123,108,246,.3);text-align:center;cursor:pointer;${curStyle}" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
       <div style="font-size:.7rem;${toneStyle}">${i + 1}</div>
       <div style="font-size:1.25rem;">${seal.glyph}</div>
+    </div>`;
+  }
+
+  // 波符格子的展開詳情（放在格子條下方）
+  let details = '';
+  for (let i = 0; i < 13; i++) {
+    const k = w.start + i;
+    const seal = SEALS[mod(k - 1, 20)];
+    const stageInfo = TONE_STAGES[i];
+    const cur = (i + 1 === w.position);
+    const detailId = `wave-${w.start}-${i}`;
+    const highlight = cur ? '<span style="color:var(--accent);font-weight:700;">← 你在這裡</span><br>' : '';
+    details += `<div id="${detailId}" style="display:none;padding:10px 12px;margin:6px 0;background:rgba(123,108,246,.08);border-radius:10px;font-size:.83rem;line-height:1.7;">
+      ${highlight}<b>${stageInfo.stage}</b> · ${seal.glyph} ${seal.zh}<br>${stageInfo.task}
     </div>`;
   }
 
   const pt = TONES[w.position - 1];
   return `
     <h3>🌊 ${label}：${w.startSeal.zh}波符</h3>
-    <p class="meaning">${label}是 13 天一組的能量之浪，主題由第 1 格決定。你屬於「<span class="kw">${w.startSeal.zh}波符</span>」——這一浪的使命：${w.startSeal.text.split("。")[0]}。</p>
+    <p class="meaning">${label}是 13 天一組的能量之浪。你屬於「<span class="kw">${w.startSeal.zh}波符</span>」。點擊格子看每個位置的角色 ▼</p>
     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0;">${strip}</div>
-    <p class="meaning">你站在第 <span class="kw">${w.position}</span> 格 · <span class="kw">${pt.zh}（${pt.kw}）</span>：${pt.text.split("。")[0]}。這是你在這股浪潮中扮演的角色。</p>
+    ${details}
+    <p class="meaning">你站在第 <span class="kw">${w.position}</span> 格 · <span class="kw">${pt.zh}（${pt.kw}）</span>：${pt.text.split("。")[0]}。</p>
   `;
 }
 
