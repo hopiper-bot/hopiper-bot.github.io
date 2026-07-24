@@ -204,13 +204,9 @@ function renderDreamspell(ds, annual) {
       <div class="glyphs">${sealGlyph(seal)}</div>
       <span class="tag tag-${seal.color}">${COLOR_ZH[seal.color]}色能量</span>
     </div>
-    <h3>圖騰：${seal.zh}（${seal.en}）</h3>
-    <p class="meaning">${seal.text}</p>
-    <h3>調性：${tone.num} · ${tone.zh}（<span class="kw">${tone.kw}</span>）</h3>
-    <p class="meaning">${tone.text}</p>
+    ${renderOracle(o)}
     <div class="divider"></div>
-    <h3>綜合解讀</h3>
-    <p class="meaning">你是 <span class="kw">KIN ${ds.kin}·${info.name}</span>。這是一股「以<span class="kw">${tone.kw}</span>為主軸、帶著${seal.zh}特質」的生命能量：${seal.text.split("。")[0]}，同時，${tone.text.split("。")[0]}。把這兩股力量結合，就是你此生擅長發揮的方向。</p>
+    ${renderWavespell(w, "波符")}
     <div class="divider"></div>
     <h3>🏰 你的人生劇本：${c.name}</h3>
     <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">${c.kinRange} · 基調：${c.theme}</p>
@@ -219,10 +215,6 @@ function renderDreamspell(ds, annual) {
     <h3>🎵 你在團隊中的角色：${toneStage.stage}</h3>
     <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">你在${w.startSeal.zh}波符中站在第 ${w.position} 格（共 13 格）</p>
     <p class="meaning">${toneStage.task}</p>
-    <div class="divider"></div>
-    ${renderOracle(o)}
-    <div class="divider"></div>
-    ${renderWavespell(w, "波符")}
     <div class="divider"></div>
     <h3>📅 流年能量</h3>
     <p class="meaning"><b>當前馬雅年</b>（${annual.galacticYear}）＝ <span class="kw">${yearInfo.name}</span>（KIN ${annual.yearKin}）。集體共享的能量主題：${yearInfo.seal.text.split("。")[0]}；${yearInfo.tone.text.split("。")[0]}。</p>
@@ -236,6 +228,8 @@ function renderGmt(gmt, annual) {
   const info = kinInfo(gmt.kin);
   const o = gmt.oracle;
   const w = gmt.wavespell;
+  const c = castle(gmt.kin);
+  const toneStage = TONE_STAGES[w.position - 1];
   const todayInfo = kinInfo(annual.todayKin);
   const personalInfo = kinInfo(annual.personalKin);
   const now = new Date();
@@ -246,19 +240,22 @@ function renderGmt(gmt, annual) {
       <div class="big">${tone.num} ${seal.en}（${seal.zh}）</div>
       <div class="glyphs">${sealGlyph(seal)}</div>
     </div>
-    <h3>日印：${seal.en} ${seal.zh}</h3>
-    <p class="meaning">${seal.text}</p>
-    <h3>調性數字：${tone.num}（${tone.zh}·<span class="kw">${tone.kw}</span>）</h3>
-    <p class="meaning">${tone.text}</p>
-    <p class="sub" style="color:var(--muted);font-size:.85rem;">※ GMT 為考古學界通用對照，是真正對得上馬雅碑文的曆法。</p>
-    <div class="divider"></div>
     ${renderOracle(o)}
     <div class="divider"></div>
     ${renderWavespell(w, "13 天週期（Trecena）")}
     <div class="divider"></div>
+    <h3>🏰 你的人生劇本：${c.name}</h3>
+    <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">${c.kinRange} · 基調：${c.theme}</p>
+    <p class="meaning">${c.text}</p>
+    <div class="divider"></div>
+    <h3>🎵 你在團隊中的角色：${toneStage.stage}</h3>
+    <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">你在${w.startSeal.zh}波符中站在第 ${w.position} 格（共 13 格）</p>
+    <p class="meaning">${toneStage.task}</p>
+    <div class="divider"></div>
     <h3>📅 流年能量（GMT）</h3>
     <p class="meaning"><b>今天的馬雅日</b>（${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}）＝ <span class="kw">${todayInfo.name}</span>。當下的集體能量：${todayInfo.seal.text.split("。")[0]}。</p>
     <p class="meaning"><b>你今年生日</b> ＝ <span class="kw">${personalInfo.name}</span>。你這一年的個人能量：${personalInfo.seal.text.split("。")[0]}。</p>
+    <p class="sub" style="color:var(--muted);font-size:.82rem;">※ GMT 為考古學界通用對照，是真正對得上馬雅碑文的曆法。</p>
   `;
 }
 
