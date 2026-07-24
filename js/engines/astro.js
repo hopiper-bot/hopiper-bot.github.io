@@ -368,21 +368,75 @@ function calculateAspects(planets, ascLon, mcLon) {
 function renderAspects(aspects) {
   if (aspects.length === 0) return '';
 
-  const rows = aspects.map(a => {
+  const rows = aspects.map((a, idx) => {
     const strength = parseFloat(a.exactDelta) < 2 ? '（精準相位⚡）' : '';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.85rem;">
-      <span style="font-weight:600;min-width:60px;">${a.planet1.symbol}${a.planet1.zh}</span>
-      <span style="color:var(--accent);font-size:1.1rem;">${a.type.symbol}</span>
-      <span style="font-weight:600;min-width:60px;">${a.planet2.symbol}${a.planet2.zh}</span>
-      <span style="color:var(--muted);font-size:.8rem;">${a.type.name}（${a.type.meaning}）${strength}</span>
+    const detail = getAspectDetail(a);
+    const detailId = `aspect-${idx}`;
+    return `<div style="border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
+        <span style="font-weight:600;min-width:60px;">${a.planet1.symbol}${a.planet1.zh}</span>
+        <span style="color:var(--accent);font-size:1.1rem;">${a.type.symbol}</span>
+        <span style="font-weight:600;min-width:60px;">${a.planet2.symbol}${a.planet2.zh}</span>
+        <span style="color:var(--muted);font-size:.8rem;">${a.type.name}（${a.type.meaning}）${strength}</span>
+      </div>
+      <div id="${detailId}" style="display:none;padding:8px 12px 12px;background:rgba(123,108,246,.08);border-radius:8px;margin-bottom:6px;font-size:.85rem;line-height:1.7;color:var(--text);">
+        ${detail}
+      </div>
     </div>`;
   }).join('');
 
   return `
     <h3>🔗 主要相位</h3>
-    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">太陽/月亮的相位 + 其他行星合相</p>
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">點擊查看具體解讀 ▼</p>
     ${rows}
   `;
+}
+
+/** 取得相位的具體解讀 */
+function getAspectDetail(aspect) {
+  const p1 = aspect.planet1.zh;
+  const p2 = aspect.planet2.zh;
+  const type = aspect.type.name;
+  
+  // 行星能量關鍵字
+  const energies = {
+    '太陽': '核心自我、意志力',
+    '月亮': '情緒、安全感',
+    '水星': '思考、溝通',
+    '金星': '愛情、價值觀',
+    '火星': '行動力、慾望',
+    '木星': '擴展、幸運',
+    '土星': '責任、功課',
+    '天王星': '突破、獨特性',
+    '海王星': '靈性、想像力',
+    '冥王星': '轉化、深層力量',
+  };
+  
+  // 相位類型的具體影響
+  const aspectEffect = {
+    '合': `<b>${p1}與${p2}融合</b>：這兩股能量在你身上合為一體，彼此強化。${energies[p1]||p1}和${energies[p2]||p2}不分彼此地一起運作，這是你非常顯著的特質。`,
+    '對沖': `<b>${p1}與${p2}對立互補</b>：這兩股能量在你內在形成張力 — ${energies[p1]||p1}和${energies[p2]||p2}像蹺蹺板，需要你學會平衡兩端。這不是壞事，而是推動你成長的動力。找到整合點，你比別人更有深度。`,
+    '三合': `<b>${p1}與${p2}和諧流動</b>：這是天賦！${energies[p1]||p1}和${energies[p2]||p2}自然配合，不需要努力就能順暢運作。這是你可以輕鬆發揮的領域，善用它。`,
+    '四分': `<b>${p1}與${p2}形成挑戰</b>：${energies[p1]||p1}和${energies[p2]||p2}之間有摩擦 — 但這正是你成長最快的地方。這組相位帶來動力和推進力，逼你行動、逼你改變。克服它的人往往成就最大。`,
+    '六合': `<b>${p1}與${p2}輕鬆配合</b>：${energies[p1]||p1}和${energies[p2]||p2}之間有自然的機會和支持。不像三合那麼強烈，但提供穩定的助力。主動去用它，機會就在那裡。`,
+  };
+  
+  // 特殊組合加碼解讀
+  let bonus = '';
+  if ((p1==='太陽'&&p2==='月亮') || (p1==='月亮'&&p2==='太陽')) {
+    if (type==='合') bonus = '<br><br>💡 日月合相：你的意志和情感高度一致，目標明確，內外一致。新月出生的人，有強大的專注力和開創力。';
+    else if (type==='對沖') bonus = '<br><br>💡 日月對沖：滿月出生的人，內在有兩個聲音在拉扯 — 理性vs情感。學會整合這兩面，你能看見事物的全貌。';
+    else if (type==='四分') bonus = '<br><br>💡 日月四分：內在的意志和情緒常常打架，但這份張力是你行動力的來源。你比一般人更有動力去改變現狀。';
+    else if (type==='三合') bonus = '<br><br>💡 日月三合：你的意志和情緒自然和諧，做決定時頭和心能配合。這讓你在壓力下依然穩定。';
+  }
+  if (p2==='土星' || p1==='土星') {
+    bonus += '<br><br>🪨 涉及土星的相位代表人生中需要耐心修煉的領域，通常在30歲後才逐漸看到成果。';
+  }
+  if (p2==='天王星' || p1==='天王星') {
+    bonus += '<br><br>⚡ 涉及天王星的相位代表你與眾不同的地方，可能帶來突然的改變或獨特的才能。';
+  }
+  
+  return (aspectEffect[type] || `${p1}和${p2}之間有${type}的能量互動。`) + bonus;
 }
 
 function getHouseDirection(house) {
