@@ -4,7 +4,7 @@
  */
 
 import {
-  julianDay, sunLongitude, moonLongitude, ascendant, longitudeToSign,
+  julianDay, sunLongitude, moonLongitude, ascendant, midheaven, longitudeToSign,
   northNodeLongitude
 } from '../lib/ephemeris.js';
 import {
@@ -103,10 +103,25 @@ export function calculate(birthData) {
       degreeStr: formatDegree(ascLon),
     };
 
+    // 天頂 MC
+    const mcLon = midheaven(jd, lng);
+    const mcSignIdx = longitudeToSign(mcLon);
+    const mcData = {
+      id: 'mc', zh: '天頂MC', symbol: '⊤',
+      longitude: mcLon, signIdx: mcSignIdx,
+      sign: SIGNS[mcSignIdx], house: 10,
+      degreeStr: formatDegree(mcLon),
+    };
+
+    // 計算主要相位（太陽/月亮 vs 其他 + 任何合相）
+    const aspects = calculateAspects(planets, ascLon, mcLon);
+
     const data = {
       planets,
       northNode,
       ascendant: ascData,
+      mc: mcData,
+      aspects,
       sunSign: planets[0].sign,
       moonSign: planets[1].sign,
       risingSign: SIGNS[ascSignIdx],
@@ -122,7 +137,7 @@ export function calculate(birthData) {
 // === 渲染 ===
 
 function renderAstro(data) {
-  const { planets, northNode, ascendant: asc } = data;
+  const { planets, northNode, ascendant: asc, mc, aspects } = data;
   const sun = planets[0];
   const moon = planets[1];
 
@@ -134,10 +149,12 @@ function renderAstro(data) {
         <span class="tag tag-${elementColor(sun.sign.elementEn)}">☉ 太陽${sun.sign.zh}</span>
         <span class="tag tag-${elementColor(moon.sign.elementEn)}">☽ 月亮${moon.sign.zh}</span>
         <span class="tag tag-${elementColor(asc.sign.elementEn)}">⬆ 上升${asc.sign.zh}</span>
+        <span class="tag tag-${elementColor(mc.sign.elementEn)}">⊤ 天頂${mc.sign.zh}</span>
       </div>
     </div>
 
     <h3>📋 星體位置表</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">點擊任一行查看具體解讀 ▼</p>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.9rem;">
         <thead>
@@ -150,6 +167,7 @@ function renderAstro(data) {
         </thead>
         <tbody>
           ${renderPlanetRow(asc)}
+          ${renderPlanetRow(mc)}
           ${planets.map(p => renderPlanetRow(p)).join('')}
           ${renderPlanetRow(northNode)}
         </tbody>
@@ -157,11 +175,13 @@ function renderAstro(data) {
     </div>
 
     <div class="divider"></div>
+    ${renderAspects(aspects)}
+    <div class="divider"></div>
     ${renderThreeBig(data)}
     <div class="divider"></div>
     ${renderElementSummary(planets)}
 
-    <div class="note">💡 使用等宮制（Equal House），以上升點為 1 宮頭，每宮 30°。行星位置基於 Jean Meeus 天文演算法，精度：太陽 ±0.01°、月亮 ±0.5°、外行星 ±1°。</div>
+    <div class="note">💡 使用等宮制（Equal House）。相位容許度：合相/對沖/三合 8°，六合/四分 6°。行星位置基於軌道力學計算。</div>
   `;
 }
 
@@ -300,6 +320,69 @@ function getSaturnText(sign) {
 function getNorthNodeText(sign) {
   const t = { "牡羊座":"靈魂方向：<b>從依賴走向獨立</b>。學會為自己做主、勇敢行動。行動：練習自己做決定。","金牛座":"靈魂方向：<b>從動盪走向穩定</b>。建立安全感、享受簡單美好。行動：投資穩定基礎。","雙子座":"靈魂方向：<b>從大道理走向生活溝通</b>。學傾聽和交流。行動：多聽少講，寫作分享。","巨蟹座":"靈魂方向：<b>從獨自承擔走向情感連結</b>。打開心、照顧人、被照顧。行動：建立深度友誼，允許脆弱。","獅子座":"靈魂方向：<b>從融入群體走向展現自我</b>。站上舞台展現才華。行動：找一件熱愛的事大膽展現。","處女座":"靈魂方向：<b>從夢想走向實際</b>。落地執行、精進技能。行動：選一個專業深耕。","天秤座":"靈魂方向：<b>從獨行走向合作</b>。在關係中成長。行動：學妥協和雙贏思維。","天蠍座":"靈魂方向：<b>從舒適走向轉化</b>。放下執著、深入內在。行動：面對逃避的議題。","射手座":"靈魂方向：<b>從細節走向大格局</b>。追求意義和智慧。行動：旅行、學哲學。","摩羯座":"靈魂方向：<b>從情感依賴走向自我實現</b>。建立事業、承擔責任。行動：設定長期目標並執行。","水瓶座":"靈魂方向：<b>從個人走向社群服務</b>。用才華改善集體。行動：加入有意義的社群。","雙魚座":"靈魂方向：<b>從控制走向信任</b>。放手、信任直覺。行動：發展靈性練習。" };
   return `<b>北交點在${sign.zh}</b>：你此生的成長方向。${t[sign.zh]||""}`;
+}
+
+/** 計算主要相位 */
+function calculateAspects(planets, ascLon, mcLon) {
+  const ASPECT_TYPES = [
+    { name: '合', symbol: '☌', angle: 0, orb: 8, meaning: '融合、強化' },
+    { name: '對沖', symbol: '☍', angle: 180, orb: 8, meaning: '對立、互補' },
+    { name: '三合', symbol: '△', angle: 120, orb: 8, meaning: '和諧、流動' },
+    { name: '四分', symbol: '□', angle: 90, orb: 6, meaning: '挑戰、成長動力' },
+    { name: '六合', symbol: '⚹', angle: 60, orb: 6, meaning: '機會、輕鬆配合' },
+  ];
+
+  const aspects = [];
+  const sunIdx = 0, moonIdx = 1;
+
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      // 只保留：太陽或月亮相關 + 任何合相
+      const isSunMoon = (i === sunIdx || i === moonIdx || j === sunIdx || j === moonIdx);
+
+      let diff = Math.abs(planets[i].longitude - planets[j].longitude);
+      if (diff > 180) diff = 360 - diff;
+
+      for (const asp of ASPECT_TYPES) {
+        const delta = Math.abs(diff - asp.angle);
+        if (delta <= asp.orb) {
+          // 合相全保留，其他只保留太陽/月亮相關
+          if (asp.angle === 0 || isSunMoon) {
+            aspects.push({
+              planet1: planets[i],
+              planet2: planets[j],
+              type: asp,
+              exactDelta: delta.toFixed(1),
+            });
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  return aspects;
+}
+
+/** 渲染相位區塊 */
+function renderAspects(aspects) {
+  if (aspects.length === 0) return '';
+
+  const rows = aspects.map(a => {
+    const strength = parseFloat(a.exactDelta) < 2 ? '（精準相位⚡）' : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.85rem;">
+      <span style="font-weight:600;min-width:60px;">${a.planet1.symbol}${a.planet1.zh}</span>
+      <span style="color:var(--accent);font-size:1.1rem;">${a.type.symbol}</span>
+      <span style="font-weight:600;min-width:60px;">${a.planet2.symbol}${a.planet2.zh}</span>
+      <span style="color:var(--muted);font-size:.8rem;">${a.type.name}（${a.type.meaning}）${strength}</span>
+    </div>`;
+  }).join('');
+
+  return `
+    <h3>🔗 主要相位</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">太陽/月亮的相位 + 其他行星合相</p>
+    ${rows}
+  `;
 }
 
 function getHouseDirection(house) {

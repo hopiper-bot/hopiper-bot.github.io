@@ -195,6 +195,26 @@ export function ascendant(jd, lat, lng) {
 }
 
 /**
+ * 天頂（MC / Medium Coeli）計算
+ * MC = atan(tan(RAMC) / cos(eps))
+ * @param {number} jd - Julian Day
+ * @param {number} lng - 地理經度（度）
+ * @returns {number} 黃道經度 0-360°
+ */
+export function midheaven(jd, lng) {
+  const eps = obliquity(jd);
+  const gst = greenwichSiderealTime(jd);
+  const ramc = normalizeDeg(gst + lng);
+
+  // MC = atan2(tan(RAMC), cos(eps))... 需處理象限
+  // 簡化：MC = atan(tan(RAMC)/cos(eps))，再根據 RAMC 象限調整
+  let mc = atan2Deg(sinDeg(ramc), cosDeg(ramc) * cosDeg(eps));
+  mc = normalizeDeg(mc);
+
+  return mc;
+}
+
+/**
  * 水星黃道經度（精度 ±1°）
  * 簡化演算法
  * @param {number} jd - Julian Day
