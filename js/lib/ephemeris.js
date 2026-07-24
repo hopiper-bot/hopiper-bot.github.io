@@ -170,6 +170,9 @@ export function greenwichSiderealTime(jd) {
 
 /**
  * 上升點（Ascendant）計算
+ * 正確公式來自 Jean Meeus《Astronomical Algorithms》Chapter 13
+ * ASC = atan(-cos(RAMC) / (sin(RAMC)*cos(eps) + tan(lat)*sin(eps)))
+ * 需要確保結果在正確象限
  * @param {number} jd - Julian Day
  * @param {number} lat - 地理緯度（度）
  * @param {number} lng - 地理經度（度）
@@ -178,13 +181,19 @@ export function greenwichSiderealTime(jd) {
 export function ascendant(jd, lat, lng) {
   const eps = obliquity(jd);
   const gst = greenwichSiderealTime(jd);
-  const lst = normalizeDeg(gst + lng); // 地方恆星時
+  const lst = normalizeDeg(gst + lng); // 地方恆星時 = RAMC (degree)
 
-  // RAMC (Right Ascension of Medium Coeli) = LST
-  // ASC = atan2(-cos(RAMC), sin(RAMC)*cos(eps) + tan(lat)*sin(eps))
-  const numerator = -cosDeg(lst);
-  const denominator = sinDeg(lst) * cosDeg(eps) + tanDeg(lat) * sinDeg(eps);
-  let asc = atan2Deg(numerator, denominator);
+  // Meeus 正確公式:
+  // tan(ASC) = -cos(RAMC) / (sin(RAMC)*cos(eps) + tan(lat)*sin(eps))
+  // 使用 atan2 確保象限正確
+  const y = -cosDeg(lst);
+  const x = sinDeg(lst) * cosDeg(eps) + tanDeg(lat) * sinDeg(eps);
+
+  // atan2 得到的是以 x 軸為基準的角度 (-180 to 180)
+  // 但我們需要黃道經度 (0 to 360)
+  let asc = atan2Deg(y, x);
+
+  // atan2Deg 回傳 -180~180, 轉成 0~360
   asc = normalizeDeg(asc);
 
   return asc;
