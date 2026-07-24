@@ -63,16 +63,6 @@ export function calculate(birthData) {
   try {
     // 計算 Julian Day
     const jd = julianDay(year, month, day, hour, minute, utcOffset);
-    console.log('[astro] birthData:', { year, month, day, hour, minute, lat, lng, utcOffset });
-    console.log('[astro] JD:', jd);
-
-    // 上升點
-    const ascLon = ascendant(jd, lat, lng);
-    console.log('[astro] ASC longitude:', ascLon, '-> sign:', Math.floor(ascLon/30), 'deg:', (ascLon%30).toFixed(2));
-
-    // 太陽
-    const sunLon = sunLongitude(jd);
-    console.log('[astro] Sun longitude:', sunLon, '-> sign:', Math.floor(sunLon/30), 'deg:', (sunLon%30).toFixed(2));
 
     // 上升點
     const ascLon = ascendant(jd, lat, lng);
