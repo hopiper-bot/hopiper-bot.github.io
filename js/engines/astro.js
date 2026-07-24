@@ -5,11 +5,13 @@
 
 import {
   julianDay, sunLongitude, moonLongitude, ascendant, longitudeToSign,
-  mercuryLongitude, venusLongitude, marsLongitude,
-  jupiterLongitude, saturnLongitude,
-  uranusLongitude, neptuneLongitude, plutoLongitude,
   northNodeLongitude
 } from '../lib/ephemeris.js';
+import {
+  mercuryGeoLon, venusGeoLon, marsGeoLon,
+  jupiterGeoLon, saturnGeoLon,
+  uranusGeoLon, neptuneGeoLon, plutoGeoLon
+} from '../lib/planets.js';
 import { normalizeDeg } from '../lib/utils.js';
 import { SIGNS } from '../data/astro-text.js';
 
@@ -17,14 +19,14 @@ import { SIGNS } from '../data/astro-text.js';
 const PLANETS = [
   { id: 'sun', zh: '太陽', symbol: '☉', calcFn: sunLongitude },
   { id: 'moon', zh: '月亮', symbol: '☽', calcFn: moonLongitude },
-  { id: 'mercury', zh: '水星', symbol: '☿', calcFn: mercuryLongitude },
-  { id: 'venus', zh: '金星', symbol: '♀', calcFn: venusLongitude },
-  { id: 'mars', zh: '火星', symbol: '♂', calcFn: marsLongitude },
-  { id: 'jupiter', zh: '木星', symbol: '♃', calcFn: jupiterLongitude },
-  { id: 'saturn', zh: '土星', symbol: '♄', calcFn: saturnLongitude },
-  { id: 'uranus', zh: '天王星', symbol: '♅', calcFn: uranusLongitude },
-  { id: 'neptune', zh: '海王星', symbol: '♆', calcFn: neptuneLongitude },
-  { id: 'pluto', zh: '冥王星', symbol: '♇', calcFn: plutoLongitude },
+  { id: 'mercury', zh: '水星', symbol: '☿', calcFn: mercuryGeoLon },
+  { id: 'venus', zh: '金星', symbol: '♀', calcFn: venusGeoLon },
+  { id: 'mars', zh: '火星', symbol: '♂', calcFn: marsGeoLon },
+  { id: 'jupiter', zh: '木星', symbol: '♃', calcFn: jupiterGeoLon },
+  { id: 'saturn', zh: '土星', symbol: '♄', calcFn: saturnGeoLon },
+  { id: 'uranus', zh: '天王星', symbol: '♅', calcFn: uranusGeoLon },
+  { id: 'neptune', zh: '海王星', symbol: '♆', calcFn: neptuneGeoLon },
+  { id: 'pluto', zh: '冥王星', symbol: '♇', calcFn: plutoGeoLon },
 ];
 
 /** 宮位名稱 */
@@ -165,14 +167,66 @@ function renderAstro(data) {
 
 function renderPlanetRow(planet) {
   const signColor = elementColor(planet.sign.elementEn);
+  const detailId = `detail-${planet.id}`;
+  // 根據星體生成解說文字
+  const detail = getPlanetDetail(planet);
   return `
-    <tr style="border-bottom:1px solid rgba(255,255,255,.05);">
+    <tr style="border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'table-row':'none';">
       <td style="padding:8px 6px;font-weight:600;">${planet.symbol} ${planet.zh}</td>
       <td style="padding:8px 6px;"><span class="tag tag-${signColor}" style="font-size:.75rem;">${planet.sign.zh}</span></td>
       <td style="padding:8px 6px;font-family:monospace;font-size:.85rem;">${planet.degreeStr}</td>
       <td style="padding:8px 6px;">${planet.house}宮</td>
     </tr>
+    <tr id="${detailId}" style="display:none;">
+      <td colspan="4" style="padding:12px 10px;background:rgba(123,108,246,.08);border-radius:8px;">
+        <div style="font-size:.85rem;color:var(--text);line-height:1.7;">${detail}</div>
+      </td>
+    </tr>
   `;
+}
+
+/** 取得星體的解說文字 */
+function getPlanetDetail(planet) {
+  const sign = planet.sign;
+  const house = planet.house;
+  
+  // 星體意義
+  const planetMeaning = {
+    sun: '太陽代表你的核心自我、意志力和人生目標方向。',
+    moon: '月亮代表你的內在情緒需求、安全感來源和直覺反應。',
+    asc: '上升代表你面對世界的方式、給人的第一印象和外在形象。',
+    mercury: '水星代表你的思考方式、溝通風格和學習模式。',
+    venus: '金星代表你的愛情觀、審美品味和價值觀。',
+    mars: '火星代表你的行動力、慾望和面對衝突的方式。',
+    jupiter: '木星代表你的擴展方向、幸運領域和信念系統。',
+    saturn: '土星代表你的人生功課、責任感和需要磨練的領域。',
+    uranus: '天王星代表你的獨特性、突破方向和變革能量。',
+    neptune: '海王星代表你的靈性傾向、想像力和容易迷失的地方。',
+    pluto: '冥王星代表你的深層轉化力量、重生議題和權力課題。',
+    northNode: '北交點代表你此生的成長方向和靈魂想要發展的領域。',
+  };
+  
+  // 宮位意義
+  const houseMeaning = [
+    '', // 0 placeholder
+    '落入1宮（自我）：這股能量直接融入你的個性，是別人一眼就能感受到的特質。',
+    '落入2宮（財帛）：這股能量影響你的金錢觀和自我價值感，也反映你賺錢的方式。',
+    '落入3宮（溝通）：這股能量表現在日常溝通、學習和與兄弟姊妹的關係中。',
+    '落入4宮（家庭）：這股能量與你的家庭根源、內心安全感和居住環境有關。',
+    '落入5宮（創造）：這股能量表現在創意、戀愛、娛樂和與子女的關係中。',
+    '落入6宮（服務）：這股能量影響你的工作態度、健康習慣和日常生活節奏。',
+    '落入7宮（關係）：這股能量表現在一對一的伴侶關係和重要合作中。',
+    '落入8宮（轉化）：這股能量與深層轉化、共享資源和親密關係有關。',
+    '落入9宮（探索）：這股能量驅動你追求高等知識、旅行和人生哲學。',
+    '落入10宮（事業）：這股能量直接影響你的公眾形象、事業方向和社會成就。',
+    '落入11宮（社群）：這股能量表現在社交圈、團體合作和對未來的願景中。',
+    '落入12宮（靈性）：這股能量在潛意識中運作，與靈性、直覺和內在療癒有關。',
+  ];
+  
+  const pMeaning = planetMeaning[planet.id] || '';
+  const hMeaning = houseMeaning[house] || '';
+  
+  return `<b>${planet.symbol} ${planet.zh}在${sign.zh} ${house}宮</b><br>${pMeaning}<br>${hMeaning}`;
 }
 
 function renderThreeBig(data) {
