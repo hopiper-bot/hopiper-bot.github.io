@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生命藍圖｜多系統命理合盤</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="wrap">
+    <!-- Header -->
+    <header>
+      <div class="logo-icon">✦</div>
+      <h1>生命藍圖</h1>
+      <p>馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀</p>
+    </header>
+
+    <!-- Input Form -->
+    <div class="panel">
+      <form id="birth-form" novalidate>
+        <label>出生日期</label>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="number" id="birth-year" placeholder="年份" min="1900" max="2100" aria-label="出生年份">
+          </div>
+          <div class="form-group">
+            <select id="birth-month" aria-label="出生月份">
+              <option value="">月</option>
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <input type="number" id="birth-day" placeholder="日" min="1" max="31" aria-label="出生日">
+          </div>
+        </div>
+        <div id="error-date" class="error-msg" role="alert"></div>
+
+        <label>出生時間</label>
+        <div class="form-row">
+          <div class="form-group">
+            <input type="number" id="birth-hour" placeholder="時（0-23）" min="0" max="23" aria-label="出生小時">
+          </div>
+          <div class="form-group">
+            <input type="number" id="birth-minute" placeholder="分（0-59）" min="0" max="59" aria-label="出生分鐘">
+          </div>
+        </div>
+        <div id="error-time" class="error-msg" role="alert"></div>
+
+        <label>出生地點</label>
+        <div class="form-row">
+          <div class="form-group wide">
+            <input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度（如：25.03, 121.56）" aria-label="出生地點" maxlength="100">
+          </div>
+        </div>
+        <div id="error-location" class="error-msg" role="alert"></div>
+
+        <div class="form-row" style="margin-top:18px;">
+          <button type="submit" class="btn-primary">開始解讀 ✦</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" aria-live="polite">
+      <div class="loading-spinner"></div>
+      <p>正在計算你的生命藍圖⋯</p>
+    </div>
+
+    <!-- Result Container -->
+    <div id="result-container" class="panel result-container">
+      <!-- Tabs -->
+      <nav class="tabs" role="tablist" aria-label="命理系統切換">
+        <div class="tab active" data-view="maya" role="tab" aria-selected="true" tabindex="0">馬雅曆</div>
+        <div class="tab" data-view="astro" role="tab" aria-selected="false" tabindex="0">星座</div>
+        <div class="tab" data-view="bazi" role="tab" aria-selected="false" tabindex="0">八字</div>
+        <div class="tab" data-view="ziwei" role="tab" aria-selected="false" tabindex="0">紫微</div>
+        <div class="tab" data-view="hd" role="tab" aria-selected="false" tabindex="0">人類圖</div>
+        <div class="tab" data-view="transit" role="tab" aria-selected="false" tabindex="0">流年</div>
+        <div class="tab" data-view="synthesis" role="tab" aria-selected="false" tabindex="0">綜合</div>
+      </nav>
+
+      <!-- Views -->
+      <div id="view-maya" class="view active" role="tabpanel" aria-label="馬雅曆結果"></div>
+      <div id="view-astro" class="view" role="tabpanel" aria-label="星座結果"></div>
+      <div id="view-bazi" class="view" role="tabpanel" aria-label="八字結果"></div>
+      <div id="view-ziwei" class="view" role="tabpanel" aria-label="紫微斗數結果"></div>
+      <div id="view-hd" class="view" role="tabpanel" aria-label="人類圖結果"></div>
+      <div id="view-transit" class="view" role="tabpanel" aria-label="流年分析結果"></div>
+      <div id="view-synthesis" class="view" role="tabpanel" aria-label="綜合分析結果"></div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
