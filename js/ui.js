@@ -41,7 +41,17 @@ export function hideLoading() {
 /** 顯示結果容器 */
 export function showResults() {
   const el = document.getElementById('result-container');
-  if (el) el.classList.add('show');
+  if (el) {
+    el.classList.add('show');
+    // 加入引言（只在第一次顯示時）
+    if (!el.querySelector('.intro-quote')) {
+      const quote = document.createElement('div');
+      quote.className = 'intro-quote';
+      quote.style.cssText = 'text-align:center;padding:16px 12px;margin-bottom:16px;font-size:.88rem;color:var(--muted);line-height:1.8;border-bottom:1px solid rgba(255,255,255,.06);';
+      quote.innerHTML = '這不是命運的審判，而是認識自己的地圖。<br>無需和別人比較，每個人的人生都有各自的周期。<br>任何事都有它的含義 — 看懂了，就是好運。';
+      el.insertBefore(quote, el.querySelector('nav'));
+    }
+  }
 }
 
 /** 隱藏結果容器 */
