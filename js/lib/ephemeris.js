@@ -183,17 +183,12 @@ export function ascendant(jd, lat, lng) {
   const gst = greenwichSiderealTime(jd);
   const lst = normalizeDeg(gst + lng); // 地方恆星時 = RAMC (degree)
 
-  // Meeus 正確公式:
-  // tan(ASC) = -cos(RAMC) / (sin(RAMC)*cos(eps) + tan(lat)*sin(eps))
-  // 使用 atan2 確保象限正確
-  const y = -cosDeg(lst);
-  const x = sinDeg(lst) * cosDeg(eps) + tanDeg(lat) * sinDeg(eps);
+  // Correct ASC formula (Duffett-Smith / Meeus):
+  // tan(ASC) = cos(RAMC) / -(sin(RAMC)*cos(eps) + tan(lat)*sin(eps))
+  const y = cosDeg(lst);
+  const x = -(sinDeg(lst) * cosDeg(eps) + tanDeg(lat) * sinDeg(eps));
 
-  // atan2 得到的是以 x 軸為基準的角度 (-180 to 180)
-  // 但我們需要黃道經度 (0 to 360)
   let asc = atan2Deg(y, x);
-
-  // atan2Deg 回傳 -180~180, 轉成 0~360
   asc = normalizeDeg(asc);
 
   return asc;
