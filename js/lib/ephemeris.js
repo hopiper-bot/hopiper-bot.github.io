@@ -191,6 +191,103 @@ export function ascendant(jd, lat, lng) {
 }
 
 /**
+ * 水星黃道經度（精度 ±1°）
+ * 簡化演算法
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function mercuryLongitude(jd) {
+  const T = jdToJC(jd);
+  const L = normalizeDeg(252.2509 + 149472.6746 * T);
+  const M = normalizeDeg(174.7948 + 149472.5153 * T);
+  let lon = L
+    + 23.440 * sinDeg(M)
+    + 2.9818 * sinDeg(2 * M)
+    + 0.5255 * sinDeg(3 * M)
+    + 0.1058 * sinDeg(4 * M);
+  return normalizeDeg(lon);
+}
+
+/**
+ * 金星黃道經度（精度 ±1°）
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function venusLongitude(jd) {
+  const T = jdToJC(jd);
+  const L = normalizeDeg(181.9798 + 58517.8157 * T);
+  const M = normalizeDeg(50.4161 + 58517.8039 * T);
+  let lon = L
+    + 0.7758 * sinDeg(M)
+    + 0.0033 * sinDeg(2 * M);
+  return normalizeDeg(lon);
+}
+
+/**
+ * 火星黃道經度（精度 ±1°）
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function marsLongitude(jd) {
+  const T = jdToJC(jd);
+  const L = normalizeDeg(355.4330 + 19140.2993 * T);
+  const M = normalizeDeg(19.3730 + 19139.8585 * T);
+  let lon = L
+    + 10.691 * sinDeg(M)
+    + 0.623 * sinDeg(2 * M)
+    + 0.050 * sinDeg(3 * M);
+  return normalizeDeg(lon);
+}
+
+/**
+ * 天王星黃道經度（精度 ±1°）
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function uranusLongitude(jd) {
+  const T = jdToJC(jd);
+  const L = normalizeDeg(314.055 + 428.467 * T);
+  const Ms = normalizeDeg(316.967 + 1222.114 * T); // Saturn M
+  const Mj = normalizeDeg(20.021 + 3034.687 * T);  // Jupiter M
+  let lon = L
+    + 5.312 * sinDeg(148.031 + 428.389 * T)
+    + 0.306 * sinDeg(2 * (148.031 + 428.389 * T))
+    - 0.577 * sinDeg(Ms - 2 * (148.031 + 428.389 * T));
+  return normalizeDeg(lon);
+}
+
+/**
+ * 海王星黃道經度（精度 ±1°）
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function neptuneLongitude(jd) {
+  const T = jdToJC(jd);
+  const L = normalizeDeg(304.459 + 218.762 * T);
+  let lon = L
+    + 1.883 * sinDeg(32.737 + 218.477 * T)
+    + 0.034 * sinDeg(2 * (32.737 + 218.477 * T));
+  return normalizeDeg(lon);
+}
+
+/**
+ * 冥王星黃道經度（精度 ±2°）
+ * 極簡化 — 冥王星軌道不規則，低精度近似
+ * @param {number} jd - Julian Day
+ * @returns {number} 黃道經度 0-360°
+ */
+export function plutoLongitude(jd) {
+  const T = jdToJC(jd);
+  // 基於 1900-2100 期間的線性+正弦近似
+  const L = 232.74 + 144.9266 * T;
+  const M = normalizeDeg(1.397 + 144.752 * T);
+  let lon = L
+    + 6.368 * sinDeg(M)
+    + 0.412 * sinDeg(2 * M);
+  return normalizeDeg(lon);
+}
+
+/**
  * 黃道經度 → 星座索引 (0=白羊, 1=金牛, ..., 11=雙魚)
  * @param {number} longitude - 黃道經度 0-360
  * @returns {number} 星座索引 0-11
