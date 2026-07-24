@@ -31,12 +31,14 @@ function init() {
 
 /** 從表單取得輸入值 */
 function getFormData() {
+  const hourVal = document.getElementById('birth-hour')?.value;
+  const minuteVal = document.getElementById('birth-minute')?.value;
   return {
     year: parseInt(document.getElementById('birth-year')?.value) || 0,
     month: parseInt(document.getElementById('birth-month')?.value) || 0,
     day: parseInt(document.getElementById('birth-day')?.value) || 0,
-    hour: parseInt(document.getElementById('birth-hour')?.value) ?? -1,
-    minute: parseInt(document.getElementById('birth-minute')?.value) ?? 0,
+    hour: (hourVal !== '' && hourVal != null) ? parseInt(hourVal) : -1,
+    minute: (minuteVal !== '' && minuteVal != null) ? parseInt(minuteVal) : 0,
     location: document.getElementById('birth-location')?.value?.trim() || '',
   };
 }
