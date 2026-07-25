@@ -174,6 +174,16 @@ function placeMinorStars(yearStemIdx, yearBranchIdx, lunarMonth, hourBranch, min
   // 地劫（由時支定）
   add((hourBranch + 11) % 12, "地劫");
 
+  // 祿存（由年干定）：直接在祿位
+  add(luPos[yearStemIdx], "祿存");
+
+  // 天馬（由年支定）
+  // 寅午戌年在申、申子辰年在寅、巳酉丑年在亥、亥卯未年在巳
+  const tianmaMap = { 2:8,6:8,10:8, 8:2,0:2,4:2, 5:11,9:11,1:11, 11:5,3:5,7:5 };
+  if (tianmaMap[yearBranchIdx] !== undefined) {
+    add(tianmaMap[yearBranchIdx], "天馬");
+  }
+
   return minor;
 }
 
@@ -230,6 +240,8 @@ const STAR_INFO = {
   "陀羅": "拖延星 — 做事拖磨、但有韌性和耐力。",
   "地空": "空亡星 — 想法超脫、有靈性但不切實際。適合創意。",
   "地劫": "劫財星 — 財來財去、適合技術而非守財。",
+  "祿存": "財祿星 — 穩定的財源和物質保障。代表你天生有某方面的資源保底。",
+  "天馬": "驛馬星 — 奔波、活動力強。跟祿存同宮形成「祿馬交馳」格局更佳。",
 };
 
 // === 宮位意義 ===
