@@ -301,6 +301,7 @@ export function calculate(birthData) {
     
     // 存到 window 供點擊事件使用
     if (typeof window !== 'undefined') {
+      const defTypeZh = ['無定義', '單一定義', '二分定義', '三分定義', '四分定義'][defType] || '';
       window._hdData = data;
       window._hdAllChannels = CHANNELS;
       window._hdChannelDesc = getChannelDesc;
