@@ -1,21 +1,25 @@
-/* ===== CSS Variables (暗紫金主題) ===== */
+/* ===== CSS Variables (深墨綠 × 霧金主題) ===== */
 :root {
-  --bg: #1a1230;
-  --bg-gradient: radial-gradient(circle at 20% 10%, #2b1d55 0%, #1a1230 55%);
-  --card: #241a44;
-  --card-border: rgba(123, 108, 246, 0.35);
-  --accent: #f5c542;
-  --accent2: #7b6cf6;
-  --text: #ece7ff;
-  --muted: #a99fd6;
-  --red: #e0556b;
-  --white: #e8e8ef;
-  --blue: #5a86e0;
-  --yellow: #f5c542;
-  --input-bg: #160f2b;
+  --bg: #0F2E2A;
+  --bg-gradient: radial-gradient(circle at 20% 10%, #1B4332 0%, #0F2E2A 55%);
+  --card: #143A36;
+  --card-border: rgba(198, 169, 105, 0.25);
+  --accent: #C6A969;
+  --accent2: #5C8D89;
+  --text: #F8F7F2;
+  --muted: #8FAF9B;
+  --red: #8B1E2D;
+  --white: #F5F5F0;
+  --blue: #5C8D89;
+  --yellow: #D4AF37;
+  --input-bg: #0A2420;
   --radius: 14px;
   --radius-lg: 18px;
   --transition: 0.3s ease;
+
+  /* 霧金漸層 */
+  --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #C6A969 50%, #A38241 100%);
+  --gold-text-gradient: linear-gradient(135deg, #E6CA65 0%, #C6A969 60%, #9B783E 100%);
 }
 
 /* ===== Reset & Base ===== */
@@ -49,7 +53,12 @@ header h1 {
   font-size: 1.9rem;
   margin: 0 0 6px;
   letter-spacing: 2px;
-  color: var(--accent);
+  /* 金色文字光澤 */
+  color: transparent;
+  background: var(--gold-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.4));
 }
 
 header p {
@@ -70,7 +79,7 @@ header p {
   border-radius: var(--radius-lg);
   padding: 22px;
   margin-bottom: 22px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 /* ===== Form Elements ===== */
@@ -125,8 +134,8 @@ input::placeholder {
 
 /* ===== Button ===== */
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent), #f59e42);
-  color: #2b1d00;
+  background: var(--gold-gradient);
+  color: #1a1200;
   border: none;
   border-radius: 12px;
   padding: 12px 28px;
@@ -140,7 +149,7 @@ input::placeholder {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(245, 197, 66, 0.3);
+  box-shadow: 0 4px 20px rgba(198, 169, 105, 0.35);
 }
 
 .btn-primary:active {
@@ -182,7 +191,7 @@ input::placeholder {
 .tab.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(245, 197, 66, 0.08);
+  background: rgba(198, 169, 105, 0.08);
 }
 
 /* ===== Result Views ===== */
@@ -237,7 +246,11 @@ input::placeholder {
 
 /* ===== Section Headers ===== */
 h3 {
-  color: var(--accent);
+  color: transparent;
+  background: var(--gold-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.3));
   margin: 22px 0 8px;
   font-size: 1.1rem;
   border-left: 4px solid var(--accent);
@@ -259,7 +272,7 @@ h3 {
 /* ===== Divider ===== */
 .divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(198, 169, 105, 0.12);
   margin: 24px 0;
 }
 
@@ -275,11 +288,11 @@ h3 {
 .tag-red { background: var(--red); color: #fff; }
 .tag-white { background: var(--white); color: #333; }
 .tag-blue { background: var(--blue); color: #fff; }
-.tag-yellow { background: var(--yellow); color: #3a2c00; }
+.tag-yellow { background: var(--gold-gradient); color: #1a1200; }
 
 /* ===== Error Messages ===== */
 .error-msg {
-  color: var(--red);
+  color: #A52A2A;
   font-size: 0.85rem;
   margin-top: 6px;
   display: none;
@@ -295,8 +308,8 @@ h3 {
   padding: 18px;
   border-radius: var(--radius);
   margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(123, 108, 246, 0.25), rgba(245, 197, 66, 0.12));
-  border: 1px solid rgba(245, 197, 66, 0.3);
+  background: linear-gradient(135deg, rgba(92, 141, 137, 0.2), rgba(198, 169, 105, 0.12));
+  border: 1px solid rgba(198, 169, 105, 0.3);
 }
 
 .sig .kin {
