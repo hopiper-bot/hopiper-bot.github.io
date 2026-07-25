@@ -20,6 +20,7 @@ import { normalizeDeg } from '../lib/utils.js';
 import { longitudeToGate, GATES, LINE_NAMES } from '../data/hd-gates.js';
 import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
 import { CENTERS, getDefinedCenters, getDefinitionType } from '../data/hd-centers.js';
+import { getPlanetGateDesc } from '../data/hd-text.js';
 
 /** 用於計算的行星列表 */
 const PLANETS = [
@@ -661,10 +662,15 @@ function renderPlanetTable(pPlanets, dPlanets) {
         </td>
       </tr>
       <tr id="${detailId}" style="display:none;">
-        <td colspan="3" style="padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.82rem;line-height:1.8;">
-          <b>${planet.zh}的意義：</b>${meaning}<br>
-          <b>意識面（P）：</b>閘門 ${p.gate}「${pGate?.keyword || ''}」— 你自己知道的這股能量。你以 ${p.line}爻${pLineName}的方式表達它。<br>
-          <b>潛意識面（D）：</b>閘門 ${d.gate}「${dGate?.keyword || ''}」— 別人看到你的這股能量，但你自己不一定察覺。
+        <td colspan="3" style="padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.82rem;line-height:1.8;">
+          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+            <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">☉ 意識面（你知道的自己）— 閘門 ${p.gate}「${pGate?.keyword || ''}」</div>
+            ${getPlanetGateDesc(planet.id, p.gate, p.line)}
+          </div>
+          <div>
+            <div style="font-weight:700;color:#e0556b;margin-bottom:4px;">☉ 潛意識面（別人看到的你）— 閘門 ${d.gate}「${dGate?.keyword || ''}」</div>
+            ${getPlanetGateDesc(planet.id, d.gate, d.line)}
+          </div>
         </td>
       </tr>`;
   }).join('');
