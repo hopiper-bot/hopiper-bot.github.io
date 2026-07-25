@@ -435,8 +435,8 @@ function renderBodyGraph(data) {
     // 每個閘門的顏色
     function gateColor(activation) {
       if (!activation) return '#ffffff';  // 未啟動 = 白色
-      if (activation === 'personality') return '#333333';  // 意識 = 黑（深灰）
-      if (activation === 'design') return '#e0556b';  // 潛意識 = 紅
+      if (activation === 'personality') return '#000000';  // 意識 = 純黑
+      if (activation === 'design') return '#ff0000';  // 潛意識 = 純紅
       return 'url(#hdStripe)';  // 兩者 = 紅黑條紋
     }
 
@@ -506,17 +506,17 @@ function renderBodyGraph(data) {
       <svg viewBox="0 0 500 620" width="100%" style="max-width:600px;">
         <defs>
           <pattern id="hdStripe" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
-            <rect width="8" height="8" fill="#333333"/>
-            <line x1="0" y1="0" x2="0" y2="8" stroke="#e0556b" stroke-width="4"/>
+            <rect width="8" height="8" fill="#000000"/>
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#ff0000" stroke-width="4"/>
           </pattern>
         </defs>
         ${channelLines}
         ${centerShapes}
       </svg>
       <div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:.78rem;color:var(--muted);flex-wrap:wrap;">
-        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#333;border-radius:2px;"></span> 意識（黑）</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#e0556b;border-radius:2px;"></span> 潛意識（紅）</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:repeating-linear-gradient(45deg,#333,#333 2px,#e0556b 2px,#e0556b 4px);border-radius:2px;"></span> 兩者（條紋）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#000;border-radius:2px;"></span> 意識（黑）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#ff0000;border-radius:2px;"></span> 潛意識（紅）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:repeating-linear-gradient(45deg,#000,#000 2px,#ff0000 2px,#ff0000 4px);border-radius:2px;"></span> 兩者（條紋）</span>
         <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#fff;border-radius:2px;"></span> 未啟動（白）</span>
       </div>
       <p style="font-size:.75rem;color:var(--muted);margin:6px 0 0;">每條通道分兩半，各自顯示該端閘門的啟動來源 ｜ 點擊定義通道查看解說</p>
