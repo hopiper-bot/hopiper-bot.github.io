@@ -306,10 +306,10 @@ function renderBazi(data) {
         <thead>
           <tr style="color:var(--muted);font-size:.75rem;border-bottom:1px solid var(--card-border);">
             <th style="padding:6px;width:60px;"></th>
-            <th style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-y').style.display=document.getElementById('bz-y').style.display==='none'?'block':'none';">年柱</th>
-            <th style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-m').style.display=document.getElementById('bz-m').style.display==='none'?'block':'none';">月柱</th>
-            <th style="padding:6px;color:var(--accent);cursor:pointer;" onclick="document.getElementById('bz-d').style.display=document.getElementById('bz-d').style.display==='none'?'block':'none';">日柱（你）</th>
-            <th style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-h').style.display=document.getElementById('bz-h').style.display==='none'?'block':'none';">時柱</th>
+            <th style="padding:6px;cursor:pointer;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-y').style.display='block';">年柱</th>
+            <th style="padding:6px;cursor:pointer;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-m').style.display='block';">月柱</th>
+            <th style="padding:6px;color:var(--accent);cursor:pointer;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-d').style.display='block';">日柱（你）</th>
+            <th style="padding:6px;cursor:pointer;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-h').style.display='block';">時柱</th>
           </tr>
         </thead>
         <tbody>
@@ -320,19 +320,19 @@ function renderBazi(data) {
             <td style="padding:4px;color:var(--accent);">日主</td>
             <td style="padding:4px;">${tenGods.find(t=>t.pillar==='hour')?.god||''}</td>
           </tr>
-          <tr style="font-size:1.4rem;font-weight:700;">
+          <tr style="font-size:1.4rem;font-weight:700;cursor:pointer;">
             <td style="padding:6px;font-size:.75rem;color:var(--muted);">天干</td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-y').style.display=document.getElementById('bz-y').style.display==='none'?'block':'none';">${p.year.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.year.stem]}</sub></td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-m').style.display=document.getElementById('bz-m').style.display==='none'?'block':'none';">${p.month.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.month.stem]}</sub></td>
-            <td style="padding:6px;color:var(--accent);cursor:pointer;" onclick="document.getElementById('bz-d').style.display=document.getElementById('bz-d').style.display==='none'?'block':'none';">${p.day.stem}<sub style="font-size:.6rem;">${STEM_ELEMENT[p.day.stem]}</sub></td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-h').style.display=document.getElementById('bz-h').style.display==='none'?'block':'none';">${p.hour.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.hour.stem]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-y').style.display='block';">${p.year.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.year.stem]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-m').style.display='block';">${p.month.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.month.stem]}</sub></td>
+            <td style="padding:6px;color:var(--accent);" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-d').style.display='block';">${p.day.stem}<sub style="font-size:.6rem;">${STEM_ELEMENT[p.day.stem]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-h').style.display='block';">${p.hour.stem}<sub style="font-size:.6rem;color:var(--muted);">${STEM_ELEMENT[p.hour.stem]}</sub></td>
           </tr>
-          <tr style="font-size:1.4rem;font-weight:700;">
+          <tr style="font-size:1.4rem;font-weight:700;cursor:pointer;">
             <td style="padding:6px;font-size:.75rem;color:var(--muted);">地支</td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-y').style.display=document.getElementById('bz-y').style.display==='none'?'block':'none';">${p.year.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.year.branch]}</sub></td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-m').style.display=document.getElementById('bz-m').style.display==='none'?'block':'none';">${p.month.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.month.branch]}</sub></td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-d').style.display=document.getElementById('bz-d').style.display==='none'?'block':'none';">${p.day.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.day.branch]}</sub></td>
-            <td style="padding:6px;cursor:pointer;" onclick="document.getElementById('bz-h').style.display=document.getElementById('bz-h').style.display==='none'?'block':'none';">${p.hour.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.hour.branch]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-y').style.display='block';">${p.year.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.year.branch]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-m').style.display='block';">${p.month.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.month.branch]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-d').style.display='block';">${p.day.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.day.branch]}</sub></td>
+            <td style="padding:6px;" onclick="document.querySelectorAll('.bz-exp').forEach(e=>e.style.display='none');document.getElementById('bz-h').style.display='block';">${p.hour.branch}<sub style="font-size:.6rem;color:var(--muted);">${BRANCH_ELEMENT[p.hour.branch]}</sub></td>
           </tr>
           <tr style="font-size:.75rem;color:var(--muted);">
             <td style="padding:4px;">藏干</td>
@@ -363,25 +363,25 @@ function renderBazi(data) {
     <div id="hid-h" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
       <b>時柱藏干十神：</b><br>${p.hour.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
     </div>
-    <div id="bz-y" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
+    <div id="bz-y" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
       <b>年柱（祖上・童年）：${p.year.stem}${p.year.branch}</b><br>
       天干 ${p.year.stem}（${STEM_ELEMENT[p.year.stem]}）→ ${tenGods.find(t=>t.pillar==='year')?.god||''}<br>
       藏干：${p.year.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
       ${getPillarText('year', tenGods.find(t=>t.pillar==='year')?.god)}
     </div>
-    <div id="bz-m" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
+    <div id="bz-m" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
       <b>月柱（事業・青年）：${p.month.stem}${p.month.branch}</b><br>
       天干 ${p.month.stem}（${STEM_ELEMENT[p.month.stem]}）→ ${tenGods.find(t=>t.pillar==='month')?.god||''}<br>
       藏干：${p.month.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
       ${getPillarText('month', tenGods.find(t=>t.pillar==='month')?.god)}
     </div>
-    <div id="bz-d" style="display:none;margin-top:8px;padding:10px;background:rgba(245,197,66,.06);border-radius:8px;border-left:3px solid var(--accent);font-size:.85rem;line-height:1.7;">
+    <div id="bz-d" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(245,197,66,.06);border-radius:8px;border-left:3px solid var(--accent);font-size:.85rem;line-height:1.7;">
       <b>日柱（自己・中年）：${p.day.stem}${p.day.branch}</b><br>
       日主 <span style="color:var(--accent);font-weight:700;">${dayMaster}（${dayMasterElem}）</span><br>
       藏干：${p.day.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
       ${getDayMasterText(dayMaster)}
     </div>
-    <div id="bz-h" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
+    <div id="bz-h" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
       <b>時柱（子女・晚年）：${p.hour.stem}${p.hour.branch}</b><br>
       天干 ${p.hour.stem}（${STEM_ELEMENT[p.hour.stem]}）→ ${tenGods.find(t=>t.pillar==='hour')?.god||''}<br>
       藏干：${p.hour.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
@@ -534,32 +534,36 @@ function renderDayun(dayun, birthYear) {
   const currentAge = now - birthYear;
 
   const godThemes = {
-    "比肩": "獨立發展、平等合作、自主創業",
-    "劫財": "競爭激烈、破財風險、行動力爆發",
-    "食神": "才華展現、享受生活、創作豐收",
-    "傷官": "突破框架、表達自我、注意口舌",
-    "偏財": "社交擴張、意外收穫、投資機會",
-    "正財": "穩定累積、務實理財、踏實收入",
-    "七殺": "壓力大但成長快、權力鬥爭、突破極限",
-    "正官": "事業穩定上升、獲得認可、承擔責任",
-    "偏印": "獨立思考、學習冷門技能、適合轉型",
-    "正印": "貴人運旺、學業順利、受人提攜",
+    "比肩": { brief: "獨立發展、平等合作", detail: "這10年適合自己做主、獨立發展。跟志同道合的朋友合作會有好結果。不適合依賴別人，要靠自己的判斷。" },
+    "劫財": { brief: "競爭激烈、行動力爆發", detail: "這10年環境競爭激烈，需要搶先一步。注意理財不要太衝動，但行動力是你的優勢。適合需要魄力的事業。" },
+    "食神": { brief: "才華展現、享受生活", detail: "這10年是展現才華和享受生活的好時機。創作、教學、餐飲都會順利。心態放輕鬆，好事自然來。" },
+    "傷官": { brief: "突破框架、表達自我", detail: "這10年你會想打破現有框架、嘗試新東西。創新能力強但注意不要太嗆。適合轉換跑道或開創新事業。" },
+    "偏財": { brief: "社交擴張、投資機會", detail: "這10年人脈是你最大的資產。多交朋友、多社交，意外的機會會從人際關係中來。可以嘗試投資但不要太冒險。" },
+    "正財": { brief: "穩定累積、務實理財", detail: "這10年適合穩紮穩打地累積。不要想暴富，靠紀律和耐心慢慢存。適合買房、長期投資。" },
+    "七殺": { brief: "壓力大但成長快", detail: "這10年壓力會比較大，但你的成長速度也是最快的。適合挑戰高難度的目標。撐過去你就升級了。" },
+    "正官": { brief: "事業穩定上升", detail: "這10年事業有正式的舞台和認可。適合在組織內升遷、考證照、建立專業形象。穩定向上。" },
+    "偏印": { brief: "獨立思考、適合轉型", detail: "這10年適合學習新技能、轉換方向。你的思維會變得更獨立，可能對靈性或冷門領域產生興趣。適合研究和自我提升。" },
+    "正印": { brief: "貴人運旺、受人提攜", detail: "這10年會有貴人出現幫你。適合學習進修、被提攜。保持謙虛，接受別人的幫助不是軟弱而是智慧。" },
   };
 
-  const rows = dayun.map(d => {
+  const rows = dayun.map((d, idx) => {
     const isCurrent = (currentAge >= d.age && currentAge < d.age + 10);
     const highlight = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : '';
     const marker = isCurrent ? '<span style="color:var(--accent);font-weight:700;"> ← 現在</span>' : '';
-    const theme = godThemes[d.god] || '';
-    return `<div style="padding:8px 10px;margin:4px 0;border-radius:8px;${highlight}">
+    const theme = godThemes[d.god] || { brief: '', detail: '' };
+    const detailId = `dayun-${idx}`;
+    return `<div style="padding:8px 10px;margin:4px 0;border-radius:8px;cursor:pointer;${highlight}" onclick="document.querySelectorAll('.dayun-exp').forEach(e=>e.style.display='none');const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
       <span style="font-weight:700;">${d.age}-${d.age+9}歲</span>（${d.yearStart}-${d.yearEnd}）
       <span style="margin-left:8px;font-size:1.1rem;">${d.stem}${d.branch}</span>
       <span style="color:var(--accent);margin-left:8px;">${d.god}運</span>${marker}
-      <div style="font-size:.82rem;color:var(--muted);margin-top:3px;">${theme}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px;">${theme.brief}</div>
+    </div>
+    <div id="${detailId}" class="dayun-exp" style="display:none;padding:8px 12px;margin:0 10px 8px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.83rem;line-height:1.7;">
+      ${theme.detail}
     </div>`;
   }).join('');
 
-  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">每10年換一步大運，代表那段時間的人生能量主題</p>${rows}`;
+  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">點擊各步大運查看詳細解讀</p>${rows}`;
 }
 
 /** 渲染神煞 */
@@ -572,19 +576,19 @@ function renderShensha(shensha) {
   }).join('');
 }
 
-/** 十神簡短解說 */
+/** 十神簡短解說 — 能量特質 + 怎麼用 */
 function getGodBrief(god) {
   const briefs = {
-    "比肩": "朋友、平等、獨立",
-    "劫財": "競爭、行動、破財風險",
-    "食神": "才華、享受、創作",
-    "傷官": "聰明、叛逆、表達",
-    "偏財": "人脈、意外財、社交",
-    "正財": "穩定收入、務實、節儉",
-    "七殺": "壓力、魄力、突破",
-    "正官": "責任、地位、規矩",
-    "偏印": "獨立思考、冷門才能",
-    "正印": "貴人、學習、保護",
+    "比肩": "代表獨立自主的能量。你在這方面有「自己來」的傾向，不喜歡被指揮，適合平等合作。",
+    "劫財": "代表行動和競爭的能量。你在這方面有衝勁和搶先的本能，適合需要魄力的場合。",
+    "食神": "代表創作和享受的能量。你在這方面有表達天賦，能把想法轉化為作品或服務。",
+    "傷官": "代表聰明和突破的能量。你在這方面不服從權威，有獨到見解，適合創新。",
+    "偏財": "代表人際敏感度的能量。你在這方面天生能讀懂人，善於建立連結和發現機會。",
+    "正財": "代表務實累積的能量。你在這方面穩健踏實，善於管理和維持。",
+    "七殺": "代表承壓和突破的能量。你在這方面能頂住壓力做出成果，越難越有動力。",
+    "正官": "代表責任和秩序的能量。你在這方面重視規矩和結構，適合體制內發展。",
+    "偏印": "代表獨立思考的能量。你在這方面思維獨特，可能對冷門或靈性領域有天賦。",
+    "正印": "代表學習和被支持的能量。你在這方面容易得到幫助，也擅長吸收知識。",
   };
   return briefs[god] || '';
 }
