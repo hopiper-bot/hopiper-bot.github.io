@@ -132,6 +132,98 @@ function monthPillar(year, month, day, hour, minute, utcOffset, yearStemIdx) {
   return { stemIdx, branchIdx: (monthIndex - 1 + 2) % 12, monthIndex };
 }
 
+// === 大運計算 ===
+
+function calculateDayun(monthStemIdx, monthBranchIdx, isForward, dayMaster, birthYear) {
+  const steps = [];
+  // 起運年齡簡化：男命陽年約 2-3 歲起運（用固定值簡化，精確計算需要節氣距離）
+  let startAge = 2; // 簡化，實際應根據出生日到下一個節的天數/3
+
+  for (let i = 0; i < 8; i++) {
+    let sIdx, bIdx;
+    if (isForward) {
+      sIdx = (monthStemIdx + i + 1) % 10;
+      bIdx = (monthBranchIdx + i + 1) % 12;
+    } else {
+      sIdx = ((monthStemIdx - i - 1) % 10 + 10) % 10;
+      bIdx = ((monthBranchIdx - i - 1) % 12 + 12) % 12;
+    }
+    const age = startAge + i * 10;
+    const stem = STEMS[sIdx];
+    const branch = BRANCHES[bIdx];
+    const god = getTenGod(dayMaster, stem);
+    const yearStart = birthYear + age;
+    const yearEnd = yearStart + 9;
+    steps.push({ age, stem, branch, god, yearStart, yearEnd, stemIdx: sIdx, branchIdx: bIdx });
+  }
+  return steps;
+}
+
+// === 神煞計算 ===
+
+function calculateShensha(pillars) {
+  const results = [];
+  const dayBranch = pillars.day.branch;
+  const yearBranch = pillars.year.branch;
+  const dayStem = pillars.day.stem;
+  const allBranches = [pillars.year.branch, pillars.month.branch, pillars.day.branch, pillars.hour.branch];
+
+  // 天乙貴人（日干查）
+  const tianyiMap = { "甲":["丑","未"], "乙":["子","申"], "丙":["亥","酉"], "丁":["亥","酉"], "戊":["丑","未"], "己":["子","申"], "庚":["丑","未"], "辛":["寅","午"], "壬":["卯","巳"], "癸":["卯","巳"] };
+  const tianyiBranches = tianyiMap[dayStem] || [];
+  if (allBranches.some(b => tianyiBranches.includes(b))) {
+    results.push({ name: "天乙貴人", desc: "你命中帶貴人 — 遇到困難時總有人在關鍵時刻伸出援手。善用你的人脈，主動結交比你層次高的人，貴人運才會啟動。" });
+  }
+
+  // 文昌（日干查）
+  const wenchangMap = { "甲":"巳", "乙":"午", "丙":"申", "丁":"酉", "戊":"申", "己":"酉", "庚":"亥", "辛":"子", "壬":"寅", "癸":"卯" };
+  if (allBranches.includes(wenchangMap[dayStem])) {
+    results.push({ name: "文昌", desc: "你有文昌星 — 學習能力強、考試運好、文字表達有天賦。適合從事需要知識和文字的工作：寫作、教育、研究、法律。" });
+  }
+
+  // 桃花（日支或年支查）
+  const taohuaMap = { "子":"酉", "丑":"午", "寅":"卯", "卯":"子", "辰":"酉", "巳":"午", "午":"卯", "未":"子", "申":"酉", "酉":"午", "戌":"卯", "亥":"子" };
+  const taohua = taohuaMap[dayBranch];
+  if (allBranches.includes(taohua)) {
+    results.push({ name: "桃花", desc: "你命帶桃花 — 人緣好、異性緣強、有魅力。這不一定是爛桃花，而是你天生有吸引人的氣質。善用在事業上（業務、公關、表演）效果加倍。" });
+  }
+
+  // 驛馬（年支或日支查）
+  const yimaMap = { "寅":"申", "申":"寅", "巳":"亥", "亥":"巳", "子":"午", "午":"子", "卯":"酉", "酉":"卯", "辰":"戌", "戌":"辰", "丑":"未", "未":"丑" };
+  // 正確驛馬：寅午戌馬在申、申子辰馬在寅、巳酉丑馬在亥、亥卯未馬在巳
+  const yimaGroup = { "寅":"申","午":"申","戌":"申", "申":"寅","子":"寅","辰":"寅", "巳":"亥","酉":"亥","丑":"亥", "亥":"巳","卯":"巳","未":"巳" };
+  const myYima = yimaGroup[yearBranch];
+  if (myYima && allBranches.includes(myYima)) {
+    results.push({ name: "驛馬", desc: "你命帶驛馬 — 一生與「動」有緣：搬家、出差、旅行、換工作。你適合不被綁在一個地方的生活方式。跨區域或國際性的工作對你有利。" });
+  }
+
+  // 華蓋（年支查）
+  const huagaiGroup = { "寅":"戌","午":"戌","戌":"戌", "申":"辰","子":"辰","辰":"辰", "巳":"丑","酉":"丑","丑":"丑", "亥":"未","卯":"未","未":"未" };
+  const myHuagai = huagaiGroup[yearBranch];
+  if (myHuagai && allBranches.includes(myHuagai)) {
+    results.push({ name: "華蓋", desc: "你命帶華蓋 — 有靈性、愛研究、喜歡獨處思考。你適合深度的知識工作、靈性修行或藝術創作。有時候會覺得跟大眾格格不入，但這是你深度的來源。" });
+  }
+
+  // 羊刃（日干查）
+  const yangren = { "甲":"卯", "乙":"寅", "丙":"午", "丁":"巳", "戊":"午", "己":"巳", "庚":"酉", "辛":"申", "壬":"子", "癸":"亥" };
+  if (allBranches.includes(yangren[dayStem])) {
+    results.push({ name: "羊刃", desc: "你命帶羊刃 — 有魄力、膽子大、行動果斷。這是一把雙面刃：用得好是領導力和決斷力，用不好是衝動和攻擊性。適合需要魄力的工作，但要注意控制脾氣。" });
+  }
+
+  // 天德貴人（月支查）
+  const tiandeMap = { "寅":"丁", "卯":"申", "辰":"壬", "巳":"辛", "午":"亥", "未":"甲", "申":"癸", "酉":"寅", "戌":"丙", "亥":"乙", "子":"巳", "丑":"庚" };
+  const tiande = tiandeMap[pillars.month.branch];
+  if (tiande && (allBranches.includes(tiande) || [pillars.year.stem, pillars.month.stem, pillars.day.stem, pillars.hour.stem].includes(tiande))) {
+    results.push({ name: "天德貴人", desc: "你命帶天德 — 一生有福氣護持，逢凶化吉的能力比別人強。即使遇到困難也不會太慘，總是有轉圜餘地。心態保持善良，福氣會更強。" });
+  }
+
+  if (results.length === 0) {
+    results.push({ name: "（無明顯神煞）", desc: "你的命盤中沒有特別突出的神煞，代表你的命運更多由四柱本身和大運決定。" });
+  }
+
+  return results;
+}
+
 // === 主計算 ===
 
 export function calculate(birthData) {
@@ -176,7 +268,17 @@ export function calculate(birthData) {
       tenGods.push({ pillar: p, stem: pillars[p].stem, god: getTenGod(dayMaster, pillars[p].stem) });
     });
 
-    const data = { pillars, dayMaster, dayMasterElem, elements, tenGods };
+    // 大運計算（男命陽年順排，男命陰年逆排）
+    // 暫時假設男命（TODO: 加性別輸入）
+    const isMale = true;
+    const yearStemYY = STEM_YINYANG[pillars.year.stem];
+    const isForward = (isMale && yearStemYY === '陽') || (!isMale && yearStemYY === '陰');
+    const dayun = calculateDayun(mp.stemIdx, mp.branchIdx, isForward, dayMaster, year);
+
+    // 神煞計算
+    const shensha = calculateShensha(pillars);
+
+    const data = { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, birthYear: year };
     const html = renderBazi(data);
     return { status: 'ok', data, html, error: null };
   } catch (err) {
@@ -187,7 +289,7 @@ export function calculate(birthData) {
 // === 渲染 ===
 
 function renderBazi(data) {
-  const { pillars, dayMaster, dayMasterElem, elements, tenGods } = data;
+  const { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, birthYear } = data;
   const p = pillars;
 
   return `
@@ -237,6 +339,14 @@ function renderBazi(data) {
     <div class="divider"></div>
     <h3>📖 各柱解讀</h3>
     ${renderPillarMeaning(tenGods, pillars)}
+
+    <div class="divider"></div>
+    <h3>🚂 大運（每10年的人生主題）</h3>
+    ${renderDayun(dayun, birthYear)}
+
+    <div class="divider"></div>
+    <h3>⭐ 副星（神煞）</h3>
+    ${renderShensha(shensha)}
 
     <div class="note">💡 日柱天干（${dayMaster}）就是「你」。年柱=祖上/童年、月柱=事業/青年、日柱=自己/中年、時柱=子女/晚年。十神反映你跟周圍能量的關係。</div>
   `;
@@ -328,4 +438,48 @@ function renderElements(elements, dayMasterElem) {
   let strength = meRatio > 0.3 ? '偏強' : meRatio < 0.15 ? '偏弱' : '中和';
 
   return `${bars}<p class="meaning" style="margin-top:12px;">你的日主 <span class="kw">${dayMasterElem}</span> 在命盤中${strength}。${strength==='偏強'?'你本身能量足夠，適合往外發展、做利他的事。':''}${strength==='偏弱'?'你需要外在支持，團隊合作比單打獨鬥更適合你。':''}${strength==='中和'?'你的五行分佈平衡，適應力強，各種發展方向都可以嘗試。':''}</p>`;
+}
+
+/** 渲染大運 */
+function renderDayun(dayun, birthYear) {
+  const now = new Date().getFullYear();
+  const currentAge = now - birthYear;
+
+  const godThemes = {
+    "比肩": "獨立發展、平等合作、自主創業",
+    "劫財": "競爭激烈、破財風險、行動力爆發",
+    "食神": "才華展現、享受生活、創作豐收",
+    "傷官": "突破框架、表達自我、注意口舌",
+    "偏財": "社交擴張、意外收穫、投資機會",
+    "正財": "穩定累積、務實理財、踏實收入",
+    "七殺": "壓力大但成長快、權力鬥爭、突破極限",
+    "正官": "事業穩定上升、獲得認可、承擔責任",
+    "偏印": "獨立思考、學習冷門技能、適合轉型",
+    "正印": "貴人運旺、學業順利、受人提攜",
+  };
+
+  const rows = dayun.map(d => {
+    const isCurrent = (currentAge >= d.age && currentAge < d.age + 10);
+    const highlight = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : '';
+    const marker = isCurrent ? '<span style="color:var(--accent);font-weight:700;"> ← 現在</span>' : '';
+    const theme = godThemes[d.god] || '';
+    return `<div style="padding:8px 10px;margin:4px 0;border-radius:8px;${highlight}">
+      <span style="font-weight:700;">${d.age}-${d.age+9}歲</span>（${d.yearStart}-${d.yearEnd}）
+      <span style="margin-left:8px;font-size:1.1rem;">${d.stem}${d.branch}</span>
+      <span style="color:var(--accent);margin-left:8px;">${d.god}運</span>${marker}
+      <div style="font-size:.82rem;color:var(--muted);margin-top:3px;">${theme}</div>
+    </div>`;
+  }).join('');
+
+  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">每10年換一步大運，代表那段時間的人生能量主題</p>${rows}`;
+}
+
+/** 渲染神煞 */
+function renderShensha(shensha) {
+  return shensha.map(s => {
+    return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+      <span style="color:var(--accent);font-weight:700;font-size:1rem;">${s.name}</span>
+      <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">${s.desc}</div>
+    </div>`;
+  }).join('');
 }
