@@ -450,20 +450,97 @@ function renderTransitSynthesis(year, bazi, hd, astro, ziwei, maya) {
     html += `</div>`;
   }
   
-  // 建議
-  html += `<div style="margin-top:14px;padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.88rem;line-height:1.9;">`;
-  html += `<b>💡 今年的操作建議：</b><br>`;
-  if (stats.money?.sources.length >= 2) html += `• 財運有訊號——${stats.money.sources.join('和')}都提示今年跟錢有關。主動出擊或被動等待取決於你的本命策略。<br>`;
-  if (stats.pressure?.sources.length >= 2) html += `• 壓力也有訊號——但壓力不是壞事，是宇宙在逼你升級。用你本命的權威來決定要不要接受挑戰。<br>`;
-  if (stats.change?.sources.length >= 2) html += `• 變動能量強——今年適合轉型、改變、打破現狀。不要抗拒改變，順著走。<br>`;
-  if (stats.career?.sources.length >= 2) html += `• 事業重點年——今年在工作上會有明顯的推進或轉折。把握機會。<br>`;
-  if (stats.relationship?.sources.length >= 2) html += `• 關係年——今年人際互動頻繁，注意經營重要關係。<br>`;
-  if (stats.creativity?.sources.length >= 2) html += `• 創造力爆發年——適合開始新專案、學新東西、表達自己。<br>`;
-  if (stats.spiritual?.sources.length >= 2) html += `• 靈性成長年——今年適合內在修煉、學習命理玄學、探索生命意義。<br>`;
-  if (stats.lucky?.sources.length >= 2) html += `• 幸運訊號強——今年有貴人和機會，保持開放接收。<br>`;
+  // 建議（結合具體數據）
+  html += `<div style="margin-top:14px;padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.88rem;line-height:2;">`;
+  html += `<b>💡 ${year} 年操作建議：</b><br>`;
+  html += generateSpecificAdvice(bazi, hd, astro, ziwei, sorted);
   html += `</div>`;
   
   return html;
+}
+
+function generateSpecificAdvice(bazi, hd, astro, ziwei, sorted) {
+  let adv = '';
+  
+  // 財運具體建議
+  if (sorted.some(t => t.key === 'money')) {
+    let moneyDetails = [];
+    if (bazi && ['正財','偏財'].includes(bazi.god)) {
+      moneyDetails.push(bazi.god === '偏財' ? '八字走偏財——意外收入、投資、業績爆發型的財' : '八字走正財——穩定加薪、經營累積型的財');
+    }
+    if (hd?.tempChannels?.some(tc => ['金錢線','脈動','投降','蛻變'].includes(tc.channel.name))) {
+      const mCh = hd.tempChannels.find(tc => ['金錢線','脈動','投降','蛻變'].includes(tc.channel.name));
+      moneyDetails.push(`人類圖${mCh.planet}開通「${mCh.channel.name}」——${mCh.channel.name === '金錢線' ? '掌控資源的能量被啟動' : '財富轉化的能量在運作'}`);
+    }
+    if (astro && astro.jupHouse === 2) moneyDetails.push('木星過境 2 宮（財帛）——擴展收入的機會之窗');
+    if (ziwei?.sihuaPalaces?.lu?.pos === 4) moneyDetails.push('紫微化祿落財帛宮——今年財運被宇宙加持');
+    if (moneyDetails.length > 0) {
+      adv += `<div style="margin-bottom:10px;">💰 <b>財運：</b>${moneyDetails.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 結論：今年跟錢有關不是你想太多，是真的有訊號。${bazi?.god === '偏財' ? '適合把握意外機會，但不要梭哈。' : '穩紮穩打就好，急不來。'}</span></div>`;
+    }
+  }
+  
+  // 事業具體建議
+  if (sorted.some(t => t.key === 'career')) {
+    let careerDetails = [];
+    if (bazi && ['正官','七殺'].includes(bazi.god)) {
+      careerDetails.push(bazi.god === '正官' ? '八字走正官——升遷、被認可、體制內加分' : '八字走七殺——壓力型成長，適合創業或轉換跑道');
+    }
+    if (astro && astro.jupHouse === 10) careerDetails.push('木星過境 10 宮（事業）——今年是事業擴展的黃金年');
+    if (astro && astro.satHouse === 10) careerDetails.push('土星過境 10 宮——事業上有硬仗要打，但撐過去就升級');
+    if (ziwei?.sihuaPalaces?.quan) {
+      const qp = PALACE_NAMES[ziwei.sihuaPalaces.quan.pos] || '';
+      if (qp === '事業') careerDetails.push('紫微化權落事業宮——今年在職場的掌控感增強');
+      else if (qp === '命宮') careerDetails.push('紫微化權落命宮——今年整個人的氣場和主導力加強');
+    }
+    if (careerDetails.length > 0) {
+      adv += `<div style="margin-bottom:10px;">📈 <b>事業：</b>${careerDetails.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 結論：今年在工作上會有明確的推進。${bazi?.god === '七殺' ? '壓力大但回報也大，適合做大決定。' : '順水推舟，把握升遷機會。'}</span></div>`;
+    }
+  }
+  
+  // 壓力/挑戰具體建議
+  if (sorted.some(t => t.key === 'pressure')) {
+    let pressureDetails = [];
+    if (bazi && ['七殺','正官'].includes(bazi.god)) pressureDetails.push(`八字走${bazi.god}——${bazi.god === '七殺' ? '外在環境施壓，逼你突破' : '責任加重，被要求扛更多'}`);
+    if (astro) {
+      if (astro.satHouse) pressureDetails.push(`土星在你的 ${astro.satHouse} 宮（${HOUSE_TOPICS[astro.satHouse]||''}）——這個領域今年要「交作業」`);
+    }
+    if (ziwei?.sihuaPalaces?.ji) {
+      const jp = PALACE_NAMES[ziwei.sihuaPalaces.ji.pos] || '';
+      pressureDetails.push(`化忌落${jp}——今年在「${jp}」容易卡關或過度執著`);
+    }
+    if (pressureDetails.length > 0) {
+      adv += `<div style="margin-bottom:10px;">🏋️ <b>壓力點：</b>${pressureDetails.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 這不是壞事——壓力是升級的前奏。重點是：不要硬撐，用你本命的權威判斷哪些壓力值得接、哪些該放。</span></div>`;
+    }
+  }
+  
+  // 變動具體建議
+  if (sorted.some(t => t.key === 'change')) {
+    let changeDetails = [];
+    if (bazi && ['傷官','七殺','劫財'].includes(bazi.god)) changeDetails.push(`八字走${bazi.god}——內在有「不想再這樣下去」的躁動`);
+    if (hd?.tempChannels?.length > 2) changeDetails.push(`人類圖今年開了 ${hd.tempChannels.length} 條臨時通道——大量新能量湧入，變化是必然的`);
+    if (changeDetails.length > 0) {
+      adv += `<div style="margin-bottom:10px;">🔄 <b>變動：</b>${changeDetails.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 今年適合轉型，但不要亂轉。等到「感覺對了」再動，不要因為焦慮而隨便跳。</span></div>`;
+    }
+  }
+  
+  // 關係具體建議
+  if (sorted.some(t => t.key === 'relationship')) {
+    let relDetails = [];
+    if (astro && (astro.jupHouse === 7 || astro.satHouse === 7)) {
+      relDetails.push(astro.jupHouse === 7 ? '木星過境 7 宮——合作和親密關係擴展' : '土星過境 7 宮——關係中被要求更認真、更負責');
+    }
+    if (ziwei?.sihuaPalaces?.lu?.pos === 2) relDetails.push('化祿落夫妻宮——感情運加分');
+    if (relDetails.length > 0) {
+      adv += `<div style="margin-bottom:10px;">💕 <b>關係：</b>${relDetails.join('；')}。</div>`;
+    }
+  }
+  
+  // 如果什麼都沒觸發，給個通用但不廢的建議
+  if (adv === '') {
+    adv = `今年的能量分散在多個面向，沒有壓倒性的單一主題。保持你本命的策略（等待回應/告知後行動/等待邀請），見機行事就好。不需要主動追什麼，該來的會來。`;
+  }
+  
+  return adv;
 }
 
 // === 主入口 ===
