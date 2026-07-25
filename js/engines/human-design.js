@@ -348,8 +348,9 @@ function renderHD(data) {
       </div>
     </div>
 
+    <div id="hd-detail" style="margin:12px 0;"></div>
+
     ${renderBodyGraph(data)}
-    <div id="hd-detail" style="margin-top:12px;"></div>
 
     <div class="divider"></div>
     ${renderPlanetTable(personalityPlanets, designPlanets)}
