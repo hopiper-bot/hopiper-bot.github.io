@@ -331,7 +331,131 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
     }
   }
 
+  // === 流年綜合交叉比對 ===
+  html += `<div class="divider"></div>`;
+  html += renderTransitSynthesis(year, bazi, hd, astro, ziwei, maya);
+
   html += `<div class="note" style="margin-top:16px;">💡 流年是「暫時的天氣」，不是永久的改變。本命是你的硬體，流年是當年的軟體更新——它會影響你的體驗，但不會改變你是誰。</div>`;
+  return html;
+}
+
+// === 流年綜合交叉比對 ===
+const YEAR_THEMES = {
+  money: { zh: '財運', icon: '💰' },
+  career: { zh: '事業', icon: '📈' },
+  growth: { zh: '成長', icon: '🌱' },
+  pressure: { zh: '壓力', icon: '🏋️' },
+  change: { zh: '變動', icon: '🔄' },
+  relationship: { zh: '關係', icon: '💕' },
+  creativity: { zh: '創造', icon: '🎨' },
+  lucky: { zh: '幸運', icon: '🍀' },
+  spiritual: { zh: '靈性', icon: '🔮' },
+  health: { zh: '身心', icon: '🧘' },
+};
+
+function extractYearThemes(bazi, hd, astro, ziwei, maya) {
+  const themes = [];
+  
+  // 八字
+  if (bazi) {
+    const godToTheme = {
+      '正財': ['money','career'], '偏財': ['money','lucky'],
+      '正官': ['career','pressure'], '七殺': ['pressure','change'],
+      '食神': ['creativity','lucky'], '傷官': ['creativity','change'],
+      '正印': ['growth','spiritual'], '偏印': ['spiritual','growth'],
+      '比肩': ['relationship'], '劫財': ['money','change'],
+    };
+    if (godToTheme[bazi.god]) themes.push(...godToTheme[bazi.god].map(t => ({ theme: t, source: '八字' })));
+  }
+  
+  // 占星
+  if (astro) {
+    const houseTheme = { 1:'health', 2:'money', 3:'growth', 4:'relationship', 5:'creativity', 6:'health', 7:'relationship', 8:'change', 9:'spiritual', 10:'career', 11:'relationship', 12:'spiritual' };
+    if (houseTheme[astro.jupHouse]) themes.push({ theme: houseTheme[astro.jupHouse], source: '占星木星' }, { theme: 'lucky', source: '占星木星' });
+    if (houseTheme[astro.satHouse]) themes.push({ theme: houseTheme[astro.satHouse], source: '占星土星' }, { theme: 'pressure', source: '占星土星' });
+  }
+  
+  // 人類圖
+  if (hd && hd.tempChannels.length > 0) {
+    themes.push({ theme: 'change', source: '人類圖' });
+    for (const tc of hd.tempChannels) {
+      if (['金錢線','脈動','投降','蛻變'].includes(tc.channel.name)) themes.push({ theme: 'money', source: '人類圖' });
+      if (['創始者','發起'].includes(tc.channel.name)) themes.push({ theme: 'career', source: '人類圖' });
+      if (['啟發','無常','好奇心'].includes(tc.channel.name)) themes.push({ theme: 'creativity', source: '人類圖' });
+    }
+  }
+  
+  // 紫微
+  if (ziwei) {
+    const palaceTheme = { 0:'health', 1:'relationship', 2:'relationship', 3:'relationship', 4:'money', 5:'health', 6:'change', 7:'relationship', 8:'career', 9:'money', 10:'spiritual', 11:'relationship' };
+    if (ziwei.sihuaPalaces.lu) themes.push({ theme: palaceTheme[ziwei.sihuaPalaces.lu.pos] || 'lucky', source: '紫微化祿' }, { theme: 'lucky', source: '紫微化祿' });
+    if (ziwei.sihuaPalaces.ji) themes.push({ theme: palaceTheme[ziwei.sihuaPalaces.ji.pos] || 'pressure', source: '紫微化忌' }, { theme: 'pressure', source: '紫微化忌' });
+    if (ziwei.sihuaPalaces.quan) themes.push({ theme: 'career', source: '紫微化權' });
+  }
+  
+  // 馬雅
+  if (maya && maya.annualDream && maya.annualDream.seal) {
+    const sealTheme = { '紅龍':'relationship', '白風':'creativity', '藍夜':'money', '黃種子':'growth', '紅蛇':'change', '白世界橋':'change', '藍手':'creativity', '黃星星':'creativity', '紅月':'spiritual', '白狗':'relationship', '藍猴':'creativity', '黃人':'growth', '紅天行者':'change', '白巫師':'spiritual', '藍鷹':'career', '黃戰士':'career', '紅地球':'health', '白鏡':'spiritual', '藍風暴':'change', '黃太陽':'lucky' };
+    const seal = maya.annualDream.seal.zh;
+    if (sealTheme[seal]) themes.push({ theme: sealTheme[seal], source: '馬雅' });
+  }
+  
+  return themes;
+}
+
+function renderTransitSynthesis(year, bazi, hd, astro, ziwei, maya) {
+  const themes = extractYearThemes(bazi, hd, astro, ziwei, maya);
+  
+  // 統計
+  const stats = {};
+  for (const t of themes) {
+    if (!stats[t.theme]) stats[t.theme] = { count: 0, sources: [] };
+    stats[t.theme].count++;
+    if (!stats[t.theme].sources.includes(t.source)) stats[t.theme].sources.push(t.source);
+  }
+  
+  const sorted = Object.entries(stats)
+    .map(([key, val]) => ({ key, ...YEAR_THEMES[key], systemCount: val.sources.length, sources: val.sources }))
+    .filter(t => t.systemCount >= 2)
+    .sort((a, b) => b.systemCount - a.systemCount);
+  
+  if (sorted.length === 0) return `<h3>🔮 流年綜合</h3><div class="meaning">各系統今年的訊號分散，沒有壓倒性的單一主題。保持開放、見機行事。</div>`;
+  
+  let html = `<h3>🔮 ${year} 流年綜合：多系統共振</h3>`;
+  html += `<div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;">當多個系統同時指向同一個方向——那就是今年的重點</div>`;
+  
+  // 今年一句話
+  const top3 = sorted.slice(0, 3).map(t => t.zh);
+  html += `<div style="padding:12px;background:rgba(245,197,66,.08);border-radius:8px;margin-bottom:12px;font-size:.95rem;font-weight:600;line-height:1.8;">`;
+  html += `⚡ 今年的關鍵字：${top3.join('、')}`;
+  html += `</div>`;
+  
+  // 各主題
+  for (const t of sorted.slice(0, 4)) {
+    const barW = Math.min(t.systemCount * 25, 100);
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">`;
+    html += `<span style="width:70px;font-size:.82rem;white-space:nowrap;">${t.icon} ${t.zh}</span>`;
+    html += `<div style="flex:1;height:16px;background:rgba(255,255,255,.05);border-radius:8px;overflow:hidden;">`;
+    html += `<div style="width:${barW}%;height:100%;background:linear-gradient(90deg,var(--accent),#f5c542);border-radius:8px;display:flex;align-items:center;padding-left:6px;">`;
+    html += `<span style="font-size:.68rem;color:#000;font-weight:700;">${t.systemCount}系統</span>`;
+    html += `</div></div>`;
+    html += `<span style="font-size:.7rem;color:var(--muted);">${t.sources.join('/')}</span>`;
+    html += `</div>`;
+  }
+  
+  // 建議
+  html += `<div style="margin-top:14px;padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.88rem;line-height:1.9;">`;
+  html += `<b>💡 今年的操作建議：</b><br>`;
+  if (stats.money?.sources.length >= 2) html += `• 財運有訊號——${stats.money.sources.join('和')}都提示今年跟錢有關。主動出擊或被動等待取決於你的本命策略。<br>`;
+  if (stats.pressure?.sources.length >= 2) html += `• 壓力也有訊號——但壓力不是壞事，是宇宙在逼你升級。用你本命的權威來決定要不要接受挑戰。<br>`;
+  if (stats.change?.sources.length >= 2) html += `• 變動能量強——今年適合轉型、改變、打破現狀。不要抗拒改變，順著走。<br>`;
+  if (stats.career?.sources.length >= 2) html += `• 事業重點年——今年在工作上會有明顯的推進或轉折。把握機會。<br>`;
+  if (stats.relationship?.sources.length >= 2) html += `• 關係年——今年人際互動頻繁，注意經營重要關係。<br>`;
+  if (stats.creativity?.sources.length >= 2) html += `• 創造力爆發年——適合開始新專案、學新東西、表達自己。<br>`;
+  if (stats.spiritual?.sources.length >= 2) html += `• 靈性成長年——今年適合內在修煉、學習命理玄學、探索生命意義。<br>`;
+  if (stats.lucky?.sources.length >= 2) html += `• 幸運訊號強——今年有貴人和機會，保持開放接收。<br>`;
+  html += `</div>`;
+  
   return html;
 }
 
