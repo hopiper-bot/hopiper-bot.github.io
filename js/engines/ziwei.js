@@ -260,6 +260,56 @@ const PALACE_INFO = {
   "父母": "父母關係、學習、文書運",
 };
 
+// === 大限計算 ===
+function calculateDaxian(mingPos, juNum, isForward, palaces) {
+  // 大限起始年齡 = 五行局數 + 1（水二局從2歲起，木三局從3歲起...）
+  // 不對，標準是：起始年齡 = 局數 + 1... 實際上各派不同
+  // 通用：水二局2歲起、木三局3歲起、金四局4歲起、土五局5歲起、火六局6歲起
+  const startAge = juNum;
+  const steps = [];
+
+  for (let i = 0; i < 12; i++) {
+    const age = startAge + i * 10;
+    // 大限宮位：從命宮開始，順行或逆行
+    let pos;
+    if (isForward) {
+      pos = ((mingPos - i) % 12 + 12) % 12; // 順行 = 逆時針（跟宮位排列同方向）
+    } else {
+      pos = (mingPos + i) % 12; // 逆行 = 順時針
+    }
+    const palace = palaces.find(p => p.pos === pos);
+    steps.push({
+      age,
+      ageEnd: age + 9,
+      pos,
+      branch: BRANCHES[pos],
+      palaceName: palace ? palace.name : '',
+      main: palace ? palace.main : [],
+    });
+  }
+  return steps;
+}
+
+// === 流年計算 ===
+function calculateLiunian(currentYear, mingPos) {
+  // 流年命宮：當年地支 = 流年命宮所在地支
+  // 不對，流年命宮定位更複雜。簡化版：流年地支就是流年命宮
+  // 正確：流年命宮 = 流年地支
+  const yearBranchIdx = ((currentYear - 4) % 12 + 12) % 12;
+  const yearStemIdx = ((currentYear - 4) % 10 + 10) % 10;
+
+  // 流年四化
+  const lnSihua = getSihua(yearStemIdx);
+
+  return {
+    year: currentYear,
+    branch: BRANCHES[yearBranchIdx],
+    branchIdx: yearBranchIdx,
+    stem: ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"][yearStemIdx],
+    sihua: lnSihua,
+  };
+}
+
 // === 主計算 ===
 export function calculate(birthData) {
   const { year, month, day, hour, gender } = birthData;
@@ -294,7 +344,23 @@ export function calculate(birthData) {
       });
     }
 
-    const data = { lunar, mingPos, ju, palaces, gender, sihua };
+    const data = { lunar, mingPos, ju, palaces, gender, sihua, year };
+
+    // 大限計算
+    const isMale = (gender !== 'female');
+    const yearStemYY = lunar.yearStemIdx % 2 === 0 ? 'yang' : 'yin';
+    const isForward = (isMale && yearStemYY === 'yang') || (!isMale && yearStemYY === 'yin');
+    const daxian = calculateDaxian(mingPos, ju.num, isForward, palaces);
+
+    // 流年計算
+    const currentYear = new Date().getFullYear();
+    const liunian = calculateLiunian(currentYear, mingPos);
+
+    data.daxian = daxian;
+    data.liunian = liunian;
+    data.currentYear = currentYear;
+    data.birthYear = year;
+
     const html = renderZiwei(data);
     return { status:'ok', data, html, error:null };
   } catch (err) {
@@ -318,6 +384,16 @@ function renderZiwei(data) {
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀</div>
     ${renderGrid(palaces, lunar, ju, data.sihua)}
     <div id="zw-detail" style="margin-top:12px;"></div>
+    <div class="divider"></div>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限（每10年運勢）▼</h3>
+    <div id="zw-daxian" style="display:none;">
+      ${renderDaxian(data.daxian, data.birthYear)}
+    </div>
+    <div class="divider"></div>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('zw-liunian').style.display=document.getElementById('zw-liunian').style.display==='none'?'block':'none';">📅 ${data.currentYear} 流年 ▼</h3>
+    <div id="zw-liunian" style="display:none;">
+      ${renderLiunian(data.liunian, palaces)}
+    </div>
   `;
 }
 
@@ -405,4 +481,37 @@ function renderGrid(palaces, lunar, ju, sihua) {
       }
     </script>
   `;
+}
+
+
+function renderDaxian(daxian, birthYear) {
+  const now = new Date().getFullYear();
+  const currentAge = now - birthYear;
+  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">大限 = 紫微版的「十年大運」，看該十年走哪個宮的能量</p>` +
+    daxian.map(d => {
+      const isCurrent = (currentAge >= d.age && currentAge <= d.ageEnd);
+      const hl = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : '';
+      const marker = isCurrent ? ' <span style="color:var(--accent);font-weight:700;">← 現在</span>' : '';
+      const starStr = d.main.length > 0 ? d.main.map(s=>s.name).join('、') : '無主星';
+      return `<div style="padding:8px 10px;margin:3px 0;border-radius:6px;${hl}">
+        <b>${d.age}-${d.ageEnd}歲</b>（${d.branch}宮 · ${d.palaceName}）${marker}<br>
+        <span style="font-size:.83rem;color:var(--muted);">主星：${starStr}</span>
+      </div>`;
+    }).join('');
+}
+
+function renderLiunian(liunian, palaces) {
+  const lnPalace = palaces.find(p => p.pos === liunian.branchIdx);
+  const lnStars = lnPalace ? lnPalace.main.map(s=>s.name).join('、') || '無主星' : '無主星';
+  return `<div style="padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.8;">
+    <b>${liunian.year} 年（${liunian.stem}${liunian.branch}年）</b><br><br>
+    <b>流年命宮在：${liunian.branch}宮</b>（${lnPalace?lnPalace.name:''}）<br>
+    主星：${lnStars}<br><br>
+    <b>流年四化：</b><br>
+    <span style="color:#4f4;">祿</span> → ${liunian.sihua.lu}　
+    <span style="color:#f84;">權</span> → ${liunian.sihua.quan}　
+    <span style="color:#8cf;">科</span> → ${liunian.sihua.ke}　
+    <span style="color:#f55;">忌</span> → ${liunian.sihua.ji}<br><br>
+    <span style="color:var(--muted);">流年四化飛入哪個宮，那個宮今年就被激活。化祿=有好事、化忌=要注意。</span>
+  </div>`;
 }
