@@ -17,9 +17,9 @@
   --radius-lg: 18px;
   --transition: 0.3s ease;
 
-  /* 霧金漸層 */
-  --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #C6A969 50%, #A38241 100%);
-  --gold-text-gradient: linear-gradient(135deg, #E6CA65 0%, #C6A969 60%, #9B783E 100%);
+  /* 霧金漸層 — 亮面提高，避免暗沉 */
+  --gold-gradient: linear-gradient(135deg, #F2D06B 0%, #D4AF37 40%, #C6A969 100%);
+  --gold-text-gradient: linear-gradient(135deg, #F5E08B 0%, #E6CA65 40%, #D4AF37 100%);
 }
 
 /* ===== Reset & Base ===== */
