@@ -364,28 +364,40 @@ function renderBazi(data) {
       <b>時柱藏干十神：</b><br>${p.hour.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodInPillar(getTenGod(dayMaster,h),'hour')}`).join('<br>')}
     </div>
     <div id="bz-y" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
-      <b>年柱（祖上・童年）：${p.year.stem}${p.year.branch}</b><br>
-      天干 ${p.year.stem}（${STEM_ELEMENT[p.year.stem]}）→ ${tenGods.find(t=>t.pillar==='year')?.god||''}<br>
-      藏干：${p.year.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
-      ${getPillarText('year', tenGods.find(t=>t.pillar==='year')?.god)}
+      <b>年柱（祖上・童年）：${p.year.stem}${p.year.branch}</b><br><br>
+      <b>天干 ${p.year.stem}（${STEM_ELEMENT[p.year.stem]}）→ ${tenGods.find(t=>t.pillar==='year')?.god||''}</b><br>
+      ${getGodInPillar(tenGods.find(t=>t.pillar==='year')?.god, 'year')}<br><br>
+      <b>地支 ${p.year.branch}（${BRANCH_ELEMENT[p.year.branch]}）</b><br>
+      ${getBranchMeaning(p.year.branch, 'year')}<br><br>
+      <b>藏干：</b>${p.year.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br>
+      <span style="color:var(--muted);">潛在能量：</span>${p.year.hidden.map(h=>`${getTenGod(dayMaster,h)} — ${getGodInPillar(getTenGod(dayMaster,h),'year')}`).join('<br>')}
     </div>
     <div id="bz-m" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
-      <b>月柱（事業・青年）：${p.month.stem}${p.month.branch}</b><br>
-      天干 ${p.month.stem}（${STEM_ELEMENT[p.month.stem]}）→ ${tenGods.find(t=>t.pillar==='month')?.god||''}<br>
-      藏干：${p.month.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
-      ${getPillarText('month', tenGods.find(t=>t.pillar==='month')?.god)}
+      <b>月柱（事業・青年）：${p.month.stem}${p.month.branch}</b><br><br>
+      <b>天干 ${p.month.stem}（${STEM_ELEMENT[p.month.stem]}）→ ${tenGods.find(t=>t.pillar==='month')?.god||''}</b><br>
+      ${getGodInPillar(tenGods.find(t=>t.pillar==='month')?.god, 'month')}<br><br>
+      <b>地支 ${p.month.branch}（${BRANCH_ELEMENT[p.month.branch]}）</b><br>
+      ${getBranchMeaning(p.month.branch, 'month')}<br><br>
+      <b>藏干：</b>${p.month.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br>
+      <span style="color:var(--muted);">潛在能量：</span>${p.month.hidden.map(h=>`${getTenGod(dayMaster,h)} — ${getGodInPillar(getTenGod(dayMaster,h),'month')}`).join('<br>')}
     </div>
     <div id="bz-d" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(245,197,66,.06);border-radius:8px;border-left:3px solid var(--accent);font-size:.85rem;line-height:1.7;">
-      <b>日柱（自己・中年）：${p.day.stem}${p.day.branch}</b><br>
-      日主 <span style="color:var(--accent);font-weight:700;">${dayMaster}（${dayMasterElem}）</span><br>
-      藏干：${p.day.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
-      ${getDayMasterText(dayMaster)}
+      <b>日柱（自己・中年）：${p.day.stem}${p.day.branch}</b><br><br>
+      <b>天干 ${p.day.stem}（${dayMasterElem}）— 日主</b><br>
+      ${getDayMasterText(dayMaster)}<br><br>
+      <b>地支 ${p.day.branch}（${BRANCH_ELEMENT[p.day.branch]}）— 日支（婚姻宮）</b><br>
+      ${getBranchMeaning(p.day.branch, 'day')}<br><br>
+      <b>藏干：</b>${p.day.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br>
+      <span style="color:var(--muted);">潛在能量：</span>${p.day.hidden.map(h=>`${getTenGod(dayMaster,h)} — ${getGodInPillar(getTenGod(dayMaster,h),'day')}`).join('<br>')}
     </div>
     <div id="bz-h" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
-      <b>時柱（子女・晚年）：${p.hour.stem}${p.hour.branch}</b><br>
-      天干 ${p.hour.stem}（${STEM_ELEMENT[p.hour.stem]}）→ ${tenGods.find(t=>t.pillar==='hour')?.god||''}<br>
-      藏干：${p.hour.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br><br>
-      ${getPillarText('hour', tenGods.find(t=>t.pillar==='hour')?.god)}
+      <b>時柱（子女・晚年）：${p.hour.stem}${p.hour.branch}</b><br><br>
+      <b>天干 ${p.hour.stem}（${STEM_ELEMENT[p.hour.stem]}）→ ${tenGods.find(t=>t.pillar==='hour')?.god||''}</b><br>
+      ${getGodInPillar(tenGods.find(t=>t.pillar==='hour')?.god, 'hour')}<br><br>
+      <b>地支 ${p.hour.branch}（${BRANCH_ELEMENT[p.hour.branch]}）</b><br>
+      ${getBranchMeaning(p.hour.branch, 'hour')}<br><br>
+      <b>藏干：</b>${p.hour.hidden.map(h=>`${h}(${getTenGod(dayMaster,h)})`).join(' ')}<br>
+      <span style="color:var(--muted);">潛在能量：</span>${p.hour.hidden.map(h=>`${getTenGod(dayMaster,h)} — ${getGodInPillar(getTenGod(dayMaster,h),'hour')}`).join('<br>')}
     </div>
 
     <div class="divider"></div>
@@ -644,6 +656,31 @@ function getGodBrief(god) {
     "正印": "代表學習和被支持的能量。你在這方面容易得到幫助，也擅長吸收知識。",
   };
   return briefs[god] || '';
+}
+
+/** 地支在特定柱位的含義 */
+function getBranchMeaning(branch, pillar) {
+  const branchTraits = {
+    "子": "子水 — 聰明、靈活、有潛力。像冬天的種子，力量藏在地下等待時機。",
+    "丑": "丑土 — 穩重、耐心、能承載。像冬末的凍土，看似不動但底下醞釀著春天。",
+    "寅": "寅木 — 有衝勁、敢開始、有生命力。像初春的大樹開始抽芽，帶有開創能量。",
+    "卯": "卯木 — 溫和、有彈性、善於交際。像春天的花草，柔軟但生命力旺盛。",
+    "辰": "辰土 — 多變、有包容力、帶有水氣。像春雨後的濕土，能滋養萬物。",
+    "巳": "巳火 — 思維敏銳、善變、有文采。像初夏的熱力開始升騰，頭腦靈活。",
+    "午": "午火 — 熱情、外放、有領導力。像正午的太陽，能量最旺、最引人注目。",
+    "未": "未土 — 溫厚、有品味、滋養型。像夏末的花園，豐盛而美好。",
+    "申": "申金 — 果斷、有執行力、善於變通。像秋天的鐮刀，收割時毫不猶豫。",
+    "酉": "酉金 — 精緻、有品味、追求完美。像打磨好的金器，閃亮但需要被欣賞。",
+    "戌": "戌土 — 忠誠、守護、有原則。像守門的狗，對信任的人全心付出。",
+    "亥": "亥水 — 包容、深沉、有智慧。像冬天的大海，表面平靜但深不可測。",
+  };
+  const pillarContext = {
+    "year": "在年柱代表你的家族根基帶有這個能量底色。",
+    "month": "在月柱代表你的事業環境和社交圈帶有這個氛圍。",
+    "day": "在日柱（婚姻宮）代表你的另一半或親密關係帶有這個特質。",
+    "hour": "在時柱代表你的子女或晚年環境帶有這個能量。",
+  };
+  return (branchTraits[branch] || '') + ' ' + (pillarContext[pillar] || '');
 }
 
 /** 取得特定柱位+十神的解讀文字 */
