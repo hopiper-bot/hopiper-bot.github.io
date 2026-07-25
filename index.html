@@ -131,14 +131,21 @@
 
       // 本宮
       html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">\u{1F4CD} ' + p.name + '\uFF08' + p.branch + '\u5BAE\uFF09</div>';
-      html += '<div style="color:var(--muted);margin-bottom:8px;">' + (d.palaceInfo[p.name]||'') + '</div>';
+      html += '<div style="color:var(--muted);margin-bottom:4px;">' + (d.palaceInfo[p.name]||'') + '</div>';
+      // 宮位角色定位
+      if (d.palaceRole && d.palaceRole[p.name]) {
+        html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
+      }
 
       if (p.main.length > 0) {
         html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
         p.main.forEach(function(s) {
           var bColor = (s.brightness==='\u5EDF'||s.brightness==='\u65FA') ? 'var(--accent)' : s.brightness==='\u9677' ? 'var(--red)' : 'var(--muted)';
+          // 優先用「星×宮」解讀，沒有才用通用
+          var interpKey = s.name + '_' + p.name;
+          var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
           html += '<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-          html += '<span style="font-size:.75rem;color:' + bColor + ';">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + (d.starInfo[s.name]||'') + '</div>';
+          html += '<span style="font-size:.75rem;color:' + bColor + ';">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + interp + '</div>';
         });
         // 雙星組合
         if (p.main.length >= 2) {
