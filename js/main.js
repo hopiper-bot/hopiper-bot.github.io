@@ -9,8 +9,8 @@ import * as astroEngine from './engines/astro.js';
 import * as baziEngine from './engines/bazi.js';
 import * as ziweiEngine from './engines/ziwei.js';
 import * as hdEngine from './engines/human-design.js';
+import * as synthesisEngine from './engines/synthesis.js';
 // import * as transitEngine from './engines/transit.js';
-// import * as synthesisEngine from './engines/synthesis.js';
 
 /** 應用程式初始化 */
 function init() {
@@ -159,8 +159,10 @@ async function calculate() {
       ziwei: ziweiResult,
       hd: hdResult,
       transit: { status: 'ok', html: '<div class="placeholder">📅 流年分析模組開發中⋯<br>（五大系統流年交叉比對）</div>' },
-      synthesis: { status: 'ok', html: '<div class="placeholder">🔮 綜合分析模組開發中⋯<br>（本命綜合 + 流年綜合）</div>' },
     };
+
+    // 綜合分析（需要所有系統結果）
+    results.synthesis = synthesisEngine.calculate(results);
 
     ui.render(results);
   } catch (err) {
