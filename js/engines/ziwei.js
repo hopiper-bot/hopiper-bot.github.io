@@ -381,11 +381,11 @@ function renderZiwei(data) {
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]}
       </div>
     </div>
-    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀</div>
-    ${renderGrid(palaces, lunar, ju, data.sihua)}
+    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀｜格子內 ⏳ = 大限年齡（★ = 現在走的大限）</div>
+    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
-    <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限（每10年運勢）▼</h3>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
     <div id="zw-daxian" style="display:none;">
       ${renderDaxian(data.daxian, data.birthYear)}
     </div>
@@ -397,7 +397,7 @@ function renderZiwei(data) {
   `;
 }
 
-function renderGrid(palaces, lunar, ju, sihua) {
+function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
   // 標準紫微盤方格：4x4，地支位置固定
   // 上排：巳(5) 午(6) 未(7) 申(8)
   // 左列：辰(4)               酉(9)
@@ -409,11 +409,21 @@ function renderGrid(palaces, lunar, ju, sihua) {
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
 
+  // pos → 大限 的映射
+  const daxianMap = {};
+  const now = new Date().getFullYear();
+  const currentAge = now - birthYear;
+  if (daxian) {
+    daxian.forEach(d => { daxianMap[d.pos] = d; });
+  }
+
   function cell(branchIdx) {
     const p = posMap[branchIdx];
     if (!p) return `<div style="padding:6px;background:var(--input-bg);border:1px solid var(--card-border);border-radius:4px;min-height:60px;"></div>`;
     const isMing = p.name === "命宮";
-    const border = isMing ? 'border:2px solid var(--accent);' : 'border:1px solid var(--card-border);';
+    const dx = daxianMap[branchIdx];
+    const isDxCurrent = dx && (currentAge >= dx.age && currentAge <= dx.ageEnd);
+    const border = isMing ? 'border:2px solid var(--accent);' : isDxCurrent ? 'border:2px solid var(--accent2);' : 'border:1px solid var(--card-border);';
     const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.map(s=>{
       let hua='';
       if(s.name===sihua.lu) hua='<span style=\"color:#4f4;font-size:.55rem;\">祿</span>';
@@ -431,10 +441,20 @@ function renderGrid(palaces, lunar, ju, sihua) {
       return s+hua;
     }).join(' ')}</div>` : '';
     const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}</div>`;
+    // 大限標籤放格子底部
+    let dxLabel = '';
+    if (dx) {
+      const dxColor = isDxCurrent ? 'color:var(--accent);font-weight:700;' : 'color:var(--muted);';
+      const dxMark = isDxCurrent ? ' ★' : '';
+      dxLabel = `<div style="font-size:.55rem;${dxColor}margin-top:2px;">⏳${dx.age}-${dx.ageEnd}歲${dxMark}</div>`;
+    }
     const detail = JSON.stringify({name:p.name,branch:p.branch,main:p.main,minor:p.minor}).replace(/"/g,'&quot;');
     return `<div style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" onclick="showZwDetail(this)" data-palace="${detail}">
       ${palaceLabel}${mainStr}${minorStr}
-      <div style="font-size:.55rem;color:var(--muted);text-align:right;">${BRANCHES[branchIdx]}</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;">
+        ${dxLabel}
+        <div style="font-size:.55rem;color:var(--muted);">${BRANCHES[branchIdx]}</div>
+      </div>
     </div>`;
   }
 
@@ -484,18 +504,62 @@ function renderGrid(palaces, lunar, ju, sihua) {
 }
 
 
+// === 大限解讀資料（主星×宮位的十年運勢概述）===
+const DAXIAN_INTERP = {
+  // 宮位面向的大限意義
+  "命宮": "這十年是自我重塑期，人生方向和自我認知會有大轉變。",
+  "兄弟": "這十年人際合作運強，適合團隊協作、拓展社交圈。",
+  "夫妻": "這十年感情運活躍，伴侶關係是重點。單身者有機會遇到對象。",
+  "子女": "這十年創造力和後代運突出，適合創新、創作或培育下一代。",
+  "財帛": "這十年財運是主軸，收入和理財方式會有明顯變化。",
+  "疾厄": "這十年要留意健康，但也是認識自己身體、培養好習慣的時機。",
+  "遷移": "這十年外出運旺，可能有搬遷、旅行或外派的機會。社交圈擴大。",
+  "交友": "這十年社交圈是重點，可能遇到對人生有重大影響的朋友或合作夥伴。",
+  "事業": "這十年事業運是核心，適合衝刺職涯、展現能力。",
+  "田宅": "這十年居住環境和家庭生活是重點，可能有購屋或搬家。",
+  "福德": "這十年精神生活是焦點，適合修身養性、找到內心平靜。",
+  "父母": "這十年與長輩的互動增多，學習運也不錯。可能承擔照顧責任。",
+};
+
+// 主星在大限的特質加成
+const DAXIAN_STAR_BOOST = {
+  "紫微": "紫微坐鎮，這十年有領導機會，貴人運不錯，大事自己做主。",
+  "天機": "天機主智慧變動，這十年腦子轉得快，適合學新東西、做策略規劃。",
+  "太陽": "太陽照耀，這十年適合對外發展、幫助他人，名聲可能上升。",
+  "武曲": "武曲主財星入限，這十年財運實在，付出有回報，適合務實的理財行動。",
+  "天同": "天同入限，這十年生活步調放緩，有福可享，但要避免過於安逸。",
+  "廉貞": "廉貞入限，這十年有野心和衝勁，人際關係複雜但有機會往上爬。",
+  "天府": "天府坐鎮，這十年穩定有保障，適合守成和穩健發展。",
+  "太陰": "太陰入限，這十年感受力增強，內在世界豐富，有房產運或被動收入。",
+  "貪狼": "貪狼入限，這十年慾望多、機會也多，桃花旺，多元發展有利。",
+  "巨門": "巨門入限，這十年口舌是非可能多，但也代表用嘴巴賺錢的機會。",
+  "天相": "天相入限，這十年貴人運佳，適合做輔佐角色或與人合作。",
+  "天梁": "天梁入限，這十年有化解災厄的能力，長輩緣好，適合走專業路線。",
+  "七殺": "七殺入限，這十年有大破大立的機會，變動大但成長也大。要有魄力。",
+  "破軍": "破軍入限，這十年舊的會打破、新的會重建。變化劇烈但是必要的成長。",
+};
+
 function renderDaxian(daxian, birthYear) {
   const now = new Date().getFullYear();
   const currentAge = now - birthYear;
-  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">大限 = 紫微版的「十年大運」，看該十年走哪個宮的能量</p>` +
+  return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:12px;">大限 = 紫微版的「十年大運」。每十年走一個宮位的能量，格子裡的 ⏳ 就是你的大限分佈。</p>` +
     daxian.map(d => {
       const isCurrent = (currentAge >= d.age && currentAge <= d.ageEnd);
-      const hl = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : '';
-      const marker = isCurrent ? ' <span style="color:var(--accent);font-weight:700;">← 現在</span>' : '';
+      const hl = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : 'padding-left:10px;';
+      const marker = isCurrent ? ' <span style="color:var(--accent);font-weight:700;">← 目前走這步</span>' : '';
       const starStr = d.main.length > 0 ? d.main.map(s=>s.name).join('、') : '無主星';
-      return `<div style="padding:8px 10px;margin:3px 0;border-radius:6px;${hl}">
+      // 解讀
+      const palaceInterp = DAXIAN_INTERP[d.palaceName] || '';
+      const starInterp = d.main.length > 0 
+        ? d.main.map(s => DAXIAN_STAR_BOOST[s.name] || '').filter(x=>x).join(' ')
+        : '此限無主星坐守，受對宮和鄰宮星力影響，性格表現較隨環境變化。';
+      const interpBlock = isCurrent 
+        ? `<div style="margin-top:6px;padding:8px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.7;color:var(--text);">${palaceInterp}<br>${starInterp}</div>`
+        : `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.6;">${palaceInterp} ${starInterp}</div>`;
+      return `<div style="padding:8px 10px;margin:4px 0;border-radius:6px;${hl}">
         <b>${d.age}-${d.ageEnd}歲</b>（${d.branch}宮 · ${d.palaceName}）${marker}<br>
         <span style="font-size:.83rem;color:var(--muted);">主星：${starStr}</span>
+        ${interpBlock}
       </div>`;
     }).join('');
 }
