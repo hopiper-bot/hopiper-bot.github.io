@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>生命藍圖｜多系統命理合盤</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20260725">
 </head>
 <body>
   <div class="wrap">
@@ -113,6 +113,27 @@
   </div>
 
   <script type="module" src="js/main.js"></script>
+  <script>
+    // 人類圖通道點擊事件委派
+    document.addEventListener('click', function(e) {
+      var line = e.target.closest ? e.target.closest('[data-hd-channel]') : null;
+      if (!line) return;
+      var idx = parseInt(line.getAttribute('data-hd-channel'));
+      if (isNaN(idx) || !window._hdData) return;
+      var d = window._hdData;
+      var ch = d.definedChannels[idx];
+      if (!ch) return;
+      var g1 = ch.gates[0], g2 = ch.gates[1];
+      var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
+      html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
+      html += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
+      html += '<div style="margin-top:8px;padding:8px;background:rgba(245,197,66,.08);border-radius:6px;">';
+      html += window._hdChannelDesc(g1, g2);
+      html += '</div></div>';
+      var detailEl = document.getElementById('hd-detail');
+      if (detailEl) { detailEl.innerHTML = html; detailEl.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+    });
+  </script>
   <script>
     // 紫微宮格點擊 — 全域事件委派（完全獨立於 ES module）
     document.addEventListener('click', function(e) {
