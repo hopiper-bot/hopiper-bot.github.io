@@ -343,25 +343,25 @@ function renderBazi(data) {
           </tr>
           <tr style="font-size:.7rem;color:var(--muted);border-top:1px solid rgba(255,255,255,.04);">
             <td style="padding:4px;">藏干十神</td>
-            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-y').style.display=document.getElementById('hid-y').style.display==='none'?'block':'none';">${p.year.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-m').style.display=document.getElementById('hid-m').style.display==='none'?'block':'none';">${p.month.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-d').style.display=document.getElementById('hid-d').style.display==='none'?'block':'none';">${p.day.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-h').style.display=document.getElementById('hid-h').style.display==='none'?'block':'none';">${p.hour.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.querySelectorAll('.hid-exp').forEach(e=>e.style.display='none');document.getElementById('hid-y').style.display='block';">${p.year.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.querySelectorAll('.hid-exp').forEach(e=>e.style.display='none');document.getElementById('hid-m').style.display='block';">${p.month.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.querySelectorAll('.hid-exp').forEach(e=>e.style.display='none');document.getElementById('hid-d').style.display='block';">${p.day.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.querySelectorAll('.hid-exp').forEach(e=>e.style.display='none');document.getElementById('hid-h').style.display='block';">${p.hour.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
           </tr>
         </tbody>
       </table>
     </div>
-    <div id="hid-y" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
-      <b>年柱藏干十神：</b><br>${p.year.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    <div id="hid-y" class="hid-exp" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>年柱藏干十神：</b><br>${p.year.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodInPillar(getTenGod(dayMaster,h),'year')}`).join('<br>')}
     </div>
-    <div id="hid-m" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
-      <b>月柱藏干十神：</b><br>${p.month.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    <div id="hid-m" class="hid-exp" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>月柱藏干十神：</b><br>${p.month.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodInPillar(getTenGod(dayMaster,h),'month')}`).join('<br>')}
     </div>
-    <div id="hid-d" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
-      <b>日柱藏干十神：</b><br>${p.day.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    <div id="hid-d" class="hid-exp" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>日柱藏干十神：</b><br>${p.day.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodInPillar(getTenGod(dayMaster,h),'day')}`).join('<br>')}
     </div>
-    <div id="hid-h" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
-      <b>時柱藏干十神：</b><br>${p.hour.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    <div id="hid-h" class="hid-exp" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>時柱藏干十神：</b><br>${p.hour.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodInPillar(getTenGod(dayMaster,h),'hour')}`).join('<br>')}
     </div>
     <div id="bz-y" class="bz-exp" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
       <b>年柱（祖上・童年）：${p.year.stem}${p.year.branch}</b><br>
@@ -520,12 +520,42 @@ function renderElements(elements, dayMasterElem) {
     </div>`;
   }).join('');
 
-  // 判斷強弱
+  // 判斷強弱 + 喜用神
   const meCount = elements[dayMasterElem];
   const meRatio = meCount / total;
   let strength = meRatio > 0.3 ? '偏強' : meRatio < 0.15 ? '偏弱' : '中和';
 
-  return `${bars}<p class="meaning" style="margin-top:12px;">你的日主 <span class="kw">${dayMasterElem}</span> 在命盤中${strength}。${strength==='偏強'?'你本身能量足夠，適合往外發展、做利他的事。':''}${strength==='偏弱'?'你需要外在支持，團隊合作比單打獨鬥更適合你。':''}${strength==='中和'?'你的五行分佈平衡，適應力強，各種發展方向都可以嘗試。':''}</p>`;
+  // 喜用神判斷（簡化版）
+  // 日主強 → 喜剋洩耗（官殺/食傷/財）→ 喜用 = 剋我的 + 我生的 + 我剋的
+  // 日主弱 → 喜生扶（印/比）→ 喜用 = 生我的 + 同我的
+  const iA = ELEMENT_CYCLE.indexOf(dayMasterElem);
+  let xiyong, jiyong;
+  if (meRatio > 0.25) {
+    // 日主偏強，需要洩耗
+    xiyong = [ELEMENT_CYCLE[(iA+1)%5], ELEMENT_CYCLE[(iA+2)%5]]; // 我生的、我剋的
+    jiyong = [ELEMENT_CYCLE[(iA+3)%5]]; // 剋我的也有用
+  } else {
+    // 日主偏弱或中和，需要生扶
+    xiyong = [ELEMENT_CYCLE[(iA+4)%5], dayMasterElem]; // 生我的、同我的
+    jiyong = [];
+  }
+
+  const xyColors = { '木':'綠色、青色', '火':'紅色、紫色、橘色', '土':'黃色、咖啡色、米色', '金':'白色、金色、銀色', '水':'黑色、藍色、深灰' };
+  const xyDir = { '木':'東方', '火':'南方', '土':'中央', '金':'西方', '水':'北方' };
+  const xyIndustry = { '木':'教育、出版、花藝、木業、文創', '火':'餐飲、科技、能源、表演、照明', '土':'房地產、農業、建築、陶瓷、保險', '金':'金融、法律、五金、珠寶、科技硬體', '水':'貿易、物流、旅遊、清潔、漁業' };
+  const xyFood = { '木':'綠色蔬菜、酸味食物', '火':'紅色食物、苦味', '土':'根莖類、甜味', '金':'白色食物、辛辣', '水':'黑色食物、鹹味' };
+
+  const xyText = xiyong.map(e => `<div style="margin:6px 0;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">
+    <b>${e}</b>：顏色 ${xyColors[e]} / 方位 ${xyDir[e]} / 行業 ${xyIndustry[e]} / 飲食 ${xyFood[e]}
+  </div>`).join('');
+
+  return `${bars}
+    <p class="meaning" style="margin-top:12px;">你的日主 <span class="kw">${dayMasterElem}</span> 在命盤中${strength}。${strength==='偏強'?'能量足夠，適合往外發展和付出。':''}${strength==='偏弱'?'需要外在支持，團隊合作比單打獨鬥更適合你。':''}${strength==='中和'?'五行平衡，適應力強。':''}</p>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('xiyong-detail').style.display=document.getElementById('xiyong-detail').style.display==='none'?'block':'none';">💎 喜用神：${xiyong.join('、')} ▼</h3>
+    <div id="xiyong-detail" style="display:none;">
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">喜用神 = 對你有利的五行能量。多接觸這些顏色、方位、行業能幫助你順流。</p>
+      ${xyText}
+    </div>`;
 }
 
 /** 渲染大運 */
@@ -576,7 +606,24 @@ function renderShensha(shensha) {
   }).join('');
 }
 
-/** 十神簡短解說 — 能量特質 + 怎麼用 */
+/** 十神在特定柱位的解讀 */
+function getGodInPillar(god, pillar) {
+  const pillarContext = { year: '童年/根基', month: '事業/社交', day: '內在/婚姻', hour: '晚年/子女' };
+  const ctx = pillarContext[pillar];
+  const base = {
+    "比肩": { year:"你從小就有獨立自主的傾向，可能很早就學會自己處理事情。", month:"工作上你適合平等合作，不喜歡被壓著做事。", day:"你的內在追求獨立，伴侶關係中需要個人空間。", hour:"晚年獨立有精神，子女跟你性格相似。" },
+    "劫財": { year:"童年環境有競爭，讓你養成了爭取的本能。", month:"職場上行動力強，但要注意跟同事的競爭關係。", day:"內在有衝勁，但伴侶關係中要注意過度爭勝。", hour:"晚年要注意理財，保持行動力但別太衝動。" },
+    "食神": { year:"你從小就有表達天賦，可能很早展現某種才藝。", month:"工作上靠才華和創意發展，適合內容創作或教學。", day:"內心追求享受和美好，伴侶關係中重視生活品質。", hour:"晚年有口福有樂趣，適合發展興趣創作。" },
+    "傷官": { year:"你從小就聰明有主見，思維跟同齡人不太一樣。", month:"工作上有創新能力，適合打破規則的領域。注意跟上司的關係。", day:"內在不服輸，伴侶關係中需要被尊重和被認可。", hour:"晚年思維活躍，可能有第二春的創作。" },
+    "偏財": { year:"你天生對人際有敏感度，從小就能讀懂人的情緒。", month:"工作上善於建立人脈和發現機會，社交是你的資產。", day:"內在善於連結他人，伴侶關係可能透過社交認識。", hour:"晚年人緣好，可能有意外的人脈回報。" },
+    "正財": { year:"你從小有務實的價值觀，可能很早就有金錢意識。", month:"工作上踏實穩健，適合需要長期累積的領域。", day:"內在重視安全感和穩定，伴侶關係中重視承諾。", hour:"晚年穩定踏實，財務安全有保障。" },
+    "七殺": { year:"童年可能有壓力或嚴格的環境，但這磨練了你的韌性。", month:"工作上能承受高壓，適合競爭激烈或需要魄力的領域。", day:"內在有強烈的驅動力，伴侶關係可能帶有張力。", hour:"晚年不會安逸，保持挑戰反而有活力。" },
+    "正官": { year:"你從小在有規矩的環境長大，養成了責任感。", month:"工作上適合體制內發展，容易得到正式的認可。", day:"內在重視秩序和責任，伴侶關係中是可靠的人。", hour:"晚年受人尊重，子女有教養。" },
+    "偏印": { year:"你從小思維就跟別人不太一樣，有獨立思考的天賦。", month:"工作上適合走非主流路線，獨立研究或技術。", day:"內在追求獨特和深度，可能對靈性有興趣。", hour:"晚年適合研究和寫作，發展冷門興趣。" },
+    "正印": { year:"你從小被照顧得好，有學習的環境和貴人的支持。", month:"工作上有人提攜，適合學術或專業發展。", day:"內在渴望被理解和支持，伴侶關係中需要溫暖。", hour:"晚年有人照顧，適合教學或傳承。" },
+  };
+  return base[god]?.[pillar] || getGodBrief(god);
+}
 function getGodBrief(god) {
   const briefs = {
     "比肩": "代表獨立自主的能量。你在這方面有「自己來」的傾向，不喜歡被指揮，適合平等合作。",
