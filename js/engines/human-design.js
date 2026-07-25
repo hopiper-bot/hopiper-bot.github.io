@@ -222,18 +222,22 @@ function determineProfile(personalitySunLine, designSunLine) {
  */
 function determineIncarnationCross(pSun, pEarth, dSun, dEarth) {
   // 輪迴交叉的完整資料庫有 768 種，這裡只提供基本框架
-  const angle = getAngleType(pSun.line);
+  const angle = getAngleType(pSun.line, dSun.line);
   return {
     gates: [pSun.gate, pEarth.gate, dSun.gate, dEarth.gate],
     angle,
-    desc: `你的輪迴交叉是「${GATES[pSun.gate]?.keyword || ''}」的${angle}角度。這代表你此生的大方向和目的。Personality 太陽閘門 ${pSun.gate}（${GATES[pSun.gate]?.name || ''}）是你最核心的人生主題。`,
+    desc: `你的輪迴交叉是「${GATES[pSun.gate]?.keyword || ''}」的${angle}。這代表你此生的大方向和目的。Personality 太陽閘門 ${pSun.gate}（${GATES[pSun.gate]?.name || ''}）是你最核心的人生主題。`,
   };
 }
 
-function getAngleType(line) {
-  if (line === 1 || line === 2) return '右角（個人命運）';
-  if (line === 3 || line === 4) return '並列（固定命運）';
-  return '左角（超個人命運）';
+function getAngleType(pLine, dLine) {
+  // 輪迴交叉角度由 Profile（P Sun line / D Sun line）決定
+  // Profile 1/3, 1/4, 2/4, 2/5, 3/5, 3/6 → 右角度（Right Angle）—— 個人命運
+  // Profile 4/6, 4/1 → 並列（Juxtaposition）—— 固定命運
+  // Profile 5/1, 5/2, 6/2, 6/3 → 左角度（Left Angle）—— 超個人命運
+  if (pLine <= 3) return '右角度（個人命運）';
+  if (pLine === 4) return '並列（固定命運）';
+  return '左角度（超個人命運）';
 }
 
 /**
@@ -613,6 +617,22 @@ function renderPlanetTable(pPlanets, dPlanets) {
       <th style="padding:8px 4px;text-align:left;">潛意識 (D)<br><span style="font-weight:400;font-size:.7rem;">別人看到的你</span></th>
     </tr>`;
 
+  const planetMeaning = {
+    sun: '你最核心的生命主題，佔能量的 ~70%。這是你「為何而活」的答案。',
+    earth: '支撐太陽主題的穩定基礎。你需要「站在」這個能量上，太陽才能發光。',
+    moon: '推動你前進的動力。你做事的「油門」來自這裡。',
+    northNode: '你的環境主題——什麼樣的環境讓你正確運作。',
+    southNode: '你的舒適圈——你習慣的能量，但不一定是正確方向。',
+    mercury: '你的溝通和思考方式。你如何處理和傳達資訊。',
+    venus: '你的價值觀和道德觀。你認為什麼重要、什麼值得。',
+    mars: '你的行動力和未成熟的能量。你如何衝刺和競爭。',
+    jupiter: '你的法則和保護。你天生有什麼好運和信仰。',
+    saturn: '你的紀律和人生功課。你需要學會什麼才能成熟。',
+    uranus: '你的非凡之處。你跟別人不一樣的地方。',
+    neptune: '你的幻覺和靈性。你容易被什麼迷惑或啟發。',
+    pluto: '你的真相和轉化。你人生中不可避免要面對的深層議題。',
+  };
+
   const rows = PLANETS.map((planet, i) => {
     const p = pPlanets[i];
     const d = dPlanets[i];
@@ -620,8 +640,10 @@ function renderPlanetTable(pPlanets, dPlanets) {
     const dGate = GATES[d.gate];
     const pLineName = LINE_NAMES[p.line] || '';
     const dLineName = LINE_NAMES[d.line] || '';
+    const detailId = `hd-planet-${i}`;
+    const meaning = planetMeaning[planet.id] || '';
     return `
-      <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+      <tr style="border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;" onclick="var el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'table-row':'none';">
         <td style="padding:8px 4px;font-weight:600;font-size:.85rem;">${planet.zh}</td>
         <td style="padding:8px 4px;">
           <div style="font-family:monospace;font-size:.9rem;">
@@ -637,6 +659,13 @@ function renderPlanetTable(pPlanets, dPlanets) {
           <div style="font-size:.78rem;color:var(--accent);margin-top:2px;">${dGate?.keyword || ''}</div>
           <div style="font-size:.72rem;color:var(--muted);">${dGate?.name || ''} ｜ ${d.line}爻${dLineName}</div>
         </td>
+      </tr>
+      <tr id="${detailId}" style="display:none;">
+        <td colspan="3" style="padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.82rem;line-height:1.8;">
+          <b>${planet.zh}的意義：</b>${meaning}<br>
+          <b>意識面（P）：</b>閘門 ${p.gate}「${pGate?.keyword || ''}」— 你自己知道的這股能量。你以 ${p.line}爻${pLineName}的方式表達它。<br>
+          <b>潛意識面（D）：</b>閘門 ${d.gate}「${dGate?.keyword || ''}」— 別人看到你的這股能量，但你自己不一定察覺。
+        </td>
       </tr>`;
   }).join('');
 
@@ -644,7 +673,8 @@ function renderPlanetTable(pPlanets, dPlanets) {
     <h3>🪐 閘門啟動表</h3>
     <div style="font-size:.8rem;color:var(--muted);margin:0 0 8px;line-height:1.6;">
       每顆星啟動一個閘門（易經卦），格式：<b>閘門號.爻</b><br>
-      閘門 = 你的天賦能量主題 ｜ 爻 = 你表達這個能量的方式（1-6）
+      閘門 = 你的天賦能量主題 ｜ 爻 = 你表達這個能量的方式（1-6）<br>
+      <span style="color:var(--accent);">💡 點擊任一行查看解說</span>
     </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;">
@@ -666,14 +696,22 @@ function renderCross(cross) {
   const gateNames = cross.gates.map(g => `${g}（${GATES[g]?.keyword || ''}）`);
   return `
     <h3>✝️ 輪迴交叉</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin:0 0 6px;">${cross.angle}</p>
+    <div style="font-size:.8rem;color:var(--muted);margin:0 0 8px;line-height:1.6;">
+      輪迴交叉 = 你此生的目的方向，由太陽＋地球的意識/潛意識四個閘門組成
+    </div>
+    <p style="font-size:.9rem;color:var(--accent);font-weight:700;margin:0 0 8px;">${cross.angle}</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-      <span class="tag tag-white" style="font-size:.75rem;">☉P ${gateNames[0]}</span>
-      <span class="tag tag-white" style="font-size:.75rem;">🌍P ${gateNames[1]}</span>
-      <span class="tag tag-red" style="font-size:.75rem;">☉D ${gateNames[2]}</span>
-      <span class="tag tag-red" style="font-size:.75rem;">🌍D ${gateNames[3]}</span>
+      <span class="tag tag-white" style="font-size:.75rem;">☉ 意識太陽 ${gateNames[0]}</span>
+      <span class="tag tag-white" style="font-size:.75rem;">🌍 意識地球 ${gateNames[1]}</span>
+      <span class="tag tag-red" style="font-size:.75rem;">☉ 潛意識太陽 ${gateNames[2]}</span>
+      <span class="tag tag-red" style="font-size:.75rem;">🌍 潛意識地球 ${gateNames[3]}</span>
     </div>
     <p class="meaning">${cross.desc}</p>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:6px;padding:8px;background:rgba(123,108,246,.04);border-radius:6px;line-height:1.7;">
+      <b>右角度</b> = 個人命運，你的人生目的是自我探索（Profile 1-3 爻）<br>
+      <b>並列</b> = 固定命運，你走在一條既定軌道上（Profile 4 爻）<br>
+      <b>左角度</b> = 超個人命運，你透過與他人互動完成使命（Profile 5-6 爻）
+    </div>
   `;
 }
 
