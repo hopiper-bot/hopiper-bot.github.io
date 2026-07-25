@@ -265,11 +265,12 @@ function renderOracle(o) {
   const antipode = kinInfo(o.antipode);
   const occult = kinInfo(o.occult);
   const destiny = kinInfo(o.destiny);
+  const selfGuide = (o.guide === o.destiny); // 引導=自己
 
   return `
     <h3>🔮 神諭五角</h3>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 8px;">
-      ${oracleCell("引導", guide)}
+      ${oracleCell("引導", guide, false, selfGuide)}
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
         ${oracleCell("挑戰", antipode)}
         ${oracleCell("主印記", destiny, true)}
@@ -281,11 +282,10 @@ function renderOracle(o) {
   `;
 }
 
-function oracleCell(role, info, center = false) {
+function oracleCell(role, info, center = false, isSelfGuide = false) {
   const borderStyle = center ? 'border-color:var(--accent);background:linear-gradient(135deg,rgba(245,197,66,.16),rgba(123,108,246,.16));' : '';
-  const detailId = `oracle-${info.kin}`;
-  // 根據角色產生解說
-  const roleDetail = getOracleRoleDetail(role, info);
+  const detailId = `oracle-${role}-${info.kin}`;
+  const roleDetail = isSelfGuide ? getSelfGuideDetail() : getOracleRoleDetail(role, info);
   return `<div style="background:var(--input-bg);border:1px solid rgba(123,108,246,.4);border-radius:14px;padding:12px 10px;width:150px;text-align:center;cursor:pointer;${borderStyle}" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
     <div style="font-size:.75rem;color:var(--muted);letter-spacing:1px;">${role}</div>
     <div style="font-size:1.7rem;margin:4px 0;">${info.seal.glyph}</div>
@@ -295,6 +295,12 @@ function oracleCell(role, info, center = false) {
   <div id="${detailId}" style="display:none;width:100%;max-width:320px;margin:6px auto;padding:10px 12px;background:rgba(123,108,246,.08);border-radius:10px;font-size:.83rem;line-height:1.7;text-align:left;">
     ${roleDetail}
   </div>`;
+}
+
+/** 引導=自己時的特殊解說 */
+function getSelfGuideDetail() {
+  return `<b>引導（你的方向）</b><br>你的引導就是你自己 — 代表你不需要外在指引，你的本能和直覺就是最好的 GPS。<br><br>這出現在調性 1、6、11 的人身上。意思是：信任自己的判斷，不要總是等別人告訴你怎麼做。你有能力自己找到方向，這是你的天賦也是責任。`;
+}
 }
 
 /** 神諭角色解說 */
