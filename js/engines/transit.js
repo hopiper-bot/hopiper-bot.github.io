@@ -8,9 +8,9 @@
  * 5. 紫微：流年宮位 + 流年四化
  */
 
-import { dateTimeToJD, jdToJC, sunLongitude, moonLongitude, northNodeLongitude } from '../lib/ephemeris.js';
+import { julianDay, sunLongitude, moonLongitude, northNodeLongitude } from '../lib/ephemeris.js';
 import { mercuryGeoLon, venusGeoLon, marsGeoLon, jupiterGeoLon, saturnGeoLon, uranusGeoLon, neptuneGeoLon, plutoGeoLon } from '../lib/planets.js';
-import { normalizeDeg } from '../lib/utils.js';
+import { normalizeDeg, jdToJC, dateTimeToJD } from '../lib/utils.js';
 import { longitudeToGate, GATES } from '../data/hd-gates.js';
 import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
 
