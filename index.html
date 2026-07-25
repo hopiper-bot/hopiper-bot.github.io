@@ -114,8 +114,19 @@
 
   <script type="module" src="js/main.js"></script>
   <script>
-    // 人類圖通道 + 中心點擊事件委派
+    // 人類圖通道 + 中心 + 資訊標籤點擊事件委派
     document.addEventListener('click', function(e) {
+      // 資訊標籤點擊（策略/權威/角色/定義/非自己）
+      var info = e.target.closest ? e.target.closest('[data-hd-info]') : null;
+      if (info && window._hdInfoDesc) {
+        var key = info.getAttribute('data-hd-info');
+        var html = window._hdInfoDesc[key];
+        if (html) {
+          var el = document.getElementById('hd-detail');
+          if (el) { el.innerHTML = html; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        }
+        return;
+      }
       // 通道點擊
       var line = e.target.closest ? e.target.closest('[data-hd-channel]') : null;
       if (line) {
@@ -124,21 +135,21 @@
         var ch = window._hdData.definedChannels[idx];
         if (!ch) return;
         var g1 = ch.gates[0], g2 = ch.gates[1];
-        var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-        html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
-        html += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
-        html += '<div style="padding:8px;background:rgba(245,197,66,.08);border-radius:6px;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
-        var el = document.getElementById('hd-detail');
-        if (el) { el.innerHTML = html; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        var html2 = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
+        html2 += '<div style="font-size:1rem;font-weight:700;color:var(--accent);">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
+        html2 += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
+        html2 += '<div style="padding:8px;background:rgba(245,197,66,.08);border-radius:6px;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
+        var el2 = document.getElementById('hd-detail');
+        if (el2) { el2.innerHTML = html2; el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
         return;
       }
       // 中心點擊
       var center = e.target.closest ? e.target.closest('[data-hd-center]') : null;
       if (center && window._hdData && window._hdCenterDesc) {
         var cId = center.getAttribute('data-hd-center');
-        var html2 = window._hdCenterDesc(cId);
-        var el2 = document.getElementById('hd-detail');
-        if (el2) { el2.innerHTML = html2; el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        var html3 = window._hdCenterDesc(cId);
+        var el3 = document.getElementById('hd-detail');
+        if (el3) { el3.innerHTML = html3; el3.scrollIntoView({behavior:'smooth',block:'nearest'}); }
       }
     });
   </script>

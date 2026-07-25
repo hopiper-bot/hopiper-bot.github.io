@@ -304,6 +304,13 @@ export function calculate(birthData) {
       window._hdData = data;
       window._hdChannelDesc = getChannelDesc;
       window._hdCenterDesc = getCenterDetail;
+      window._hdInfoDesc = {
+        strategy: `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;"><div style="font-size:1rem;font-weight:700;color:var(--accent);">🎯 策略：${strategy.zh}</div><div style="margin-top:6px;">${strategy.desc}</div></div>`,
+        authority: `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;"><div style="font-size:1rem;font-weight:700;color:var(--accent);">🧭 內在權威：${authority.zh}</div><div style="margin-top:6px;">${authority.desc}</div></div>`,
+        profile: `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;"><div style="font-size:1rem;font-weight:700;color:var(--accent);">🎭 人生角色：${profileInfo.profile} ${profileInfo.zh}</div><div style="margin-top:6px;">${profileInfo.desc}</div></div>`,
+        definition: `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;"><div style="font-size:1rem;font-weight:700;color:var(--accent);">🔗 定義：${defTypeZh}</div><div style="margin-top:6px;">${defType === 1 ? '你的所有定義中心都互相連接，能量流暢。你不需要別人來「橋接」你的能量。你是自給自足的。' : defType === 2 ? '你的定義分成兩塊，有時會覺得自己「內在有兩個人」。你會被能橋接這兩塊的人吸引。' : defType === 3 ? '你的定義分成三塊。你需要多元的環境和人際來感覺完整。公共場所是你的充電站。' : defType === 0 ? '你沒有固定定義，完全反映環境。你是最稀有的類型（約 1%），你的天賦是品嚐和感知。' : '你的定義形態獨特。'}</div></div>`,
+        notself: `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;"><div style="font-size:1rem;font-weight:700;color:var(--red);">⚠️ 非自己主題</div><div style="margin-top:6px;">${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感——當你主動發起而不是等待回應時，事情不順利就會感到挫敗。這是你偏離軌道的信號。回到等待回應，挫敗感會消失。' : typeInfo.type === 'M' ? '憤怒——當你行動前沒有告知，或被人阻擋時會生氣。這是信號：你需要先告知再行動。' : typeInfo.type === 'P' ? '苦澀——當你主動出擊而不是等待邀請時，成果不被認可就會感到苦澀。等待正確的邀請。' : '失望——當你太快做決定，沒有等完月循環，結果不如預期就會失望。'}</div></div>`,
+      };
     }
 
     return { status: 'ok', data, html, error: null };
@@ -330,12 +337,12 @@ function renderHD(data) {
       </div>
       <div style="font-size:.9rem;color:var(--muted);margin-top:4px;">${typeInfo.en}</div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        <span class="tag tag-yellow">${profile.profile} ${profile.zh}</span>
-        <span class="tag tag-blue">${authority.zh}</span>
-        <span class="tag tag-white">${defTypeZh}</span>
+        <span class="tag tag-yellow" data-hd-info="profile" style="cursor:pointer;">${profile.profile} ${profile.zh}</span>
+        <span class="tag tag-blue" data-hd-info="authority" style="cursor:pointer;">${authority.zh}</span>
+        <span class="tag tag-white" data-hd-info="definition" style="cursor:pointer;">${defTypeZh}</span>
       </div>
       <div style="display:flex;justify-content:center;gap:12px;margin-top:8px;font-size:.82rem;color:var(--muted);">
-        <span>策略：${strategy.zh}</span><span>｜</span><span>非自己：${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感' : typeInfo.type === 'M' ? '憤怒' : typeInfo.type === 'P' ? '苦澀' : '失望'}</span>
+        <span data-hd-info="strategy" style="cursor:pointer;">策略：${strategy.zh}</span><span>｜</span><span data-hd-info="notself" style="cursor:pointer;">非自己：${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感' : typeInfo.type === 'M' ? '憤怒' : typeInfo.type === 'P' ? '苦澀' : '失望'}</span>
       </div>
     </div>
 
@@ -396,7 +403,7 @@ function renderBodyGraph(data) {
     const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
     return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="5" stroke-linecap="round" data-hd-channel="${idx}"/>
       <line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="20" data-hd-channel="${idx}" style="cursor:pointer;"/>
-      <text x="${mx}" y="${my}" text-anchor="middle" fill="var(--muted)" font-size="8" pointer-events="none">${g1}-${g2}</text>`;
+      <text x="${mx}" y="${my}" text-anchor="middle" fill="var(--muted)" font-size="9" pointer-events="none">${g1}-${g2}</text>`;
   }).join('');
 
   // Center 圖形（可點擊）
@@ -436,13 +443,13 @@ function renderBodyGraph(data) {
     }
 
     return `${shape}
-      <text x="${pos.x}" y="${pos.y - 2}" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="700" pointer-events="none">${label}</text>
-      <text x="${pos.x}" y="${pos.y + 12}" text-anchor="middle" font-size="7.5" pointer-events="none">${gateLabels}</text>`;
+      <text x="${pos.x}" y="${pos.y - 2}" text-anchor="middle" fill="var(--text)" font-size="10" font-weight="700" pointer-events="none">${label}</text>
+      <text x="${pos.x}" y="${pos.y + 14}" text-anchor="middle" font-size="9" pointer-events="none">${gateLabels}</text>`;
   }).join('');
 
   return `
     <div style="text-align:center;margin:8px 0;">
-      <svg viewBox="0 0 500 620" width="100%" style="max-width:460px;">
+      <svg viewBox="0 0 500 620" width="100%" style="max-width:600px;">
         <defs>
           <pattern id="hdStripe" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--text)" stroke-width="3"/>
