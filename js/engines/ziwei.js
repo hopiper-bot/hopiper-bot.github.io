@@ -118,18 +118,17 @@ function placeStars(ziweiPos) {
   const stars = {};
   const tianfuPos = getTianfuPos(ziweiPos);
 
-  // 紫微系6星（逆時針排列）
-  // 紫微→天機(隔一宮)→(空)→太陽→武曲→天同→(空)→廉貞
+  // 紫微系6星（逆時針，用減法）
   const ziweiGroup = [
     { name:"紫微", offset: 0 },
-    { name:"天機", offset: 11 }, // 逆1
-    { name:"太陽", offset: 9 },  // 逆3
-    { name:"武曲", offset: 8 },  // 逆4
-    { name:"天同", offset: 7 },  // 逆5
-    { name:"廉貞", offset: 5 },  // 逆7
+    { name:"天機", offset: -1 },
+    { name:"太陽", offset: -3 },
+    { name:"武曲", offset: -4 },
+    { name:"天同", offset: -5 },
+    { name:"廉貞", offset: -8 },
   ];
   ziweiGroup.forEach(s => {
-    const pos = (ziweiPos + s.offset) % 12;
+    const pos = ((ziweiPos + s.offset) % 12 + 12) % 12;
     if (!stars[pos]) stars[pos] = [];
     stars[pos].push(s.name);
   });

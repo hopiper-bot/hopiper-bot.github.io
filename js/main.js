@@ -40,6 +40,7 @@ function getFormData() {
     hour: (hourVal !== '' && hourVal != null) ? parseInt(hourVal) : -1,
     minute: (minuteVal !== '' && minuteVal != null) ? parseInt(minuteVal) : 0,
     location: document.getElementById('birth-location')?.value?.trim() || '',
+    gender: document.getElementById('birth-gender')?.value || 'male',
   };
 }
 
@@ -133,6 +134,7 @@ async function calculate() {
     lat: geo.lat,
     lng: geo.lng,
     utcOffset: geo.utcOffset,
+    gender: formData.gender,
   };
 
   // 儲存到 localStorage
