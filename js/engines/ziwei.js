@@ -374,7 +374,7 @@ function renderZiwei(data) {
   const mingStars = palaces[0].main;
 
   // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
-  registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear);
+  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
 
   return `
     <div class="sig">
@@ -443,7 +443,7 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
       const dxMark = isDxCurrent ? ' ★' : '';
       dxLabel = `<div style="font-size:.55rem;${dxColor}margin-top:2px;">⏳${dx.age}-${dx.ageEnd}歲${dxMark}</div>`;
     }
-    return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" onclick="window.showZwDetail(${branchIdx})">
+    return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}
@@ -555,86 +555,15 @@ function registerGlobalClickHandler(palaces, sihua, daxian, birthYear) {
     });
   });
 
-  window._zwPosMap = posMap;
-  window._zwSihuaPalaces = sihuaPalaces;
-
-  // 掛全域函數（onclick inline 呼叫）
-  window.showZwDetail = function(pos) {
-    const p = window._zwPosMap[pos];
-    if (!p) return;
-    const oppositePos = getOppositePos(pos);
-    const oppP = window._zwPosMap[oppositePos];
-
-    let html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-
-    // === 本宮 ===
-    html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">';
-    html += '\u{1F4CD} ' + p.name + '\uFF08' + p.branch + '\u5BAE\uFF09</div>';
-    html += '<div style="color:var(--muted);margin-bottom:8px;">' + (PALACE_INFO[p.name]||'') + '</div>';
-
-    if (p.main.length > 0) {
-      html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
-      p.main.forEach(function(s) {
-        const bColor = (s.brightness==='\u5EDF'||s.brightness==='\u65FA') ? 'var(--accent)' : s.brightness==='\u9677' ? 'var(--red)' : 'var(--muted)';
-        html += '<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-        html += '<span style="font-size:.75rem;color:' + bColor + ';">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + (STAR_INFO[s.name]||'') + '</div>';
-      });
-
-      // 雙星組合解讀
-      if (p.main.length >= 2) {
-        const key1 = p.main[0].name + '+' + p.main[1].name;
-        const key2 = p.main[1].name + '+' + p.main[0].name;
-        const combo = STAR_COMBOS[key1] || STAR_COMBOS[key2];
-        if (combo) {
-          html += '<div style="margin:8px 0;padding:8px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);"><b>\u26A1 \u7D44\u5408\u6548\u61C9\uFF1A</b>' + combo + '</div>';
-        }
-      }
-    } else {
-      html += '<div style="color:var(--muted);margin-bottom:8px;">\u6B64\u5BAE\u7121\u4E3B\u661F \u2014 \u501F\u5C0D\u5BAE\u661F\u529B\u3002\u4F60\u5728\u9019\u500B\u9762\u5411\u6BD4\u8F03\u300C\u770B\u60C5\u6CC1\u300D\uFF0C\u53D7\u74B0\u5883\u548C\u5C0D\u5BAE\u5F71\u97FF\u5927\u3002</div>';
-    }
-
-    if (p.minor.length > 0) {
-      html += '<div style="margin-top:8px;margin-bottom:4px;"><b>\u526F\u661F\uFF1A</b></div>';
-      p.minor.forEach(function(s) {
-        html += '<div style="margin-left:8px;font-size:.82rem;color:var(--muted);">' + s + '\uFF1A' + (STAR_INFO[s]||'') + '</div>';
-      });
-    }
-
-    // === 四化落此宮 ===
-    const sihuaHere = window._zwSihuaPalaces[p.name];
-    if (sihuaHere) {
-      html += '<div style="margin-top:10px;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">';
-      html += '<b>\u{1F300} \u6B64\u5BAE\u6709\u56DB\u5316\uFF1A</b><br>';
-      sihuaHere.forEach(function(item) {
-        const type = item.charAt(0);
-        let interp = '';
-        if (type === '\u797F' && SIHUA_PALACE_INTERP['\u797F']) interp = SIHUA_PALACE_INTERP['\u797F'][p.name] || '';
-        if (type === '\u5FCC' && SIHUA_PALACE_INTERP['\u5FCC']) interp = SIHUA_PALACE_INTERP['\u5FCC'][p.name] || '';
-        const color = type==='\u797F'?'#4f4':type==='\u6B0A'?'#f84':type==='\u79D1'?'#8cf':type==='\u5FCC'?'#f55':'var(--text)';
-        html += '<span style="color:' + color + ';font-weight:700;">' + item + '</span>';
-        if (interp) html += '<br><span style="font-size:.8rem;color:var(--muted);margin-left:8px;">' + interp + '</span>';
-        html += '<br>';
-      });
-      html += '</div>';
-    }
-
-    // === 對宮 ===
-    html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
-    html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + BRANCHES[oppositePos] + '\u5BAE\uFF09</div>';
-    html += '<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">\u5C0D\u5BAE\u7684\u661F\u6703\u300C\u7167\u5165\u300D\u672C\u5BAE\uFF0C\u5F71\u97FF\u529B\u7D04\u672C\u5BAE\u7684 60-70%\u3002\u672C\u5BAE\u7121\u4E3B\u661F\u6642\u5F71\u97FF\u66F4\u5927\u3002</div>';
-
-    if (oppP && oppP.main.length > 0) {
-      oppP.main.forEach(function(s) {
-        html += '<div style="margin-left:8px;font-size:.82rem;"><span style="color:var(--accent2);">' + s.name + '</span>\uFF08' + s.brightness + '\uFF09\u7167\u5165\uFF1A' + (STAR_INFO[s.name]||'') + '</div>';
-      });
-    } else {
-      html += '<div style="font-size:.82rem;color:var(--muted);">\u5C0D\u5BAE\u4E5F\u7121\u4E3B\u661F\uFF08\u96D9\u7A7A\u5BAE\uFF09\uFF0C\u9019\u500B\u9762\u5411\u6BD4\u8F03\u81EA\u7531\u767C\u63EE\u3002</div>';
-    }
-    html += '</div>';
-
-    html += '</div>';
-    document.getElementById('zw-detail').innerHTML = html;
-    document.getElementById('zw-detail').scrollIntoView({behavior:'smooth', block:'nearest'});
+  // 把完整資料序列化到 window 上，供全域 script 使用
+  window._zwData = {
+    posMap: posMap,
+    sihuaPalaces: sihuaPalaces,
+    starInfo: STAR_INFO,
+    palaceInfo: PALACE_INFO,
+    starCombos: STAR_COMBOS,
+    sihuaPalaceInterp: SIHUA_PALACE_INTERP,
+    branches: BRANCHES,
   };
 }
 
