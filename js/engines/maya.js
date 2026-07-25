@@ -303,7 +303,6 @@ function oracleCell(role, info, center = false, isSelfGuide = false, uid = '') {
 function getSelfGuideDetail() {
   return `<b>引導（你的方向）</b><br>你的引導就是你自己 — 代表你不需要外在指引，你的本能和直覺就是最好的 GPS。<br><br>這出現在調性 1、6、11 的人身上。意思是：信任自己的判斷，不要總是等別人告訴你怎麼做。你有能力自己找到方向，這是你的天賦也是責任。`;
 }
-}
 
 /** 神諭角色解說 */
 function getOracleRoleDetail(role, info) {
