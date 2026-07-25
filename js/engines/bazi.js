@@ -300,6 +300,7 @@ function renderBazi(data) {
     </div>
 
     <h3>📋 四柱排盤</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">點擊各柱查看詳細解讀 ▼</p>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;text-align:center;font-size:.95rem;">
         <thead>
@@ -308,20 +309,17 @@ function renderBazi(data) {
           </tr>
         </thead>
         <tbody>
-          <tr style="font-size:1.3rem;font-weight:700;">
+          <tr style="font-size:1.3rem;font-weight:700;cursor:pointer;" onclick="document.getElementById('pillar-detail').style.display=document.getElementById('pillar-detail').style.display==='none'?'block':'none';">
             <td style="padding:8px;">${p.year.stem}</td><td style="padding:8px;">${p.month.stem}</td><td style="padding:8px;color:var(--accent);">${p.day.stem}</td><td style="padding:8px;">${p.hour.stem}</td>
           </tr>
-          <tr style="font-size:1.3rem;">
+          <tr style="font-size:1.3rem;cursor:pointer;" onclick="document.getElementById('pillar-detail').style.display=document.getElementById('pillar-detail').style.display==='none'?'block':'none';">
             <td style="padding:8px;">${p.year.branch}</td><td style="padding:8px;">${p.month.branch}</td><td style="padding:8px;">${p.day.branch}</td><td style="padding:8px;">${p.hour.branch}</td>
-          </tr>
-          <tr style="font-size:.8rem;color:var(--muted);">
-            <td style="padding:6px;">${p.year.hidden.join(' ')}</td><td style="padding:6px;">${p.month.hidden.join(' ')}</td><td style="padding:6px;">${p.day.hidden.join(' ')}</td><td style="padding:6px;">${p.hour.hidden.join(' ')}</td>
-          </tr>
-          <tr style="font-size:.75rem;color:var(--muted);border-top:1px solid rgba(255,255,255,.05);">
-            <td style="padding:6px;">${tenGods.find(t=>t.pillar==='year')?.god||''}</td><td style="padding:6px;">${tenGods.find(t=>t.pillar==='month')?.god||''}</td><td style="padding:6px;">日主</td><td style="padding:6px;">${tenGods.find(t=>t.pillar==='hour')?.god||''}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div id="pillar-detail" style="display:none;margin-top:12px;">
+      ${renderPillarDetail(pillars, dayMaster, tenGods)}
     </div>
 
     <div class="divider"></div>
@@ -337,16 +335,22 @@ function renderBazi(data) {
     ${renderPattern(tenGods, dayMaster, pillars)}
 
     <div class="divider"></div>
-    <h3>📖 各柱解讀</h3>
-    ${renderPillarMeaning(tenGods, pillars)}
+    <h3 style="cursor:pointer;" onclick="document.getElementById('pillar-meaning').style.display=document.getElementById('pillar-meaning').style.display==='none'?'block':'none';">📖 各柱解讀 ▼</h3>
+    <div id="pillar-meaning" style="display:none;">
+      ${renderPillarMeaning(tenGods, pillars)}
+    </div>
 
     <div class="divider"></div>
-    <h3>🚂 大運（每10年的人生主題）</h3>
-    ${renderDayun(dayun, birthYear)}
+    <h3 style="cursor:pointer;" onclick="document.getElementById('dayun-detail').style.display=document.getElementById('dayun-detail').style.display==='none'?'block':'none';">🚂 大運（每10年的人生主題）▼</h3>
+    <div id="dayun-detail" style="display:none;">
+      ${renderDayun(dayun, birthYear)}
+    </div>
 
     <div class="divider"></div>
-    <h3>⭐ 副星（神煞）</h3>
-    ${renderShensha(shensha)}
+    <h3 style="cursor:pointer;" onclick="document.getElementById('shensha-detail').style.display=document.getElementById('shensha-detail').style.display==='none'?'block':'none';">⭐ 神煞 ▼</h3>
+    <div id="shensha-detail" style="display:none;">
+      ${renderShensha(shensha)}
+    </div>
 
     <div class="note">💡 日柱天干（${dayMaster}）就是「你」。年柱=祖上/童年、月柱=事業/青年、日柱=自己/中年、時柱=子女/晚年。十神反映你跟周圍能量的關係。</div>
   `;
@@ -480,6 +484,35 @@ function renderShensha(shensha) {
     return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
       <span style="color:var(--accent);font-weight:700;font-size:1rem;">${s.name}</span>
       <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">${s.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+/** 排盤詳細展開（藏干 + 藏干十神 + 各柱意義） */
+function renderPillarDetail(pillars, dayMaster, tenGods) {
+  const pillarNames = ['year', 'month', 'day', 'hour'];
+  const pillarZh = { year: '年柱（祖上・童年）', month: '月柱（事業・青年）', day: '日柱（自己・中年）', hour: '時柱（子女・晚年）' };
+
+  return pillarNames.map(name => {
+    const p = pillars[name];
+    const stemGod = name === 'day' ? '日主' : getTenGod(dayMaster, p.stem);
+    const stemElem = STEM_ELEMENT[p.stem];
+    const branchElem = BRANCH_ELEMENT[p.branch];
+
+    // 藏干十神
+    const hiddenGods = p.hidden.map(h => {
+      const god = (h === dayMaster) ? '比肩' : getTenGod(dayMaster, h);
+      return `${h}(${god})`;
+    }).join(' ');
+
+    const isDay = name === 'day';
+    const highlight = isDay ? 'border-left:3px solid var(--accent);padding-left:10px;' : '';
+
+    return `<div style="padding:10px 8px;margin:6px 0;background:rgba(123,108,246,.05);border-radius:8px;${highlight}">
+      <div style="font-weight:700;margin-bottom:6px;">${pillarZh[name]}</div>
+      <div style="font-size:.9rem;">天干：<b>${p.stem}</b>（${stemElem}）${isDay ? ' — 日主' : ' — ' + stemGod}</div>
+      <div style="font-size:.9rem;">地支：<b>${p.branch}</b>（${branchElem}）</div>
+      <div style="font-size:.85rem;color:var(--muted);margin-top:4px;">藏干：${hiddenGods}</div>
     </div>`;
   }).join('');
 }
