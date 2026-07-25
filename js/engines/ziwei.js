@@ -106,9 +106,7 @@ function getZiweiPos(juNum, lunarDay) {
 }
 
 // === 天府位置 ===
-// 天府和紫微以「寅—午」軸對稱
-// 天府pos = (4 - (紫微pos - 2) + 2 + 12) % 12... 不對
-// 正確：天府 = (12 - 紫微pos + 4) % 12
+// 天府位置公式（已驗證：紫微丑→天府卯）
 function getTianfuPos(ziweiPos) {
   return (12 - ziweiPos + 4) % 12;
 }
