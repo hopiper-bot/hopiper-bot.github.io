@@ -77,7 +77,7 @@ const GATE_SEQUENCE = [
   26, 11, 10, 58, 38, 54, 61, 60
 ];
 
-const MANDALA_START = 303.0;
+const MANDALA_START = 302.5;
 const GATE_ARC = 5.625;
 const LINE_ARC = 0.9375;
 

@@ -213,7 +213,7 @@ export function saturnLongitude(jd) {
 }
 
 /**
- * 月球北交點黃道經度（真交點，含主要攝動修正）
+ * 月球北交點黃道經度（真交點，含擴展攝動修正）
  * @param {number} jd - Julian Day
  * @returns {number} 黃道經度 0-360°
  */
@@ -224,18 +224,27 @@ export function northNodeLongitude(jd) {
     + T * T * T / 467441 - T * T * T * T / 60616000;
   
   // 主要攝動修正（將平均交點→真交點）
-  // Meeus Chapter 47
-  const D = normalizeDeg(297.8501921 + 445267.1114034 * T);
-  const M = normalizeDeg(357.5291092 + 35999.0502909 * T);
-  const Mp = normalizeDeg(134.9633964 + 477198.8675055 * T);
-  const F = normalizeDeg(93.2720950 + 483202.0175233 * T);
+  const D = normalizeDeg(297.8501921 + 445267.1114034 * T
+    - 0.0018819 * T * T + T * T * T / 545868);
+  const M = normalizeDeg(357.5291092 + 35999.0502909 * T
+    - 0.0001536 * T * T);
+  const Mp = normalizeDeg(134.9633964 + 477198.8675055 * T
+    + 0.0087414 * T * T + T * T * T / 69699);
+  const F = normalizeDeg(93.2720950 + 483202.0175233 * T
+    - 0.0036539 * T * T - T * T * T / 3526000);
   
-  // 真交點修正項
+  // 擴展真交點修正項（Chapront 系列）
   const correction = -1.4979 * sinDeg(2 * (D - F))
     - 0.1500 * sinDeg(M)
     - 0.1226 * sinDeg(2 * D)
     + 0.1176 * sinDeg(2 * F)
-    - 0.0801 * sinDeg(2 * (Mp - F));
+    - 0.0801 * sinDeg(2 * (Mp - F))
+    - 0.5240 * sinDeg(Mp)
+    + 0.0996 * sinDeg(2 * Mp)
+    + 0.0450 * sinDeg(2 * (D - F) - M)
+    + 0.0310 * sinDeg(2 * (D - F) + Mp)
+    - 0.0240 * sinDeg(M - Mp)
+    + 0.0190 * sinDeg(2 * D - Mp);
   
   return normalizeDeg(omega + correction);
 }

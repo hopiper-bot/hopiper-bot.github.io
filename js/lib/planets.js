@@ -48,30 +48,31 @@ function helioToGeo(jd, helioLon, r) {
   return normalizeDeg(atan2Deg(y, x));
 }
 
-// === 水星地心黃道經度 ===
+// === 水星地心黃道經度（含軌道傾角投影 + 攝動修正） ===
 export function mercuryGeoLon(jd) {
   const T = jdToJC(jd);
   
-  // 水星軌道要素
   const L = normalizeDeg(252.250906 + 149474.0722491 * T + 0.00030350 * T * T);
   const a = 0.387098310;
   const e = 0.20563175 + 0.000020407 * T;
-  const omega = normalizeDeg(77.456119 + 0.1588643 * T); // longitude of perihelion
+  const omega = normalizeDeg(77.456119 + 0.1588643 * T);
+  const i_rad = (7.00487 - 0.00594 * T) * Math.PI / 180;
+  const node = normalizeDeg(48.3309 + 1.1862 * T);
 
-  // 平近點角
   const M = normalizeDeg(L - omega);
-  
-  // 真近點角 (用 Kepler equation 迭代)
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
-  // 日心黃道經度
-  const helioLon = normalizeDeg(nu + omega);
-  
-  // 日心距離
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 含軌道傾角的日心黃道經度
+  const argPeri = normalizeDeg(omega - node);
+  const u = argPeri + nu;
+  const helioLon = normalizeDeg(node + atan2Deg(sinDeg(u) * Math.cos(i_rad), cosDeg(u)));
+  
+  const geo = helioToGeo(jd, helioLon, r);
+  // 攝動修正
+  const dL = 1.5100 * sinDeg(M + (-44.0));
+  return normalizeDeg(geo + dL);
 }
 
 // === 金星地心黃道經度 ===
@@ -93,7 +94,7 @@ export function venusGeoLon(jd) {
   return helioToGeo(jd, helioLon, r);
 }
 
-// === 火星地心黃道經度 ===
+// === 火星地心黃道經度（含木星攝動） ===
 export function marsGeoLon(jd) {
   const T = jdToJC(jd);
   
@@ -105,14 +106,20 @@ export function marsGeoLon(jd) {
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 木星攝動
+  const Mj = normalizeDeg(20.020564 + 3034.6874893 * T);
+  const Mm = M;
+  const dL = 0.584 * sinDeg(2 * Mj - Mm - 41.0)
+           + 0.048 * sinDeg(Mj + 32.0);
+  const helioLon2 = normalizeDeg(helioLon + dL);
+  
+  return helioToGeo(jd, helioLon2, r);
 }
 
-// === 木星地心黃道經度 ===
+// === 木星地心黃道經度（含土星攝動 Great Inequality） ===
 export function jupiterGeoLon(jd) {
   const T = jdToJC(jd);
   
@@ -124,14 +131,25 @@ export function jupiterGeoLon(jd) {
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 土星攝動（Meeus Table 31 + 校正項）
+  const Mj = normalizeDeg(20.020564 + 3034.6874893 * T);
+  const Ms = normalizeDeg(316.967 + 1222.114 * T);
+  const dL = -0.332 * sinDeg(2 * Mj - 5 * Ms - 67.6)
+           - 0.056 * sinDeg(2 * Mj - 2 * Ms + 21)
+           + 0.042 * sinDeg(3 * Mj - 5 * Ms + 21)
+           - 0.036 * sinDeg(Mj - 2 * Ms)
+           + 0.022 * cosDeg(Mj - Ms)
+           + 0.023 * sinDeg(2 * Mj - 2 * Ms + 53)
+           + 0.705 * sinDeg(Mj - 2 * Ms + 32);
+  const helioLon2 = normalizeDeg(helioLon + dL);
+  
+  return helioToGeo(jd, helioLon2, r);
 }
 
-// === 土星地心黃道經度 ===
+// === 土星地心黃道經度（含木星攝動） ===
 export function saturnGeoLon(jd) {
   const T = jdToJC(jd);
   
@@ -143,14 +161,21 @@ export function saturnGeoLon(jd) {
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 木星攝動
+  const Mj = normalizeDeg(20.020564 + 3034.6874893 * T);
+  const Ms = normalizeDeg(316.967 + 1222.114 * T);
+  const dL = 0.440 * sinDeg(2 * Mj - 5 * Ms - 67.6)
+           + 0.034 * sinDeg(2 * Mj - 2 * Ms + 21)
+           - 0.026 * sinDeg(3 * Mj - 5 * Ms + 21.1);
+  const helioLon2 = normalizeDeg(helioLon + dL);
+  
+  return helioToGeo(jd, helioLon2, r);
 }
 
-// === 天王星地心黃道經度 ===
+// === 天王星地心黃道經度（含攝動修正） ===
 export function uranusGeoLon(jd) {
   const T = jdToJC(jd);
   
@@ -162,14 +187,18 @@ export function uranusGeoLon(jd) {
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 攝動修正（木星+土星+海王星效應）
+  const Mu = M;
+  const dL = -0.711 * sinDeg(Mu);
+  const helioLon2 = normalizeDeg(helioLon + dL);
+  
+  return helioToGeo(jd, helioLon2, r);
 }
 
-// === 海王星地心黃道經度 ===
+// === 海王星地心黃道經度（含木星攝動） ===
 export function neptuneGeoLon(jd) {
   const T = jdToJC(jd);
   
@@ -181,11 +210,18 @@ export function neptuneGeoLon(jd) {
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
-  
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  return helioToGeo(jd, helioLon, r);
+  // 木星攝動
+  const Mj = normalizeDeg(20.020564 + 3034.6874893 * T);
+  const Mn = M;
+  const dL = 1.3254 * sinDeg(Mj - Mn + 25)
+           - 0.136 * sinDeg(2 * (Mj - Mn) - 16)
+           - 1.0940 * sinDeg(Mj + 134);
+  const helioLon2 = normalizeDeg(helioLon + dL);
+  
+  return helioToGeo(jd, helioLon2, r);
 }
 
 // === 冥王星地心黃道經度（低精度） ===
