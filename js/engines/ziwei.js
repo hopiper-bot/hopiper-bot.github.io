@@ -49,6 +49,26 @@ function getTianfuPos(ziweiPos) {
   return (12 - ziweiPos + 4) % 12;
 }
 
+// === 旺陷表（14主星在12地支的力量等級）===
+// 廟=最強、旺=強、得=中上、利=中、平=普通、不=中下、閒=弱、陷=最弱
+const BRIGHTNESS = {
+  "紫微": ["廟","廟","廟","旺","旺","旺","廟","廟","旺","旺","旺","旺"],
+  "天機": ["旺","陷","廟","廟","旺","旺","旺","陷","廟","廟","利","利"],
+  "太陽": ["陷","陷","旺","廟","廟","廟","旺","旺","利","平","陷","陷"],
+  "武曲": ["旺","廟","利","廟","旺","旺","旺","廟","利","廟","旺","旺"],
+  "天同": ["旺","陷","平","平","陷","旺","陷","旺","平","平","利","廟"],
+  "廉貞": ["平","平","旺","陷","利","廟","平","平","旺","陷","利","廟"],
+  "天府": ["廟","旺","廟","得","旺","廟","旺","廟","廟","得","旺","廟"],
+  "太陰": ["廟","廟","陷","陷","平","平","陷","陷","旺","旺","廟","廟"],
+  "貪狼": ["旺","旺","廟","平","旺","旺","廟","旺","平","廟","旺","旺"],
+  "巨門": ["旺","旺","廟","廟","旺","旺","廟","旺","陷","陷","旺","旺"],
+  "天相": ["廟","旺","旺","陷","得","廟","旺","廟","旺","陷","得","廟"],
+  "天梁": ["廟","廟","旺","旺","陷","旺","旺","陷","廟","旺","旺","廟"],
+  "七殺": ["旺","廟","旺","平","旺","廟","旺","廟","旺","平","旺","廟"],
+  "破軍": ["旺","旺","陷","旺","旺","旺","陷","旺","旺","旺","旺","旺"],
+};
+// 索引對應：子(0)丑(1)寅(2)卯(3)辰(4)巳(5)午(6)未(7)申(8)酉(9)戌(10)亥(11)
+
 // === 14主星排盤 ===
 function placeMainStars(ziweiPos) {
   const stars = {};
@@ -65,7 +85,8 @@ function placeMainStars(ziweiPos) {
   ziweiGroup.forEach(s => {
     const pos = ((ziweiPos + s.offset) % 12 + 12) % 12;
     if (!stars[pos]) stars[pos] = [];
-    stars[pos].push(s.name);
+    const brightness = BRIGHTNESS[s.name] ? BRIGHTNESS[s.name][pos] : '';
+    stars[pos].push({ name: s.name, brightness });
   });
 
   const tianfuGroup = [
@@ -81,7 +102,8 @@ function placeMainStars(ziweiPos) {
   tianfuGroup.forEach(s => {
     const pos = (tianfuPos + s.offset) % 12;
     if (!stars[pos]) stars[pos] = [];
-    stars[pos].push(s.name);
+    const brightness = BRIGHTNESS[s.name] ? BRIGHTNESS[s.name][pos] : '';
+    stars[pos].push({ name: s.name, brightness });
   });
 
   return stars;
@@ -240,7 +262,7 @@ function renderZiwei(data) {
   return `
     <div class="sig">
       <div class="kin">紫微斗數命盤</div>
-      <div class="big">${mingStars.length > 0 ? mingStars.join(' ') + ' 坐命' : '命宮無主星'}</div>
+      <div class="big">${mingStars.length > 0 ? mingStars.map(s=>s.name).join(' ') + ' 坐命' : '命宮無主星'}</div>
       <div style="font-size:.85rem;color:var(--muted);margin-top:6px;">
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]}
       </div>
@@ -268,7 +290,7 @@ function renderGrid(palaces, lunar, ju) {
     if (!p) return `<div style="padding:6px;background:var(--input-bg);border:1px solid var(--card-border);border-radius:4px;min-height:60px;"></div>`;
     const isMing = p.name === "命宮";
     const border = isMing ? 'border:2px solid var(--accent);' : 'border:1px solid var(--card-border);';
-    const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.join(' ')}</div>` : '';
+    const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.map(s=>s.name+'<sub style=\"font-size:.55rem;color:var(--muted)\">'+s.brightness+'</sub>').join(' ')}</div>` : '';
     const minorStr = p.minor.length > 0 ? `<div style="font-size:.65rem;color:var(--muted);">${p.minor.join(' ')}</div>` : '';
     const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}</div>`;
     const detail = JSON.stringify({name:p.name,branch:p.branch,main:p.main,minor:p.minor}).replace(/"/g,'&quot;');
@@ -303,13 +325,18 @@ function renderGrid(palaces, lunar, ju) {
         html += '<span style="color:var(--muted);">' + (pInfo[data.name]||'') + '</span><br><br>';
         if (data.main.length > 0) {
           html += '<b>主星：</b><br>';
-          data.main.forEach(s => { html += '<span style="color:var(--accent);">' + s + '</span>：' + (info[s]||'') + '<br>'; });
+          data.main.forEach(function(s) {
+            var bColor = s.brightness==='廟'||s.brightness==='旺' ? 'var(--accent)' : s.brightness==='陷' ? 'var(--red)' : 'var(--muted)';
+            html += '<span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
+            html += '<span style="font-size:.75rem;color:' + bColor + ';">（' + s.brightness + '）</span>：';
+            html += (info[s.name]||'') + '<br>';
+          });
         } else {
-          html += '<span style="color:var(--muted);">此宮無主星</span><br>';
+          html += '<span style="color:var(--muted);">此宮無主星（借對宮星力，性格在此面向受環境影響較大）</span><br>';
         }
         if (data.minor.length > 0) {
           html += '<br><b>副星：</b><br>';
-          data.minor.forEach(s => { html += '<span style="color:var(--muted);">' + s + '</span>：' + (info[s]||'') + '<br>'; });
+          data.minor.forEach(function(s) { html += '<span style="color:var(--muted);">' + s + '</span>：' + (info[s]||'') + '<br>'; });
         }
         html += '</div>';
         document.getElementById('zw-detail').innerHTML = html;
