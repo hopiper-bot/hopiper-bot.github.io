@@ -26,8 +26,8 @@ export const GATE_SEQUENCE = [
   26, 11, 10, 58, 38, 54, 61, 60
 ];
 
-/** 黃道起始偏移：閘門 41 Line 1 的起始經度（水瓶座 3°） */
-export const MANDALA_START = 303.0;
+/** 黃道起始偏移：閘門 41 Line 1 的起始經度（水瓶座 ~2.5°） */
+export const MANDALA_START = 302.5;
 
 /** 每個閘門佔的度數 */
 export const GATE_ARC = 5.625; // 360 / 64

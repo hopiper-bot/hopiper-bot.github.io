@@ -609,8 +609,8 @@ function renderPlanetTable(pPlanets, dPlanets) {
   const headerRow = `
     <tr style="border-bottom:1px solid var(--card-border);color:var(--muted);font-size:.8rem;">
       <th style="padding:8px 4px;text-align:left;">星體</th>
-      <th style="padding:8px 4px;text-align:center;">意識 (P)</th>
-      <th style="padding:8px 4px;text-align:center;">潛意識 (D)</th>
+      <th style="padding:8px 4px;text-align:left;">意識 (P)<br><span style="font-weight:400;font-size:.7rem;">你知道的自己</span></th>
+      <th style="padding:8px 4px;text-align:left;">潛意識 (D)<br><span style="font-weight:400;font-size:.7rem;">別人看到的你</span></th>
     </tr>`;
 
   const rows = PLANETS.map((planet, i) => {
@@ -618,28 +618,45 @@ function renderPlanetTable(pPlanets, dPlanets) {
     const d = dPlanets[i];
     const pGate = GATES[p.gate];
     const dGate = GATES[d.gate];
+    const pLineName = LINE_NAMES[p.line] || '';
+    const dLineName = LINE_NAMES[d.line] || '';
     return `
       <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
-        <td style="padding:6px 4px;font-weight:600;font-size:.85rem;">${planet.zh}</td>
-        <td style="padding:6px 4px;text-align:center;font-family:monospace;font-size:.85rem;">
-          <span style="color:var(--text);">${p.gate}</span><sup style="color:var(--muted);font-size:.7rem;">.${p.line}</sup>
-          <span style="font-size:.7rem;color:var(--muted);"> ${pGate?.keyword || ''}</span>
+        <td style="padding:8px 4px;font-weight:600;font-size:.85rem;">${planet.zh}</td>
+        <td style="padding:8px 4px;">
+          <div style="font-family:monospace;font-size:.9rem;">
+            <span style="color:var(--text);font-weight:700;">${p.gate}</span><span style="color:var(--muted);font-size:.75rem;">.${p.line}</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--accent);margin-top:2px;">${pGate?.keyword || ''}</div>
+          <div style="font-size:.72rem;color:var(--muted);">${pGate?.name || ''} ｜ ${p.line}爻${pLineName}</div>
         </td>
-        <td style="padding:6px 4px;text-align:center;font-family:monospace;font-size:.85rem;">
-          <span style="color:#e0556b;">${d.gate}</span><sup style="color:var(--muted);font-size:.7rem;">.${d.line}</sup>
-          <span style="font-size:.7rem;color:var(--muted);"> ${dGate?.keyword || ''}</span>
+        <td style="padding:8px 4px;">
+          <div style="font-family:monospace;font-size:.9rem;">
+            <span style="color:#e0556b;font-weight:700;">${d.gate}</span><span style="color:var(--muted);font-size:.75rem;">.${d.line}</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--accent);margin-top:2px;">${dGate?.keyword || ''}</div>
+          <div style="font-size:.72rem;color:var(--muted);">${dGate?.name || ''} ｜ ${d.line}爻${dLineName}</div>
         </td>
       </tr>`;
   }).join('');
 
   return `
     <h3>🪐 閘門啟動表</h3>
-    <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">意識（黑）= 你知道的自己 ｜ 潛意識（紅）= 別人看到的你</p>
+    <div style="font-size:.8rem;color:var(--muted);margin:0 0 8px;line-height:1.6;">
+      每顆星啟動一個閘門（易經卦），格式：<b>閘門號.爻</b><br>
+      閘門 = 你的天賦能量主題 ｜ 爻 = 你表達這個能量的方式（1-6）
+    </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;">
         ${headerRow}
         ${rows}
       </table>
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:10px;padding:8px;background:rgba(123,108,246,.04);border-radius:6px;line-height:1.7;">
+      <b>太陽</b> = 你最核心的能量（佔 ~70%）<br>
+      <b>地球</b> = 支撐太陽主題的基礎 ｜ <b>月亮</b> = 驅動力<br>
+      <b>北/南交點</b> = 環境方向 / 舒適圈 ｜ <b>水金火</b> = 內行星（溝通、價值、動力）<br>
+      <b>木土天海冥</b> = 外行星（世代主題，影響較慢但深）
     </div>
   `;
 }
