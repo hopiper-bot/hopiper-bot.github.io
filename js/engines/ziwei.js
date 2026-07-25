@@ -143,14 +143,22 @@ function placeMinorStars(yearStemIdx, yearBranchIdx, lunarMonth, hourBranch, min
   const tianyueMap = [7,8,9,9,7,8,7,6,5,5]; // 甲~癸
   add(tianyueMap[yearStemIdx], "天鉞");
 
-  // 火星（簡化：由年支+時支定）
-  const huoBase = [2,3,1,9]; // 寅午戌/申子辰/巳酉丑/亥卯未 的起始
-  const huoGroup = [0,3,0,3,0,3,0,3,0,3,0,3]; // 簡化分組
-  const huoStart = yearBranchIdx % 4 < 2 ? 2 : 9;
+  // 火星（由年支三合局+時支定）
+  // 寅午戌年：起丑，順數時辰
+  // 申子辰年：起寅，順數時辰
+  // 巳酉丑年：起卯，順數時辰
+  // 亥卯未年：起酉，順數時辰
+  const huoStartMap = { 2:1,6:1,10:1, 8:2,0:2,4:2, 5:3,9:3,1:3, 11:9,3:9,7:9 };
+  const huoStart = huoStartMap[yearBranchIdx] || 2;
   add((huoStart + hourBranch) % 12, "火星");
 
-  // 鈴星（簡化）
-  const lingStart = yearBranchIdx % 4 < 2 ? 3 : 10;
+  // 鈴星（由年支三合局+時支定）
+  // 寅午戌年：起卯，順數時辰
+  // 申子辰年：起戌，順數時辰
+  // 巳酉丑年：起戌，順數時辰
+  // 亥卯未年：起戌，順數時辰
+  const lingStartMap = { 2:3,6:3,10:3, 8:10,0:10,4:10, 5:10,9:10,1:10, 11:10,3:10,7:10 };
+  const lingStart = lingStartMap[yearBranchIdx] || 10;
   add((lingStart + hourBranch) % 12, "鈴星");
 
   // 擎羊（由年干定）：祿前一位
@@ -167,6 +175,31 @@ function placeMinorStars(yearStemIdx, yearBranchIdx, lunarMonth, hourBranch, min
   add((hourBranch + 11) % 12, "地劫");
 
   return minor;
+}
+
+// === 四化（由年干決定）===
+const SIHUA_TABLE = {
+  // yearStemIdx: [化祿星, 化權星, 化科星, 化忌星]
+  0: ["廉貞","破軍","武曲","太陽"],   // 甲
+  1: ["天機","天梁","紫微","太陰"],   // 乙
+  2: ["天同","天機","文昌","廉貞"],   // 丙
+  3: ["太陰","天同","天機","巨門"],   // 丁
+  4: ["貪狼","太陰","右弼","天機"],   // 戊
+  5: ["武曲","貪狼","天梁","文曲"],   // 己
+  6: ["太陽","武曲","太陰","天同"],   // 庚
+  7: ["巨門","太陽","文曲","文昌"],   // 辛
+  8: ["天梁","紫微","左輔","武曲"],   // 壬
+  9: ["破軍","巨門","太陰","貪狼"],   // 癸
+};
+
+function getSihua(yearStemIdx) {
+  const stars = SIHUA_TABLE[yearStemIdx] || [];
+  return {
+    lu: stars[0],    // 化祿
+    quan: stars[1],  // 化權
+    ke: stars[2],    // 化科
+    ji: stars[3],    // 化忌
+  };
 }
 
 // === 主星解讀 ===
@@ -228,6 +261,7 @@ export function calculate(birthData) {
     const ziweiPos = getZiweiPos(ju.num, lunar.lunarDay);
     const mainStars = placeMainStars(ziweiPos);
     const minorStars = placeMinorStars(lunar.yearStemIdx, lunar.yearBranchIdx, lunar.lunarMonth, hourBranch, mingPos);
+    const sihua = getSihua(lunar.yearStemIdx);
 
     // 合併主星和副星
     const allStars = {};
@@ -248,7 +282,7 @@ export function calculate(birthData) {
       });
     }
 
-    const data = { lunar, mingPos, ju, palaces, gender };
+    const data = { lunar, mingPos, ju, palaces, gender, sihua };
     const html = renderZiwei(data);
     return { status:'ok', data, html, error:null };
   } catch (err) {
@@ -270,12 +304,12 @@ function renderZiwei(data) {
       </div>
     </div>
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀</div>
-    ${renderGrid(palaces, lunar, ju)}
+    ${renderGrid(palaces, lunar, ju, data.sihua)}
     <div id="zw-detail" style="margin-top:12px;"></div>
   `;
 }
 
-function renderGrid(palaces, lunar, ju) {
+function renderGrid(palaces, lunar, ju, sihua) {
   // 標準紫微盤方格：4x4，地支位置固定
   // 上排：巳(5) 午(6) 未(7) 申(8)
   // 左列：辰(4)               酉(9)
@@ -292,8 +326,22 @@ function renderGrid(palaces, lunar, ju) {
     if (!p) return `<div style="padding:6px;background:var(--input-bg);border:1px solid var(--card-border);border-radius:4px;min-height:60px;"></div>`;
     const isMing = p.name === "命宮";
     const border = isMing ? 'border:2px solid var(--accent);' : 'border:1px solid var(--card-border);';
-    const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.map(s=>s.name+'<sub style=\"font-size:.55rem;color:var(--muted)\">'+s.brightness+'</sub>').join(' ')}</div>` : '';
-    const minorStr = p.minor.length > 0 ? `<div style="font-size:.65rem;color:var(--muted);">${p.minor.join(' ')}</div>` : '';
+    const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.map(s=>{
+      let hua='';
+      if(s.name===sihua.lu) hua='<span style=\"color:#4f4;font-size:.55rem;\">祿</span>';
+      else if(s.name===sihua.quan) hua='<span style=\"color:#f84;font-size:.55rem;\">權</span>';
+      else if(s.name===sihua.ke) hua='<span style=\"color:#8cf;font-size:.55rem;\">科</span>';
+      else if(s.name===sihua.ji) hua='<span style=\"color:#f55;font-size:.55rem;\">忌</span>';
+      return s.name+'<sub style=\"font-size:.55rem;color:var(--muted)\">'+s.brightness+'</sub>'+hua;
+    }).join(' ')}</div>` : '';
+    const minorStr = p.minor.length > 0 ? `<div style="font-size:.65rem;color:var(--muted);">${p.minor.map(s=>{
+      let hua='';
+      if(s===sihua.lu) hua='<span style=\"color:#4f4;font-size:.55rem;\">祿</span>';
+      else if(s===sihua.quan) hua='<span style=\"color:#f84;font-size:.55rem;\">權</span>';
+      else if(s===sihua.ke) hua='<span style=\"color:#8cf;font-size:.55rem;\">科</span>';
+      else if(s===sihua.ji) hua='<span style=\"color:#f55;font-size:.55rem;\">忌</span>';
+      return s+hua;
+    }).join(' ')}</div>` : '';
     const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}</div>`;
     const detail = JSON.stringify({name:p.name,branch:p.branch,main:p.main,minor:p.minor}).replace(/"/g,'&quot;');
     return `<div style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" onclick="showZwDetail(this)" data-palace="${detail}">
