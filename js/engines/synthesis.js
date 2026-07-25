@@ -125,7 +125,7 @@ function extractZiweiThemes(data) {
         '破軍': ['transformation', 'action', 'resilience'],
       };
       for (const star of mingPalace.main) {
-        const name = star.replace(/[（(].+/, '').trim();
+        const name = (typeof star === 'string') ? star.replace(/[（(].+/, '').trim() : (star.name || '');
         if (starThemes[name]) {
           themes.push(...starThemes[name].map(t => ({ theme: t, source: `紫微命宮${name}`, weight: 2 })));
         }
@@ -137,7 +137,7 @@ function extractZiweiThemes(data) {
     const caiPalace = data.palaces.find(p => p.pos === caiPos);
     if (caiPalace && caiPalace.main) {
       for (const star of caiPalace.main) {
-        const name = star.replace(/[（(].+/, '').trim();
+        const name = (typeof star === 'string') ? star.replace(/[（(].+/, '').trim() : (star.name || '');
         if (['武曲', '天府', '太陰', '貪狼'].includes(name)) {
           themes.push({ theme: 'wealth', source: `紫微財帛宮${name}`, weight: 1 });
         }
