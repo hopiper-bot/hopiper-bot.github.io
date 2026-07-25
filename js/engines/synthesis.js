@@ -498,7 +498,7 @@ function generateScript(categories, results) {
   }
 
   // === 怎麼活 ===
-  script += `<div class="script-section"><div class="script-title">✨ 第五章：怎麼活才對</div><div class="script-body">`;
+  script += `<div class="script-section"><div class="script-title">✨ 第五章：活出你的原廠設定</div><div class="script-body">`;
   const hd = results.hd?.data;
   const bz = results.bazi?.data;
   if (hd) {
