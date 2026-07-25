@@ -131,8 +131,8 @@
       var line = e.target.closest ? e.target.closest('[data-hd-channel]') : null;
       if (line) {
         var idx = parseInt(line.getAttribute('data-hd-channel'));
-        if (isNaN(idx) || !window._hdData) return;
-        var ch = window._hdData.definedChannels[idx];
+        if (isNaN(idx) || !window._hdAllChannels) return;
+        var ch = window._hdAllChannels[idx];
         if (!ch) return;
         var g1 = ch.gates[0], g2 = ch.gates[1];
         var html2 = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';

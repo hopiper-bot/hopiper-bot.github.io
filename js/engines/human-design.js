@@ -302,6 +302,7 @@ export function calculate(birthData) {
     // 存到 window 供點擊事件使用
     if (typeof window !== 'undefined') {
       window._hdData = data;
+      window._hdAllChannels = CHANNELS;
       window._hdChannelDesc = getChannelDesc;
       window._hdCenterDesc = getCenterDetail;
       window._hdInfoDesc = {
@@ -388,23 +389,46 @@ function renderBodyGraph(data) {
     root:   { x: 250, y: 560 },
   };
 
-  // 通道連線（可點擊，加寬透明熱區）
-  const channelLines = definedChannels.map((ch, idx) => {
+  // 通道連線 — 畫所有 36 條通道
+  const channelLines = CHANNELS.map((ch, idx) => {
     const p1 = centerPos[ch.centers[0]];
     const p2 = centerPos[ch.centers[1]];
     if (!p1 || !p2) return '';
     const g1 = ch.gates[0], g2 = ch.gates[1];
     const a1 = gateActivation[g1] || '';
     const a2 = gateActivation[g2] || '';
-    let color = 'var(--accent2)';
-    if (a1 === 'design' && a2 === 'design') color = '#e0556b';
-    else if (a1 === 'personality' && a2 === 'personality') color = 'var(--text)';
-    else color = 'url(#hdStripe)';
-    // 通道中點標示閘門號碼
+    const bothActive = a1 && a2; // 完整通道
+    const oneActive = (a1 && !a2) || (!a1 && a2); // 半啟動
+    
+    let color, width, dashArray = '';
+    if (bothActive) {
+      // 完整通道：粗實線
+      width = 5;
+      if (a1 === 'design' && a2 === 'design') color = '#e0556b';
+      else if (a1 === 'personality' && a2 === 'personality') color = 'var(--text)';
+      else color = 'url(#hdStripe)';
+    } else if (oneActive) {
+      // 半啟動：中等線
+      width = 3;
+      const active = a1 || a2;
+      if (active === 'design') color = 'rgba(224,85,107,0.6)';
+      else if (active === 'personality') color = 'rgba(236,231,255,0.5)';
+      else color = 'rgba(245,197,66,0.5)';
+    } else {
+      // 完全未啟動：細灰線（背景結構）
+      width = 1;
+      color = 'rgba(169,159,214,0.15)';
+    }
+
     const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="5" stroke-linecap="round" data-hd-channel="${idx}"/>
-      <line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="20" data-hd-channel="${idx}" style="cursor:pointer;"/>
-      <text x="${mx}" y="${my}" text-anchor="middle" fill="var(--muted)" font-size="9" pointer-events="none">${g1}-${g2}</text>`;
+    // 只有完整通道或半啟動才顯示號碼和可點擊
+    const showLabel = bothActive || oneActive;
+    const clickAttr = bothActive ? `data-hd-channel="${idx}"` : '';
+    const labelText = showLabel ? `<text x="${mx}" y="${my + 3}" text-anchor="middle" fill="var(--muted)" font-size="8" pointer-events="none">${g1}-${g2}</text>` : '';
+    const hitArea = bothActive ? `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="20" data-hd-channel="${idx}" style="cursor:pointer;"/>` : '';
+    
+    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${clickAttr} ${bothActive ? 'style="cursor:pointer;"' : ''}/>
+      ${hitArea}${labelText}`;
   }).join('');
 
   // Center 圖形（可點擊）
