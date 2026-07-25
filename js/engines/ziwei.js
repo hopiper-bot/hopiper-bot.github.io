@@ -201,7 +201,7 @@ export function calculate(birthData) {
     // 排列12宮（從命宮開始逆時針）
     const palaces = [];
     for (let i = 0; i < 12; i++) {
-      const pos = (mingPos + i) % 12;
+      const pos = ((mingPos - i) % 12 + 12) % 12;
       palaces.push({ name: PALACE_NAMES[i], branch: BRANCHES[pos], pos, stars: starMap[pos] || [] });
     }
 
