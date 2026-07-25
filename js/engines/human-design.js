@@ -20,6 +20,7 @@ import { normalizeDeg } from '../lib/utils.js';
 import { longitudeToGate, GATES, LINE_NAMES } from '../data/hd-gates.js';
 import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
 import { CENTERS, getDefinedCenters, getDefinitionType } from '../data/hd-centers.js';
+import { getChannelDescription } from '../data/hd-channel-desc.js';
 import { getPlanetGateDesc } from '../data/hd-text.js';
 
 /** 用於計算的行星列表 */
@@ -410,9 +411,9 @@ function renderBodyGraph(data) {
     const p2 = centerPos[ch.centers[1]];
     if (!p1 || !p2) return '';
     const g1 = ch.gates[0], g2 = ch.gates[1];
-    const a1 = gateActivation[g1] || '';
-    const a2 = gateActivation[g2] || '';
-    const bothActive = a1 && a2;
+    const a1 = gateActivation[g1] || '';  // 閘門1的啟動來源
+    const a2 = gateActivation[g2] || '';  // 閘門2的啟動來源
+    const bothActive = a1 && a2;  // 通道是否定義
     const oneActive = (a1 && !a2) || (!a1 && a2);
     
     // 同中心對偏移
@@ -428,30 +429,33 @@ function renderBodyGraph(data) {
     const nx = -dy / len * offsetPx, ny = dx / len * offsetPx;
     const x1 = p1.x + nx, y1 = p1.y + ny;
     const x2 = p2.x + nx, y2 = p2.y + ny;
+    // 中點（分割兩半用）
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
 
-    let color, width;
-    if (bothActive) {
-      width = 5;
-      if (a1 === 'design' && a2 === 'design') color = '#e0556b';
-      else if (a1 === 'personality' && a2 === 'personality') color = 'var(--text)';
-      else color = 'url(#hdStripe)';
-    } else if (oneActive) {
-      width = 3;
-      const active = a1 || a2;
-      if (active === 'design') color = 'rgba(224,85,107,0.6)';
-      else if (active === 'personality') color = 'rgba(236,231,255,0.5)';
-      else color = 'rgba(245,197,66,0.5)';
-    } else {
-      width = 1;
-      color = 'rgba(169,159,214,0.12)';
+    // 每個閘門的顏色
+    function gateColor(activation) {
+      if (!activation) return '#ffffff';  // 未啟動 = 白色
+      if (activation === 'personality') return '#333333';  // 意識 = 黑（深灰）
+      if (activation === 'design') return '#e0556b';  // 潛意識 = 紅
+      return 'url(#hdStripe)';  // 兩者 = 紅黑條紋
     }
 
-    // 只有完整通道可點擊
+    const color1 = gateColor(a1);
+    const color2 = gateColor(a2);
+    const lineWidth = (bothActive || oneActive) ? 5 : 1;
+    
+    if (!a1 && !a2) {
+      // 完全沒啟動 — 極淡背景線
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-linecap="round"/>`;
+    }
+
+    // 畫兩半：閘門1 那半 + 閘門2 那半
     const clickAttr = bothActive ? `data-hd-channel="${idx}"` : '';
     const cursor = bothActive ? 'style="cursor:pointer;"' : '';
     const hitArea = bothActive ? `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="24" data-hd-channel="${idx}" style="cursor:pointer;"/>` : '';
     
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${clickAttr} ${cursor}/>
+    return `<line x1="${x1}" y1="${y1}" x2="${mx}" y2="${my}" stroke="${color1}" stroke-width="${lineWidth}" stroke-linecap="round" ${clickAttr} ${cursor}/>
+      <line x1="${mx}" y1="${my}" x2="${x2}" y2="${y2}" stroke="${color2}" stroke-width="${lineWidth}" stroke-linecap="round" ${clickAttr} ${cursor}/>
       ${hitArea}`;
   }).join('');
 
@@ -470,7 +474,7 @@ function renderBodyGraph(data) {
     const activeGatesHere = centerGates.filter(g => gateActivation[g]);
     const gateLabels = activeGatesHere.map(g => {
       const act = gateActivation[g];
-      const color = act === 'personality' ? 'var(--text)' : act === 'design' ? '#e0556b' : 'var(--accent)';
+      const color = act === 'design' ? '#e0556b' : act === 'both' ? '#ff9f43' : '#ffffff';
       return `<tspan fill="${color}">${g}</tspan>`;
     }).join(' ');
 
@@ -501,18 +505,21 @@ function renderBodyGraph(data) {
     <div style="text-align:center;margin:8px 0;">
       <svg viewBox="0 0 500 620" width="100%" style="max-width:600px;">
         <defs>
-          <pattern id="hdStripe" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--text)" stroke-width="3"/>
-            <line x1="3" y1="0" x2="3" y2="6" stroke="#e0556b" stroke-width="3"/>
+          <pattern id="hdStripe" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+            <rect width="8" height="8" fill="#333333"/>
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#e0556b" stroke-width="4"/>
           </pattern>
         </defs>
         ${channelLines}
         ${centerShapes}
       </svg>
-      <div style="display:flex;justify-content:center;gap:14px;margin-top:6px;font-size:.75rem;color:var(--muted);">
-        <span>⬛ 意識（黑）</span><span style="color:#e0556b;">🟥 潛意識（紅）</span><span style="color:var(--accent);">🟨 兩者</span>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:.78rem;color:var(--muted);flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#333;border-radius:2px;"></span> 意識（黑）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#e0556b;border-radius:2px;"></span> 潛意識（紅）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:repeating-linear-gradient(45deg,#333,#333 2px,#e0556b 2px,#e0556b 4px);border-radius:2px;"></span> 兩者（條紋）</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:20px;height:4px;background:#fff;border-radius:2px;"></span> 未啟動（白）</span>
       </div>
-      <p style="font-size:.78rem;color:var(--muted);margin:6px 0 0;">💡 點擊中心或通道線查看解說</p>
+      <p style="font-size:.75rem;color:var(--muted);margin:6px 0 0;">每條通道分兩半，各自顯示該端閘門的啟動來源 ｜ 點擊定義通道查看解說</p>
     </div>
   `;
 }
@@ -731,45 +738,7 @@ function renderCross(cross) {
 
 /** 通道解說（點擊時顯示） */
 function getChannelDesc(g1, g2) {
-  const descs = {
-    '64-47': '抽象思維通道——你的腦袋裡有一堆畫面和記憶片段，它們會突然拼成有意義的理解。不要急，讓它們自己組裝。',
-    '61-24': '覺察通道——你會從內在深處突然徒出一個「啊哈」的領悟。這不是邏輯思考的結果，而是真理自己走到你面前。',
-    '63-4': '邏輯通道——你天生會質疑並尋找公式。「這真的對嗎？」是你的口頭禪，且通常你最後真的能找到答案。',
-    '17-62': '接受通道——你能將想法組織成別人聽得懂的樣子。適合教學、寫作、組織資訊。',
-    '43-23': '架構通道——你有獨特的洞見，可以表達出來。但要等到被問才說，否則別人要嘛覺得你怪，要嘛無感。',
-    '11-56': '好奇心通道——你有一籮筐想法和故事想分享。你是天生的說故事達人。',
-    '31-7': '創始者通道——民主式領導。你引導別人的方式是「我知道方向，跟我來」，但需要被選主才能成事。',
-    '8-1': '啟發通道——你透過做自己來啟發別人。不需要教，只要活出自己的樣子，別人就會被你吸引。',
-    '33-13': '浪子通道——你是見證者和傾聽者。你將人生經驗收集起來，成為智慧。適合寫回憶錄、談人生。',
-    '45-21': '金錢線通道——你有掌控物質世界的能力。「我要」是你的力量來源。適合經營、管理資源。',
-    '12-22': '開放通道——你的社交能力隨情緒波動。狀態好的時候你超有魅力，狀態不好就需要獨處。尊重自己的節奏。',
-    '35-36': '無常通道——你想嘗試所有事情，是萬事通。但不是每個經驗都需要去踩，等情緒清明再決定。',
-    '20-34': '魅力通道——即知即行的忙碌。你能在當下就把事情做完，不需要計畫。你是「做就對了」的人。',
-    '57-20': '腦波通道——當下的覺知。你有立即感知然後立即說出來的能力。直覺很準但只說一次。',
-    '48-16': '才華通道——你有深度的技能加上表達的熱忱。練習讓你越來越強，而且你能將專業讓大家聽懂。',
-    '46-29': '發現通道——你一旦承諾了就會全力投入。你的身體會帶你去對的地方。相信身體的回應。',
-    '10-34': '探索通道——你用行動表達信念。「我就是要這樣做」是你的特徵。很有力量但需要等待回應。',
-    '15-5': '韻律通道——你有固定的生活節奏。別人可能覺得你很「固定」，但這就是你的力量來源。穩定的節奏讓你產能最高。',
-    '2-14': '脈動通道——你知道方向，而且有資源去執行。這是「有錢有方向」的通道。回應對的事就能豐盛。',
-    '25-51': '發起通道——你需要被震撼才能啟動創新。競爭和挑戰是你的燃料。你是「被逼到絕境反而爆發」的人。',
-    '26-44': '投降通道——你有傳遞訊息和推銷的天賦。你知道如何讓別人「買單」。但要確保你賣的是真的有價值的東西。',
-    '40-37': '社群通道——你需要「交易」：我付出，但你也要回報。家庭和社群裡的核心人物，但不能無條件付出。',
-    '50-27': '保存通道——你是天生的監護人。照顧別人是你的本能，但要確保你照顧的對象值得你的能量。',
-    '57-34': '力量原型通道——直覺式的力量。你的身體會直接告訴你該走還是該動。信任那個立即的身體反應。',
-    '59-6': '親密通道——你在親密關係中有強大的繫絆能力。但情緒波動會影響你的開放程度。等清明再決定是否讓人進入你的世界。',
-    '3-60': '突變通道——能量的開關。有時候變化突然就來，有時候它就是不來。不要強求變化，它有自己的時間表。',
-    '42-53': '成熟通道——從開始到完成的循環。你需要把事情做完才能開始下一個。半途而廢會讓你很不舒服。',
-    '9-52': '專注通道——你有集中精神的壓力和能力。適合需要專注的工作。但是要讓身體告訴你該專注在哪裡。',
-    '28-38': '掙扎通道——你為了意義而戰。「這到底值不值得？」是你的核心問題。找到值得的事，你會用盡全力。',
-    '18-58': '批判通道——不知足的力量。你看得到哪裡可以更好，而且你會去修正它。這是用來改善世界的能量。',
-    '32-54': '蛻變通道——野心和變革的驅動力。你有強烈的上進心，而且你知道哪些變化能持久。適合創業、轉型。',
-    '49-19': '綜合通道——你對人的需求很敏感，而且有原則。你知道什麼時候該接受、什麼時候該革命。',
-    '55-39': '情緒通道——多愁善感。你的情緒波動是有目的的：用挑釁來找到真正的精神。等波動過去再行動。',
-    '30-41': '辨認通道——夢想家。你有強烈的渴望想體驗新事物，但不是每個幻想都要去踩。等情緒清明再決定。',
-  };
-  const key1 = g1 + '-' + g2;
-  const key2 = g2 + '-' + g1;
-  return descs[key1] || descs[key2] || '這條通道將兩個中心的能量連接起來，形成你固定的生命力。';
+  return getChannelDescription(g1, g2);
 }
 
 /** 中心點擊解說 */
