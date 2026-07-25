@@ -48,37 +48,115 @@ export function sunLongitude(jd) {
 }
 
 /**
- * 月亮黃道經度（精度 ±0.5°）
- * Meeus Chapter 47 簡化版
+ * 月亮黃道經度（精度 ±0.05°）
+ * Meeus Chapter 47 — 完整版（主要 60 項攝動）
  * @param {number} jd - Julian Day
  * @returns {number} 黃道經度 0-360°
  */
 export function moonLongitude(jd) {
   const T = jdToJC(jd);
 
-  // 月亮平經度 L'
-  const Lp = normalizeDeg(218.3165 + 481267.8813 * T);
+  // 月亮平經度 L'（含高次項）
+  const Lp = normalizeDeg(218.3164477 + 481267.88123421 * T
+    - 0.0015786 * T * T + T * T * T / 538841 - T * T * T * T / 65194000);
 
-  // 月亮平近點角 M'
-  const Mp = normalizeDeg(134.9634 + 477198.8676 * T);
+  // 月亮平距角 D
+  const D = normalizeDeg(297.8501921 + 445267.1114034 * T
+    - 0.0018819 * T * T + T * T * T / 545868 - T * T * T * T / 113065000);
 
   // 太陽平近點角 M
-  const M = normalizeDeg(357.5291 + 35999.0503 * T);
+  const M = normalizeDeg(357.5291092 + 35999.0502909 * T
+    - 0.0001536 * T * T + T * T * T / 24490000);
 
-  // 月亮到太陽的平均距角 D
-  const D = normalizeDeg(297.8502 + 445267.1115 * T);
+  // 月亮平近點角 M'
+  const Mp = normalizeDeg(134.9633964 + 477198.8675055 * T
+    + 0.0087414 * T * T + T * T * T / 69699 - T * T * T * T / 14712000);
 
   // 月亮升交點平經度 F
-  const F = normalizeDeg(93.2720 + 483202.0175 * T);
+  const F = normalizeDeg(93.2720950 + 483202.0175233 * T
+    - 0.0036539 * T * T - T * T * T / 3526000 + T * T * T * T / 863310000);
 
-  // 主要攝動項（簡化到主要 6 項）
-  let lon = Lp
-    + 6.289 * sinDeg(Mp)
-    - 1.274 * sinDeg(2 * D - Mp)
-    + 0.658 * sinDeg(2 * D)
-    + 0.214 * sinDeg(2 * Mp)
-    - 0.186 * sinDeg(M)
-    - 0.114 * sinDeg(2 * F);
+  // 修正項 A1, A2, A3
+  const A1 = normalizeDeg(119.75 + 131.849 * T);
+  const A2 = normalizeDeg(53.09 + 479264.290 * T);
+  const A3 = normalizeDeg(313.45 + 481266.484 * T);
+
+  // 離心率修正
+  const E = 1 - 0.002516 * T - 0.0000074 * T * T;
+  const E2 = E * E;
+
+  // Meeus Table 47.A — 經度攝動項（前 60 項中最重要的）
+  let sumL = 0;
+  // [D係數, M係數, Mp係數, F係數, sinCoeff]
+  // M係數不為0時要乘 E 或 E²
+  const terms = [
+    [0, 0, 1, 0, 6288774],
+    [2, 0, -1, 0, 1274027],
+    [2, 0, 0, 0, 658314],
+    [0, 0, 2, 0, 213618],
+    [0, 1, 0, 0, -185116],
+    [0, 0, 0, 2, -114332],
+    [2, 0, -2, 0, 58793],
+    [2, -1, -1, 0, 57066],
+    [2, 0, 1, 0, 53322],
+    [2, -1, 0, 0, 45758],
+    [0, 1, -1, 0, -40923],
+    [1, 0, 0, 0, -34720],
+    [0, 1, 1, 0, -30383],
+    [2, 0, 0, -2, 15327],
+    [0, 0, 1, 2, -12528],
+    [0, 0, 1, -2, 10980],
+    [4, 0, -1, 0, 10675],
+    [0, 0, 3, 0, 10034],
+    [4, 0, -2, 0, 8548],
+    [2, 1, -1, 0, -7888],
+    [2, 1, 0, 0, -6766],
+    [1, 0, -1, 0, -5163],
+    [1, 1, 0, 0, 4987],
+    [2, -1, 1, 0, 4036],
+    [2, 0, 2, 0, 3994],
+    [4, 0, 0, 0, 3861],
+    [2, 0, -3, 0, 3665],
+    [0, 1, -2, 0, -2689],
+    [2, 0, -1, 2, -2602],
+    [2, -1, -2, 0, 2390],
+    [1, 0, 1, 0, -2348],
+    [2, -2, 0, 0, 2236],
+    [0, 1, 2, 0, -2120],
+    [0, 2, 0, 0, -2069],
+    [2, -2, -1, 0, 2048],
+    [2, 0, 1, -2, -1773],
+    [2, 0, 0, 2, -1595],
+    [4, -1, -1, 0, 1215],
+    [0, 0, 2, 2, -1110],
+    [3, 0, -1, 0, -892],
+    [2, 1, 1, 0, -810],
+    [4, -1, -2, 0, 759],
+    [0, 2, -1, 0, -713],
+    [2, 2, -1, 0, -700],
+    [2, 1, -2, 0, 691],
+    [2, -1, 0, -2, 596],
+    [4, 0, 1, 0, 549],
+    [0, 0, 4, 0, 537],
+    [4, -1, 0, 0, 520],
+    [1, 0, -2, 0, -487],
+  ];
+
+  for (const [dC, mC, mpC, fC, coeff] of terms) {
+    const arg = dC * D + mC * M + mpC * Mp + fC * F;
+    let c = coeff;
+    if (Math.abs(mC) === 1) c *= E;
+    else if (Math.abs(mC) === 2) c *= E2;
+    sumL += c * sinDeg(arg);
+  }
+
+  // 額外修正
+  sumL += 3958 * sinDeg(A1)
+    + 1962 * sinDeg(Lp - F)
+    + 318 * sinDeg(A2);
+
+  // sumL 單位是 0.000001°
+  const lon = Lp + sumL / 1000000;
 
   return normalizeDeg(lon);
 }
@@ -135,15 +213,31 @@ export function saturnLongitude(jd) {
 }
 
 /**
- * 月球北交點黃道經度
+ * 月球北交點黃道經度（真交點，含主要攝動修正）
  * @param {number} jd - Julian Day
  * @returns {number} 黃道經度 0-360°
  */
 export function northNodeLongitude(jd) {
   const T = jdToJC(jd);
   // 月球升交點平均經度（逆行）
-  const omega = 125.0445479 - 1934.1362891 * T + 0.0020754 * T * T;
-  return normalizeDeg(omega);
+  const omega = 125.0445479 - 1934.1362891 * T + 0.0020754 * T * T
+    + T * T * T / 467441 - T * T * T * T / 60616000;
+  
+  // 主要攝動修正（將平均交點→真交點）
+  // Meeus Chapter 47
+  const D = normalizeDeg(297.8501921 + 445267.1114034 * T);
+  const M = normalizeDeg(357.5291092 + 35999.0502909 * T);
+  const Mp = normalizeDeg(134.9633964 + 477198.8675055 * T);
+  const F = normalizeDeg(93.2720950 + 483202.0175233 * T);
+  
+  // 真交點修正項
+  const correction = -1.4979 * sinDeg(2 * (D - F))
+    - 0.1500 * sinDeg(M)
+    - 0.1226 * sinDeg(2 * D)
+    + 0.1176 * sinDeg(2 * F)
+    - 0.0801 * sinDeg(2 * (Mp - F));
+  
+  return normalizeDeg(omega + correction);
 }
 
 /**

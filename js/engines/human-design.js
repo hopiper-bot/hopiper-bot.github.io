@@ -663,14 +663,22 @@ function renderPlanetTable(pPlanets, dPlanets) {
       </tr>
       <tr id="${detailId}" style="display:none;">
         <td colspan="3" style="padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.82rem;line-height:1.8;">
-          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08);">
-            <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">☉ 意識面（你知道的自己）— 閘門 ${p.gate}「${pGate?.keyword || ''}」</div>
-            ${getPlanetGateDesc(planet.id, p.gate, p.line)}
-          </div>
-          <div>
-            <div style="font-weight:700;color:#e0556b;margin-bottom:4px;">☉ 潛意識面（別人看到的你）— 閘門 ${d.gate}「${dGate?.keyword || ''}」</div>
-            ${getPlanetGateDesc(planet.id, d.gate, d.line)}
-          </div>
+          ${p.gate === d.gate ? `
+            <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">閘門 ${p.gate}「${pGate?.keyword || ''}」（意識 ${p.line}爻 + 潛意識 ${d.line}爻）</div>
+            <div style="margin-bottom:8px;">${getPlanetGateDesc(planet.id, p.gate, p.line)}</div>
+            <div style="font-size:.8rem;color:var(--muted);padding:6px 8px;background:rgba(224,85,107,.08);border-radius:4px;">
+              💡 你的意識和潛意識啟動了同一個閘門，表示這股能量在你身上特別強烈——你自己知道它，別人也看得到。差別只在爻的表達方式不同（${p.line}爻${LINE_NAMES[p.line]} vs ${d.line}爻${LINE_NAMES[d.line]}）。
+            </div>
+          ` : `
+            <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08);">
+              <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">意識面 — 閘門 ${p.gate}「${pGate?.keyword || ''}」（你知道的自己）</div>
+              ${getPlanetGateDesc(planet.id, p.gate, p.line)}
+            </div>
+            <div>
+              <div style="font-weight:700;color:#e0556b;margin-bottom:4px;">潛意識面 — 閘門 ${d.gate}「${dGate?.keyword || ''}」（別人看到的你，你不一定察覺）</div>
+              ${getPlanetGateDesc(planet.id, d.gate, d.line)}
+            </div>
+          `}
         </td>
       </tr>`;
   }).join('');

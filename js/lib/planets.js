@@ -22,6 +22,32 @@ function jdToJC(jd) { return (jd - 2451545.0) / 36525.0; }
  * 然後轉為地心黃道經度
  */
 
+/**
+ * 計算地球到太陽距離 R（AU）— 地球軌道是橢圓
+ */
+function earthRadius(jd) {
+  const T = jdToJC(jd);
+  const M = normalizeDeg(357.5291092 + 35999.0502909 * T - 0.0001536 * T * T);
+  const e = 0.016708634 - 0.000042037 * T;
+  // R = a(1-e²)/(1+e*cos(v)) ≈ 1 - e*cos(M) 簡化
+  // 更精確的版本：
+  const C = (1.914602 - 0.004817 * T) * sinDeg(M)
+    + 0.019993 * sinDeg(2 * M);
+  const v = M + C; // 真近點角（近似）
+  return 1.000001018 * (1 - e * e) / (1 + e * cosDeg(v));
+}
+
+/**
+ * 通用地心經度計算（含地球橢圓軌道修正）
+ */
+function helioToGeo(jd, helioLon, r) {
+  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
+  const R = earthRadius(jd);
+  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
+  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
+  return normalizeDeg(atan2Deg(y, x));
+}
+
 // === 水星地心黃道經度 ===
 export function mercuryGeoLon(jd) {
   const T = jdToJC(jd);
@@ -30,9 +56,7 @@ export function mercuryGeoLon(jd) {
   const L = normalizeDeg(252.250906 + 149474.0722491 * T + 0.00030350 * T * T);
   const a = 0.387098310;
   const e = 0.20563175 + 0.000020407 * T;
-  const i_deg = 7.004986 - 0.0059516 * T;
   const omega = normalizeDeg(77.456119 + 0.1588643 * T); // longitude of perihelion
-  const Omega = normalizeDeg(48.330893 - 0.1254615 * T); // ascending node
 
   // 平近點角
   const M = normalizeDeg(L - omega);
@@ -41,21 +65,13 @@ export function mercuryGeoLon(jd) {
   const E = solveKepler(M, e);
   const nu = trueAnomaly(E, e);
   
-  // 日心黃道經度 (近似: 忽略軌道傾角的影響)
+  // 日心黃道經度
   const helioLon = normalizeDeg(nu + omega);
   
   // 日心距離
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  // 地球的日心位置
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180); // 太陽的對面 = 地球日心經度
-  const R = 1.000001018; // 地球平均距離 (AU)，簡化
-  
-  // 地心黃道經度 (平面近似，忽略緯度)
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 金星地心黃道經度 ===
@@ -66,7 +82,6 @@ export function venusGeoLon(jd) {
   const a = 0.723329820;
   const e = 0.00677192 - 0.000047765 * T;
   const omega = normalizeDeg(131.563703 + 0.0048746 * T);
-  const Omega = normalizeDeg(76.679920 - 0.2780134 * T);
   
   const M = normalizeDeg(L - omega);
   const E = solveKepler(M, e);
@@ -75,13 +90,7 @@ export function venusGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 火星地心黃道經度 ===
@@ -100,13 +109,7 @@ export function marsGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 木星地心黃道經度 ===
@@ -125,13 +128,7 @@ export function jupiterGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 土星地心黃道經度 ===
@@ -150,13 +147,7 @@ export function saturnGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 天王星地心黃道經度 ===
@@ -175,13 +166,7 @@ export function uranusGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 海王星地心黃道經度 ===
@@ -200,13 +185,7 @@ export function neptuneGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 冥王星地心黃道經度（低精度） ===
@@ -226,13 +205,7 @@ export function plutoGeoLon(jd) {
   const helioLon = normalizeDeg(nu + omega);
   const r = a * (1 - e * e) / (1 + e * cosDeg(nu));
   
-  const earthLon = normalizeDeg(sunLongitude(jd) + 180);
-  const R = 1.000001018;
-  
-  const x = r * cosDeg(helioLon) - R * cosDeg(earthLon);
-  const y = r * sinDeg(helioLon) - R * sinDeg(earthLon);
-  
-  return normalizeDeg(atan2Deg(y, x));
+  return helioToGeo(jd, helioLon, r);
 }
 
 // === 輔助函式 ===
