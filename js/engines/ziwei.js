@@ -807,21 +807,82 @@ const DAXIAN_STAR_BOOST = {
 function renderDaxian(daxian, birthYear) {
   const now = new Date().getFullYear();
   const currentAge = now - birthYear;
+
+  // 年齡段情境補充（配合年紀的解讀語氣）
+  function ageContext(age, palaceName) {
+    if (age <= 11) {
+      const childNotes = {
+        "命宮": "童年的性格養成期，這時候的環境塑造你一輩子的基本個性。",
+        "兄弟": "童年的玩伴和手足互動，影響你日後的合作模式。",
+        "夫妻": "太小還沒有感情議題，但家庭中父母的相處模式會潛移默化影響你。",
+        "子女": "這個年紀是「被當子女」的時期 — 看你童年的創造力和被養育的方式。",
+        "財帛": "童年對金錢的初印象，零用錢、物質環境的影響。",
+        "疾厄": "小時候的體質基礎和常見小毛病。",
+        "遷移": "童年是否有搬家、轉學的經歷。",
+        "交友": "幼稚園/小學的人際關係啟蒙。",
+        "事業": "太早談事業，但這時候的興趣可能預示未來方向。",
+        "田宅": "童年的居住環境和家庭氛圍。",
+        "福德": "童年的快樂程度和內心安全感。",
+        "父母": "跟父母的親密度最高的時期。",
+      };
+      return childNotes[palaceName] || '';
+    }
+    if (age <= 21) {
+      return "青春期到大學，三觀形成、交友圈建立、探索自我的時期。";
+    }
+    if (age <= 31) {
+      return "初入社會到站穩腳步，事業起步、感情定向的關鍵十年。";
+    }
+    if (age <= 41) {
+      return "職涯衝刺期，家庭責任增加，這十年決定中年的格局。";
+    }
+    if (age <= 51) {
+      return "中年轉型期，上有老下有小，開始思考人生下半場。";
+    }
+    if (age <= 61) {
+      return "事業收割或轉換跑道，為退休做準備的時期。";
+    }
+    if (age <= 71) {
+      return "逐漸退休的年紀，生活重心轉向健康和精神層面。";
+    }
+    if (age <= 81) {
+      return "享受人生智慧，以養生和家庭為主。";
+    }
+    return '';  // 超過 81 歲不再加情境
+  }
+
   return `<p style="font-size:.83rem;color:var(--muted);margin-bottom:12px;">大限 = 紫微版的「十年大運」。每十年走一個宮位的能量，格子裡的 ⏳ 就是你的大限分佈。</p>` +
     daxian.map(d => {
+      // 超過 85 歲的大限淡化
+      if (d.age > 85) {
+        return `<div style="padding:6px 10px;margin:3px 0;border-radius:6px;opacity:0.4;">
+          <span style="font-size:.78rem;color:var(--muted);">${d.age}-${d.ageEnd}歲（${d.branch}宮 · ${d.palaceName}）— 僅供參考</span>
+        </div>`;
+      }
+
       const isCurrent = (currentAge >= d.age && currentAge <= d.ageEnd);
+      const isPast = (currentAge > d.ageEnd);
       const hl = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : 'padding-left:10px;';
       const marker = isCurrent ? ' <span style="color:var(--accent);font-weight:700;">← 目前走這步</span>' : '';
       const starStr = d.main.length > 0 ? d.main.map(s=>s.name).join('、') : '無主星';
+
       // 解讀
       const palaceInterp = DAXIAN_INTERP[d.palaceName] || '';
       const starInterp = d.main.length > 0 
         ? d.main.map(s => DAXIAN_STAR_BOOST[s.name] || '').filter(x=>x).join(' ')
         : '此限無主星坐守，受對宮和鄰宮星力影響，性格表現較隨環境變化。';
-      const interpBlock = isCurrent 
-        ? `<div style="margin-top:6px;padding:8px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.7;color:var(--text);">${palaceInterp}<br>${starInterp}</div>`
-        : `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.6;">${palaceInterp} ${starInterp}</div>`;
-      return `<div style="padding:8px 10px;margin:4px 0;border-radius:6px;${hl}">
+      const ageNote = ageContext(d.age, d.palaceName);
+
+      let interpBlock;
+      if (isCurrent) {
+        interpBlock = `<div style="margin-top:6px;padding:8px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.7;color:var(--text);">${ageNote ? '<div style="color:var(--accent);margin-bottom:4px;">📌 ' + ageNote + '</div>' : ''}${palaceInterp}<br>${starInterp}</div>`;
+      } else if (isPast) {
+        interpBlock = `<div style="margin-top:4px;font-size:.75rem;color:var(--muted);line-height:1.5;opacity:0.7;">${ageNote ? ageNote + ' ' : ''}${palaceInterp}</div>`;
+      } else {
+        interpBlock = `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.6;">${ageNote ? '<span style="color:var(--accent2);">' + ageNote + '</span> ' : ''}${palaceInterp} ${starInterp}</div>`;
+      }
+
+      return `<div style="padding:8px 10px;margin:4px 0;border-radius:6px;${hl}${isPast?'opacity:0.75;':''}">
         <b>${d.age}-${d.ageEnd}歲</b>（${d.branch}宮 · ${d.palaceName}）${marker}<br>
         <span style="font-size:.83rem;color:var(--muted);">主星：${starStr}</span>
         ${interpBlock}
