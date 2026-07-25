@@ -299,6 +299,8 @@ function renderBazi(data) {
       <div style="font-size:.85rem;color:var(--muted);margin-top:6px;">日主：<span style="color:var(--accent);font-weight:700;">${dayMaster}（${dayMasterElem}）</span></div>
     </div>
 
+    <div class="note" style="margin-bottom:16px;">💡 點擊表格中的各柱查看詳細解說。點擊下方標題展開大運和神煞。</div>
+
     <h3>📋 四柱排盤</h3>
     <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">點擊各柱查看詳細解讀 ▼</p>
     <div style="overflow-x:auto;">
@@ -422,7 +424,7 @@ function renderBazi(data) {
       ${renderShensha(shensha)}
     </div>
 
-    <div class="note">💡 點擊表格中的各柱查看詳細解說。點擊下方標題展開大運和神煞。</div>
+    <div class="note">💡 日主 ${dayMaster}（${dayMasterElem}）就是「你」。喜用神的顏色和方位可以用在日常穿搭、辦公桌擺設。</div>
   `;
 }
 
