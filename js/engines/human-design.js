@@ -22,6 +22,7 @@ import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
 import { CENTERS, getDefinedCenters, getDefinitionType } from '../data/hd-centers.js';
 import { getChannelDescription } from '../data/hd-channel-desc.js';
 import { getPlanetGateDesc } from '../data/hd-text.js';
+import { getCrossInfo, generateSynthesis } from '../data/hd-crosses.js';
 
 /** 用於計算的行星列表 */
 const PLANETS = [
@@ -219,16 +220,30 @@ function determineProfile(personalitySunLine, designSunLine) {
 }
 
 /**
- * 決定輪迴交叉（Incarnation Cross）— 簡化版
+ * 決定輪迴交叉（Incarnation Cross）
  * 由 Personality Sun Gate + Earth Gate + Design Sun Gate + Earth Gate 組成
  */
 function determineIncarnationCross(pSun, pEarth, dSun, dEarth) {
-  // 輪迴交叉的完整資料庫有 768 種，這裡只提供基本框架
   const angle = getAngleType(pSun.line, dSun.line);
+  const crossInfo = getCrossInfo(pSun.gate, dSun.gate, pSun.line);
+  
+  let crossName = '';
+  let crossDesc = '';
+  
+  if (crossInfo) {
+    crossName = crossInfo.name;
+    crossDesc = crossInfo.desc;
+  } else {
+    crossName = `閘門 ${pSun.gate} 的${angle}`;
+    crossDesc = `你的輪迴交叉是「${GATES[pSun.gate]?.keyword || ''}」的${angle}。這代表你此生的大方向和目的。Personality 太陽閘門 ${pSun.gate}（${GATES[pSun.gate]?.name || ''}）是你最核心的人生主題。`;
+  }
+
   return {
     gates: [pSun.gate, pEarth.gate, dSun.gate, dEarth.gate],
     angle,
-    desc: `你的輪迴交叉是「${GATES[pSun.gate]?.keyword || ''}」的${angle}。這代表你此生的大方向和目的。Personality 太陽閘門 ${pSun.gate}（${GATES[pSun.gate]?.name || ''}）是你最核心的人生主題。`,
+    crossName,
+    crossEn: crossInfo ? crossInfo.en : '',
+    desc: crossDesc,
   };
 }
 
@@ -363,6 +378,9 @@ function renderHD(data) {
 
     <div class="divider"></div>
     ${renderCross(cross)}
+
+    <div class="divider"></div>
+    ${renderSynthesis(data)}
 
     <div class="note">💡 點擊圖上的中心或通道線查看解說。人類圖整合了易經、卡巴拉、印度脈輪、天文學。Design = 出生前太陽退行 88° 的位置。</div>
   `;
@@ -712,23 +730,39 @@ function renderPlanetTable(pPlanets, dPlanets) {
   `;
 }
 
+/** 渲染綜合解讀 */
+function renderSynthesis(data) {
+  const synthesis = generateSynthesis(data);
+  return `
+    <h3>🌟 綜合解讀</h3>
+    <div style="font-size:.8rem;color:var(--muted);margin:0 0 10px;line-height:1.6;">
+      將你的類型、策略、權威、Profile、輪迴交叉、通道和能量中心串連起來的完整故事
+    </div>
+    <div style="padding:16px;background:rgba(123,108,246,.06);border-radius:10px;font-size:.88rem;line-height:2;color:var(--text);">
+      ${synthesis}
+    </div>
+  `;
+}
+
 /** 渲染輪迴交叉 */
 function renderCross(cross) {
   const gateNames = cross.gates.map(g => `${g}（${GATES[g]?.keyword || ''}）`);
+  const hasName = cross.crossName && cross.crossName !== '';
   return `
     <h3>✝️ 輪迴交叉</h3>
     <div style="font-size:.8rem;color:var(--muted);margin:0 0 8px;line-height:1.6;">
       輪迴交叉 = 你此生的目的方向，由太陽＋地球的意識/潛意識四個閘門組成
     </div>
-    <p style="font-size:.9rem;color:var(--accent);font-weight:700;margin:0 0 8px;">${cross.angle}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+    <p style="font-size:.9rem;color:var(--accent);font-weight:700;margin:0 0 4px;">${cross.angle}</p>
+    ${hasName ? `<p style="font-size:1.1rem;font-weight:700;color:var(--text);margin:4px 0 8px;">${cross.crossName}${cross.crossEn ? ` <span style="font-size:.8rem;color:var(--muted);font-weight:400;">${cross.crossEn}</span>` : ''}</p>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
       <span class="tag tag-white" style="font-size:.75rem;">☉ 意識太陽 ${gateNames[0]}</span>
       <span class="tag tag-white" style="font-size:.75rem;">🌍 意識地球 ${gateNames[1]}</span>
       <span class="tag tag-red" style="font-size:.75rem;">☉ 潛意識太陽 ${gateNames[2]}</span>
       <span class="tag tag-red" style="font-size:.75rem;">🌍 潛意識地球 ${gateNames[3]}</span>
     </div>
-    <p class="meaning">${cross.desc}</p>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:6px;padding:8px;background:rgba(123,108,246,.04);border-radius:6px;line-height:1.7;">
+    <div class="meaning" style="line-height:1.9;font-size:.88rem;">${cross.desc}</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:10px;padding:8px;background:rgba(123,108,246,.04);border-radius:6px;line-height:1.7;">
       <b>右角度</b> = 個人命運，你的人生目的是自我探索（Profile 1-3 爻）<br>
       <b>並列</b> = 固定命運，你走在一條既定軌道上（Profile 4 爻）<br>
       <b>左角度</b> = 超個人命運，你透過與他人互動完成使命（Profile 5-6 爻）
