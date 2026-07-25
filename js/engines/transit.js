@@ -236,12 +236,27 @@ function ziweiTransit(year, ziweiData) {
 // === 5. 馬雅流年 ===
 function mayaTransit(year, mayaData) {
   if (!mayaData) return null;
-  // annualDream = { yearKin, personalKin, galacticYear }
-  // 需要從 kin 解出 seal/tone
   const ad = mayaData.annualDream;
-  const ds = mayaData.dreamspell; // 本命的 dreamspell 有完整的 seal/tone
+  const ds = mayaData.dreamspell;
   if (!ad) return null;
-  return { yearKin: ad.yearKin, personalKin: ad.personalKin, galacticYear: ad.galacticYear, natalSeal: ds?.seal, natalTone: ds?.tone };
+  
+  // 從 kin 算出 seal/tone 名稱
+  const SEALS_ZH = ['紅龍','白風','藍夜','黃種子','紅蛇','白世界橋','藍手','黃星星','紅月','白狗','藍猴','黃人','紅天行者','白巫師','藍鷹','黃戰士','紅地球','白鏡','藍風暴','黃太陽'];
+  const TONES_ZH = ['磁性','月亮','電力','自我存在','超頻','韻律','共振','銀河星系','太陽','行星','光譜','水晶','宇宙'];
+  
+  function kinToName(kin) {
+    if (!kin) return null;
+    const sealIdx = (kin - 1) % 20;
+    const toneIdx = (kin - 1) % 13;
+    return { seal: SEALS_ZH[sealIdx], tone: TONES_ZH[toneIdx], kin };
+  }
+  
+  return { 
+    yearInfo: kinToName(ad.yearKin), 
+    personalInfo: kinToName(ad.personalKin), 
+    galacticYear: ad.galacticYear,
+    natalSeal: ds?.seal
+  };
 }
 
 // === 渲染 ===
@@ -329,11 +344,16 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
   // 馬雅流年
   if (maya) {
     html += `<div class="divider"></div><h3>🌀 馬雅年度能量</h3>`;
-    if (maya.yearKin) {
+    if (maya.yearInfo) {
+      const yi = maya.yearInfo;
+      const pi = maya.personalInfo;
       html += `<div style="margin:8px 0;">`;
-      html += `<div style="font-size:.9rem;font-weight:600;">銀河年度 Kin：${maya.yearKin}</div>`;
-      if (maya.galacticYear) html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">銀河年：${maya.galacticYear}</div>`;
-      if (maya.personalKin) html += `<div style="font-size:.82rem;color:var(--muted);margin-top:2px;">你的今年個人 Kin：${maya.personalKin}</div>`;
+      html += `<div style="font-size:.9rem;font-weight:600;">當前馬雅年（${maya.galacticYear || ''}）= <span style="color:var(--accent);">${yi.tone}的${yi.seal}</span>（KIN ${yi.kin}）</div>`;
+      html += `<div style="font-size:.82rem;color:var(--muted);margin-top:6px;">集體共享的年度能量主題：今年整個世界都在「${yi.seal}」的頻率中運作。</div>`;
+      if (pi) {
+        html += `<div style="margin-top:10px;font-size:.9rem;font-weight:600;">你今年生日的 KIN = <span style="color:var(--accent);">${pi.tone}的${pi.seal}</span>（KIN ${pi.kin}）</div>`;
+        html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">你這一年的個人能量色彩：${pi.seal}的品質 + ${pi.tone}的行動方式。</div>`;
+      }
       html += `</div>`;
     }
   }
@@ -403,7 +423,7 @@ function extractYearThemes(bazi, hd, astro, ziwei, maya) {
   // 馬雅
   if (maya && maya.natalSeal) {
     const sealTheme = { '紅龍':'relationship', '白風':'creativity', '藍夜':'money', '黃種子':'growth', '紅蛇':'change', '白世界橋':'change', '藍手':'creativity', '黃星星':'creativity', '紅月':'spiritual', '白狗':'relationship', '藍猴':'creativity', '黃人':'growth', '紅天行者':'change', '白巫師':'spiritual', '藍鷹':'career', '黃戰士':'career', '紅地球':'health', '白鏡':'spiritual', '藍風暴':'change', '黃太陽':'lucky' };
-    const seal = maya.natalSeal?.zh;
+    const seal = maya.personalInfo?.seal || maya.natalSeal?.zh;
     if (seal && sealTheme[seal]) themes.push({ theme: sealTheme[seal], source: '馬雅' });
   }
   
