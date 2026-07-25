@@ -303,6 +303,7 @@ export function calculate(birthData) {
     if (typeof window !== 'undefined') {
       window._hdData = data;
       window._hdChannelDesc = getChannelDesc;
+      window._hdCenterDesc = getCenterDetail;
     }
 
     return { status: 'ok', data, html, error: null };
@@ -328,10 +329,13 @@ function renderHD(data) {
         ${typeInfo.zh}
       </div>
       <div style="font-size:.9rem;color:var(--muted);margin-top:4px;">${typeInfo.en}</div>
-      <div style="display:flex;justify-content:center;gap:10px;margin-top:12px;flex-wrap:wrap;">
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
         <span class="tag tag-yellow">${profile.profile} ${profile.zh}</span>
         <span class="tag tag-blue">${authority.zh}</span>
         <span class="tag tag-white">${defTypeZh}</span>
+      </div>
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:8px;font-size:.82rem;color:var(--muted);">
+        <span>策略：${strategy.zh}</span><span>｜</span><span>非自己：${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感' : typeInfo.type === 'M' ? '憤怒' : typeInfo.type === 'P' ? '苦澀' : '失望'}</span>
       </div>
     </div>
 
@@ -339,29 +343,16 @@ function renderHD(data) {
     <div id="hd-detail" style="margin-top:12px;"></div>
 
     <div class="divider"></div>
-    <h3>🎯 你的策略：${strategy.zh}</h3>
-    <p class="meaning">${strategy.desc}</p>
-
-    <h3>🧭 內在權威：${authority.zh}</h3>
-    <p class="meaning">${authority.desc}</p>
-
-    <h3>🎭 人生角色：${profile.profile} ${profile.zh}</h3>
-    <p class="meaning">${profile.desc}</p>
-
-    <div class="divider"></div>
-    ${renderCenters(definedCenters, openCenters)}
-
-    <div class="divider"></div>
     ${renderPlanetTable(personalityPlanets, designPlanets)}
 
     <div class="divider"></div>
     ${renderCross(cross)}
 
-    <div class="note">💡 人類圖整合了易經、卡巴拉、印度脈輪、天文學。Design 時間 = 出生前太陽退行 88° 的位置（約 88-89 天前）。行星位置基於軌道力學計算。</div>
+    <div class="note">💡 點擊圖上的中心或通道線查看解說。人類圖整合了易經、卡巴拉、印度脈輪、天文學。Design = 出生前太陽退行 88° 的位置。</div>
   `;
 }
 
-/** 渲染 Body Graph（簡化 SVG） */
+/** 渲染 Body Graph（大型互動式 SVG） */
 function renderBodyGraph(data) {
   const { definedCenters, definedChannels, personalityPlanets, designPlanets } = data;
   const defSet = new Set(definedCenters);
@@ -376,68 +367,82 @@ function renderBodyGraph(data) {
     else gateActivation[p.gate] = 'design';
   });
 
-  // Center 位置 (SVG 座標)
+  // Center 位置 (SVG 座標 — 更大的畫布)
   const centerPos = {
-    head:   { x: 200, y: 40 },
-    ajna:   { x: 200, y: 105 },
-    throat: { x: 200, y: 175 },
-    g:      { x: 200, y: 265 },
-    heart:  { x: 130, y: 230 },
-    solar:  { x: 270, y: 330 },
-    sacral: { x: 200, y: 370 },
-    spleen: { x: 115, y: 330 },
-    root:   { x: 200, y: 450 },
+    head:   { x: 250, y: 50 },
+    ajna:   { x: 250, y: 130 },
+    throat: { x: 250, y: 220 },
+    g:      { x: 250, y: 330 },
+    heart:  { x: 155, y: 285 },
+    solar:  { x: 345, y: 420 },
+    sacral: { x: 250, y: 460 },
+    spleen: { x: 140, y: 420 },
+    root:   { x: 250, y: 560 },
   };
 
-  // 通道連線
+  // 通道連線（可點擊，加寬透明熱區）
   const channelLines = definedChannels.map((ch, idx) => {
     const p1 = centerPos[ch.centers[0]];
     const p2 = centerPos[ch.centers[1]];
     if (!p1 || !p2) return '';
-    // 判斷通道是紅（design）、黑（personality）還是條紋（both）
     const g1 = ch.gates[0], g2 = ch.gates[1];
     const a1 = gateActivation[g1] || '';
     const a2 = gateActivation[g2] || '';
     let color = 'var(--accent2)';
-    if ((a1 === 'design' || a2 === 'design') && a1 !== 'personality' && a2 !== 'personality') color = '#e0556b';
-    else if ((a1 === 'personality' || a2 === 'personality') && a1 !== 'design' && a2 !== 'design') color = 'var(--text)';
+    if (a1 === 'design' && a2 === 'design') color = '#e0556b';
+    else if (a1 === 'personality' && a2 === 'personality') color = 'var(--text)';
     else color = 'url(#hdStripe)';
-    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="4" stroke-linecap="round" data-hd-channel="${idx}" style="cursor:pointer;" />
-      <line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="16" data-hd-channel="${idx}" style="cursor:pointer;" />`;
+    // 通道中點標示閘門號碼
+    const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="5" stroke-linecap="round" data-hd-channel="${idx}"/>
+      <line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="20" data-hd-channel="${idx}" style="cursor:pointer;"/>
+      <text x="${mx}" y="${my}" text-anchor="middle" fill="var(--muted)" font-size="8" pointer-events="none">${g1}-${g2}</text>`;
   }).join('');
 
-  // Center 圖形
+  // Center 圖形（可點擊）
   const centerShapes = Object.entries(centerPos).map(([id, pos]) => {
     const isDefined = defSet.has(id);
-    const fill = isDefined ? getCenterColor(id) : 'none';
-    const stroke = isDefined ? getCenterColor(id) : 'var(--muted)';
-    const label = CENTERS[id]?.zh.replace('中心', '').replace('（', '\n(').split('\n')[0] || id;
+    const fill = isDefined ? getCenterColor(id) : 'rgba(30,20,60,0.6)';
+    const stroke = isDefined ? getCenterStroke(id) : 'var(--muted)';
+    const centerInfo = CENTERS[id];
+    const label = centerInfo ? centerInfo.zh.replace('中心', '').replace('（', '').replace('）', '').split('/')[0] : id;
     
-    // 使用不同形狀
-    if (id === 'head' || id === 'ajna') {
-      // 三角形
-      const triSize = 22;
-      const points = id === 'head'
-        ? `${pos.x},${pos.y - triSize} ${pos.x - triSize},${pos.y + triSize} ${pos.x + triSize},${pos.y + triSize}`
-        : `${pos.x - triSize},${pos.y - triSize} ${pos.x + triSize},${pos.y - triSize} ${pos.x},${pos.y + triSize}`;
-      return `<polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="2" opacity="${isDefined ? 1 : 0.5}"/>
-        <text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="600">${label}</text>`;
-    }
-    if (id === 'throat' || id === 'g') {
-      // 方塊
+    // 列出此中心被啟動的閘門
+    const centerGates = centerInfo ? centerInfo.gates : [];
+    const activeGatesHere = centerGates.filter(g => gateActivation[g]);
+    const gateLabels = activeGatesHere.map(g => {
+      const act = gateActivation[g];
+      const color = act === 'personality' ? 'var(--text)' : act === 'design' ? '#e0556b' : 'var(--accent)';
+      return `<tspan fill="${color}">${g}</tspan>`;
+    }).join(' ');
+
+    const size = 30;
+    let shape = '';
+    if (id === 'head') {
+      const pts = `${pos.x},${pos.y - size} ${pos.x - size},${pos.y + size} ${pos.x + size},${pos.y + size}`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+    } else if (id === 'ajna') {
+      const pts = `${pos.x - size},${pos.y - size} ${pos.x + size},${pos.y - size} ${pos.x},${pos.y + size}`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+    } else if (id === 'throat' || id === 'g') {
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+    } else if (id === 'heart') {
+      // 小三角
       const s = 24;
-      return `<rect x="${pos.x - s}" y="${pos.y - s}" width="${s * 2}" height="${s * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2" opacity="${isDefined ? 1 : 0.5}"/>
-        <text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="600">${label}</text>`;
+      const pts = `${pos.x},${pos.y - s} ${pos.x - s},${pos.y + s} ${pos.x + s},${pos.y + s}`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+    } else {
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
     }
-    // 其他：菱形或圓形
-    const r = 24;
-    return `<circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2" opacity="${isDefined ? 1 : 0.5}"/>
-      <text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" fill="var(--text)" font-size="8" font-weight="600">${label}</text>`;
+
+    return `${shape}
+      <text x="${pos.x}" y="${pos.y - 2}" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="700" pointer-events="none">${label}</text>
+      <text x="${pos.x}" y="${pos.y + 12}" text-anchor="middle" font-size="7.5" pointer-events="none">${gateLabels}</text>`;
   }).join('');
 
   return `
-    <div style="text-align:center;margin:16px 0;">
-      <svg viewBox="0 0 400 500" width="320" style="max-width:100%;">
+    <div style="text-align:center;margin:8px 0;">
+      <svg viewBox="0 0 500 620" width="100%" style="max-width:460px;">
         <defs>
           <pattern id="hdStripe" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--text)" stroke-width="3"/>
@@ -447,27 +452,42 @@ function renderBodyGraph(data) {
         ${channelLines}
         ${centerShapes}
       </svg>
-      <div style="display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:.75rem;color:var(--muted);">
-        <span>⬛ 意識（黑）</span><span style="color:#e0556b;">🟥 潛意識（紅）</span><span>🟪 兩者皆有</span>
+      <div style="display:flex;justify-content:center;gap:14px;margin-top:6px;font-size:.75rem;color:var(--muted);">
+        <span>⬛ 意識（黑）</span><span style="color:#e0556b;">🟥 潛意識（紅）</span><span style="color:var(--accent);">🟨 兩者</span>
       </div>
-      <p style="font-size:.8rem;color:var(--muted);margin:8px 0 0;text-align:center;">💡 點擊通道線查看解說</p>
+      <p style="font-size:.78rem;color:var(--muted);margin:6px 0 0;">💡 點擊中心或通道線查看解說</p>
     </div>
   `;
 }
 
 function getCenterColor(centerId) {
   const colors = {
-    head: 'rgba(245,197,66,0.35)',
-    ajna: 'rgba(90,200,90,0.35)',
-    throat: 'rgba(139,115,85,0.4)',
-    g: 'rgba(245,197,66,0.35)',
-    heart: 'rgba(224,85,107,0.35)',
-    solar: 'rgba(139,115,85,0.4)',
-    sacral: 'rgba(224,85,107,0.35)',
-    spleen: 'rgba(139,115,85,0.4)',
-    root: 'rgba(139,115,85,0.4)',
+    head: 'rgba(245,197,66,0.25)',
+    ajna: 'rgba(90,200,90,0.25)',
+    throat: 'rgba(139,115,85,0.3)',
+    g: 'rgba(245,197,66,0.25)',
+    heart: 'rgba(224,85,107,0.25)',
+    solar: 'rgba(139,115,85,0.3)',
+    sacral: 'rgba(224,85,107,0.25)',
+    spleen: 'rgba(139,115,85,0.3)',
+    root: 'rgba(139,115,85,0.3)',
   };
-  return colors[centerId] || 'rgba(123,108,246,0.3)';
+  return colors[centerId] || 'rgba(123,108,246,0.2)';
+}
+
+function getCenterStroke(centerId) {
+  const colors = {
+    head: '#f5c542',
+    ajna: '#5ac85a',
+    throat: '#8b7355',
+    g: '#f5c542',
+    heart: '#e0556b',
+    solar: '#8b7355',
+    sacral: '#e0556b',
+    spleen: '#8b7355',
+    root: '#8b7355',
+  };
+  return colors[centerId] || 'var(--accent2)';
 }
 
 /** 渲染通道區塊 */
@@ -628,4 +648,25 @@ function getChannelDesc(g1, g2) {
   const key1 = g1 + '-' + g2;
   const key2 = g2 + '-' + g1;
   return descs[key1] || descs[key2] || '這條通道將兩個中心的能量連接起來，形成你固定的生命力。';
+}
+
+/** 中心點擊解說 */
+function getCenterDetail(centerId) {
+  const c = CENTERS[centerId];
+  if (!c) return '';
+  const d = window._hdData;
+  const isDefined = d.definedCenters.includes(centerId);
+  const status = isDefined ? '已定義（著色）' : '開放（空白）';
+  const statusColor = isDefined ? 'var(--accent)' : 'var(--muted)';
+  const desc = isDefined ? c.defined : c.open;
+  
+  let html = `<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">`;
+  html += `<div style="font-size:1rem;font-weight:700;color:${statusColor};">${c.zh}</div>`;
+  html += `<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">${status} ｜ ${c.theme} ｜ ${c.bio}</div>`;
+  html += `<div style="margin-bottom:8px;">${desc}</div>`;
+  if (!isDefined) {
+    html += `<div style="color:var(--red);font-size:.82rem;">⚠️ 非自己主題：${c.notSelf}</div>`;
+  }
+  html += `</div>`;
+  return html;
 }
