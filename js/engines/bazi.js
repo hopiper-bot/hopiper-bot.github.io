@@ -564,23 +564,29 @@ function renderDayun(dayun, birthYear) {
   const currentAge = now - birthYear;
 
   const godThemes = {
-    "比肩": { brief: "獨立發展、平等合作", detail: "這10年適合自己做主、獨立發展。跟志同道合的朋友合作會有好結果。不適合依賴別人，要靠自己的判斷。" },
-    "劫財": { brief: "競爭激烈、行動力爆發", detail: "這10年環境競爭激烈，需要搶先一步。注意理財不要太衝動，但行動力是你的優勢。適合需要魄力的事業。" },
-    "食神": { brief: "才華展現、享受生活", detail: "這10年是展現才華和享受生活的好時機。創作、教學、餐飲都會順利。心態放輕鬆，好事自然來。" },
-    "傷官": { brief: "突破框架、表達自我", detail: "這10年你會想打破現有框架、嘗試新東西。創新能力強但注意不要太嗆。適合轉換跑道或開創新事業。" },
-    "偏財": { brief: "社交擴張、投資機會", detail: "這10年人脈是你最大的資產。多交朋友、多社交，意外的機會會從人際關係中來。可以嘗試投資但不要太冒險。" },
-    "正財": { brief: "穩定累積、務實理財", detail: "這10年適合穩紮穩打地累積。不要想暴富，靠紀律和耐心慢慢存。適合買房、長期投資。" },
-    "七殺": { brief: "壓力大但成長快", detail: "這10年壓力會比較大，但你的成長速度也是最快的。適合挑戰高難度的目標。撐過去你就升級了。" },
-    "正官": { brief: "事業穩定上升", detail: "這10年事業有正式的舞台和認可。適合在組織內升遷、考證照、建立專業形象。穩定向上。" },
-    "偏印": { brief: "獨立思考、適合轉型", detail: "這10年適合學習新技能、轉換方向。你的思維會變得更獨立，可能對靈性或冷門領域產生興趣。適合研究和自我提升。" },
-    "正印": { brief: "貴人運旺、受人提攜", detail: "這10年會有貴人出現幫你。適合學習進修、被提攜。保持謙虛，接受別人的幫助不是軟弱而是智慧。" },
+    "比肩": { brief: "獨立發展、平等合作", child: "童年環境中有跟你同齡的夥伴影響你，你很早就學會獨立。", youth: "這段時間適合自主發展，跟志同道合的人合作。不要依賴別人。", mid: "事業上適合獨立或平等合夥，你的能量足以自己做主。", elder: "晚年交友活躍、精神獨立，不會寂寞。保持社交就是保持活力。" },
+    "劫財": { brief: "行動力爆發、競爭", child: "童年可能有兄弟姊妹的競爭，或環境中有搶資源的壓力，讓你學會了爭取。", youth: "這段時間環境競爭激烈，但你的行動力也最強。注意理財別太衝動。", mid: "職場競爭高峰期，把精力導向正面競爭。注意合夥人和借貸。", elder: "晚年注意被人借錢或花費過大。但你到這歲數還有行動力是好事。" },
+    "食神": { brief: "才華展現、享受生活", child: "童年快樂、有才藝的培養，家庭給你展現自我的空間。", youth: "這段時間適合發展才華、享受生活。創作和表達會帶來好運。", mid: "事業靠才華和創意走出一條路。心態放鬆反而成果更好。", elder: "晚年有口福、有創作，享受生活的美好。是幸福的退休時光。" },
+    "傷官": { brief: "突破框架、表達自我", child: "童年就很聰明、有主見，可能不太聽話但很有想法。", youth: "這段時間想打破現狀、嘗試新路。創新能力最強，但注意說話方式。", mid: "事業上的叛逆期 — 想轉型或開創新東西。勇氣是對的但要有策略。", elder: "晚年思維不老化，可能有新發明或創作。不服老是你的特色。" },
+    "偏財": { brief: "人脈擴張、機會多", child: "童年接觸面廣，可能常搬家或認識很多不同的人。", youth: "這段時間社交運好，意外機會從人際中來。多出去認識人。", mid: "事業上靠人脈拓展，適合需要社交的工作。投資機會多但要謹慎。", elder: "晚年人緣好、有意外之喜。之前累積的人脈會在這時回報你。" },
+    "正財": { brief: "穩定累積、務實", child: "童年環境穩定、物質基本不缺。你從小就有安全感和務實的性格。", youth: "這段時間適合穩定累積，腳踏實地走每一步。不要投機。", mid: "事業穩健期，收入穩定成長。適合長期規劃和投資。", elder: "晚年衣食無憂，之前的踏實在這時結出果實。安穩享福。" },
+    "七殺": { brief: "壓力大但成長快", child: "童年可能有嚴格的管教或環境壓力，讓你比同齡人早熟。", youth: "這段時間壓力大、挑戰多，但也是你成長最快的時期。撐住。", mid: "事業上的高壓期 — 可能遇到權力鬥爭或重大挑戰。頂住就升級。", elder: "晚年保持一定的挑戰反而有活力。太安逸你反而不舒服。" },
+    "正官": { brief: "事業穩定上升", child: "童年在有規矩的環境中成長，被教導要守規矩、有責任感。", youth: "這段時間適合在正式體制中發展，容易得到認可和晉升。", mid: "事業上有正式舞台，適合升遷或承擔更大的責任。", elder: "晚年受人尊敬、有社會地位。你一輩子的累積在這時被認可。" },
+    "偏印": { brief: "獨立思考、轉型期", child: "童年可能比較安靜、喜歡獨處或思考，跟其他小孩不太一樣。", youth: "這段時間適合學習新技能、探索非主流方向。你的獨特性是資產。", mid: "事業上可能有轉型的念頭。適合進修、研究或發展新技能。", elder: "晚年走向內在深度，適合寫書、研究或靈性發展。" },
+    "正印": { brief: "貴人運旺、受支持", child: "童年被照顧得好、有學習的環境。可能有特別疼你的長輩。", youth: "這段時間有貴人出現幫你。適合學習進修，接受別人的幫助。", mid: "事業上有人提攜、有好的學習機會。保持謙虛。", elder: "晚年有人照顧、心靈平靜。子女或晚輩很照顧你。" },
   };
 
   const rows = dayun.map((d, idx) => {
     const isCurrent = (currentAge >= d.age && currentAge < d.age + 10);
     const highlight = isCurrent ? 'border-left:3px solid var(--accent);padding-left:10px;background:rgba(245,197,66,.06);' : '';
     const marker = isCurrent ? '<span style="color:var(--accent);font-weight:700;"> ← 現在</span>' : '';
-    const theme = godThemes[d.god] || { brief: '', detail: '' };
+    const theme = godThemes[d.god] || { brief: '', child: '', youth: '', mid: '', elder: '' };
+    // 根據年齡選擇對應的解讀
+    let detail;
+    if (d.age < 12) detail = theme.child;
+    else if (d.age < 32) detail = theme.youth;
+    else if (d.age < 62) detail = theme.mid;
+    else detail = theme.elder;
     const detailId = `dayun-${idx}`;
     return `<div style="padding:8px 10px;margin:4px 0;border-radius:8px;cursor:pointer;${highlight}" onclick="document.querySelectorAll('.dayun-exp').forEach(e=>e.style.display='none');const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
       <span style="font-weight:700;">${d.age}-${d.age+9}歲</span>（${d.yearStart}-${d.yearEnd}）
@@ -589,7 +595,7 @@ function renderDayun(dayun, birthYear) {
       <div style="font-size:.82rem;color:var(--muted);margin-top:3px;">${theme.brief}</div>
     </div>
     <div id="${detailId}" class="dayun-exp" style="display:none;padding:8px 12px;margin:0 10px 8px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.83rem;line-height:1.7;">
-      ${theme.detail}
+      ${detail}
     </div>`;
   }).join('');
 
