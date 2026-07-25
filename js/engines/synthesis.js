@@ -1,4 +1,4 @@
-/**
+﻿/**
  * synthesis.js — 人生劇本大綱
  * 
  * 從五個命理系統提取核心主題，交叉比對找出共振點，
@@ -426,222 +426,148 @@ function categorizeThemes(sorted) {
   return { core, support, single };
 }
 
-// ============ 劇本大綱生成 ============
+// ============ 劇本大綱生成（尖銳版） ============
 
-/**
- * 生成人生劇本敘事
- */
+const CONFLICT_PAIRS = [
+  { a: 'independence', b: 'caregiving', insight: '你同時有強烈的「我要自由」和「我要照顧人」——這兩個會打架。你的人生功課不是二選一，而是找到「在自由中照顧人、在照顧人時保有自由」的姿態。你不是傳統那種犧牲式的照顧者，你是用自己的方式守護你在乎的人。' },
+  { a: 'action', b: 'patience', insight: '你的油門和煞車一樣強——一腳踩下去就想衝，但另一個聲音說「等一下」。這不是矛盾，這是你的超能力：你有爆發力，也有等待最佳時機的智慧。秘訣是聽身體——身體說衝就衝，身體說等就等。' },
+  { a: 'leadership', b: 'patience', insight: '你有領導能量，但不是衝出去的那種——你是「等到所有人都亂了然後你站出來，一句話定方向」的那種。你的權威不是搶來的，是等到正確時機自然浮現的。' },
+  { a: 'wisdom', b: 'action', insight: '你的腦袋跟身體在賽跑。一邊想深入研究、一邊又想立刻動手。最好的平衡是：快速原型、邊做邊學。你適合「做一個小版本，看結果，再決定下一步」。' },
+  { a: 'independence', b: 'family', insight: '你需要自由但你也重視家人——這是你最深的拉扯之一。你不適合「犧牲自己成全家庭」。你需要一種讓你有自己空間、同時又能守護家人的架構。物理距離不等於情感距離。' },
+  { a: 'wealth', b: 'authenticity', insight: '你的財富能量和「做自己」是綁在一起的。你越做自己、越走自己的路，錢越會來。反過來，你越為了錢去做不是自己的事，財路越卡。你不是追錢的命，你是吸引錢的命。' },
+  { a: 'intuition', b: 'wisdom', insight: '你同時有直覺和分析力。陷阱是用腦袋否定直覺。正確用法：先聽直覺給第一個答案，然後用腦袋規劃「怎麼執行」。不是用腦袋決定「做不做」，而是決定「怎麼做」。' },
+  { a: 'emotional', b: 'independence', insight: '你的情緒很豐富但又不想被情緒綁住。你不是要消滅情緒——你是要學會「感受到但不被帶走」。情緒是情報來源，不是指揮官。' },
+  { a: 'magnetism', b: 'independence', insight: '你天生吸引人但又需要空間。人靠近了你想退、退了又覺得孤單。不是你有問題，是你需要「有距離的親密」。找能給你空間的人。' },
+  { a: 'resilience', b: 'caregiving', insight: '你自己能扛也習慣照顧別人——但你最大的盲點是不讓人照顧你。允許自己偶爾軟弱、偶爾被照顧，不會讓你變弱——反而能續航更久。' },
+];
+
+const PITFALL_RULES = [
+  { condition: (core, sup) => has(core,'wealth') && !has(core,'action'), text: '你的盤有財富能量，但沒叫你「衝」。你的錢不是拼命賺來的——是做對的事之後自然到手的。你越追錢越累，越做自己越有錢。' },
+  { condition: (core, sup) => has(core,'patience') && has(core,'action'), text: '你同時有「等」和「衝」的訊號——是叫你：平常等、時機到了全力衝。不是龜速前進，是蓄力後一擊必中。' },
+  { condition: (core, sup) => has(core,'leadership') && has(core,'patience'), text: '你有領導能量但不是「主動出擊型」。一直衝在前面找人跟你會累死。等人來問你、等機會來敲門——你的領導力是被邀請出來的。' },
+  { condition: (core, sup) => has(core,'intuition') && has(sup,'wisdom'), text: '你直覺很準但會用邏輯推翻它。注意是不是常「早就知道答案但說服自己走另一條路然後後悔」？直覺第一、邏輯第二。' },
+  { condition: (core, sup) => has(core,'caregiving') && !has(core,'authenticity'), text: '你天生會照顧人，但小心「為了照顧別人把自己搞不見了」。空了的杯子倒不出水。先顧好自己。' },
+  { condition: (core, sup) => has(core,'transformation') && has(core,'resilience'), text: '你的命帶有「重來」的設計——每次覺得完蛋了，那是正常劇情。你會重來得比之前更好。不要在谷底做永久的決定。' },
+];
+
+function has(list, key) { return list.some(t => t.key === key); }
+
 function generateScript(categories, results) {
   const { core, support } = categories;
-  
   let script = '';
   
-  // === 開場：你是誰 ===
-  script += `<div class="script-section">`;
-  script += `<div class="script-title">📖 第一章：你是誰</div>`;
-  script += `<div class="script-body">`;
-  
+  // === 一句話 ===
+  script += `<div class="script-section" style="border-left-color:#f5c542;"><div class="script-title">⚡ 一句話版本</div><div class="script-body" style="font-size:1rem;font-weight:600;line-height:1.8;">${oneLiner(core,support,results)}</div></div>`;
+
+  // === 核心設定 ===
+  script += `<div class="script-section"><div class="script-title">📖 第一章：你的核心設定</div><div class="script-body">`;
   if (core.length > 0) {
-    script += `五個命理系統不約而同地指出，你的生命中有 ${core.length} 個核心主題不斷重複出現：`;
-    script += `<div class="theme-badges" style="margin:10px 0;">`;
-    for (const t of core) {
-      script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}個系統)</small></span>`;
-    }
-    script += `</div>`;
-    script += `這不是巧合。當多個完全不同的系統——東方的、西方的、古老的、現代的——都在說同一件事，那就是你靈魂的基調。`;
-  } else {
-    script += `你的能量多元分散，沒有單一主題壓倒性地主導——這代表你有多種天賦等待在不同人生階段展現。`;
-  }
-  script += `</div></div>`;
-  
-  // === 第二章：你的天賦 ===
-  script += `<div class="script-section">`;
-  script += `<div class="script-title">🎁 第二章：你的天賦</div>`;
-  script += `<div class="script-body">`;
-  
-  const giftThemes = core.filter(t => 
-    ['creativity', 'intuition', 'communication', 'leadership', 'wisdom', 'magnetism', 'wealth'].includes(t.key)
-  );
-  
-  if (giftThemes.length > 0) {
-    for (const t of giftThemes.slice(0, 4)) {
-      script += `<div class="script-gift">`;
-      script += `<b>${t.icon} ${t.zh}</b>（${t.systems.join('、')}都看到了）<br>`;
-      script += `${t.desc}。<span class="source-hint">來源：${t.sources.slice(0, 3).join('、')}</span>`;
-      script += `</div>`;
-    }
+    script += `五個系統用五種語言說同一件事。你有 ${core.length} 個主題不斷出現：<div class="theme-badges" style="margin:10px 0;">`;
+    for (const t of core) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
+    script += `</div>這些不是「你可以選擇發展的方向」——這是你的出廠設定。回顧人生，它們一直都在。`;
   } else if (support.length > 0) {
-    const gifts = support.filter(t => 
-      ['creativity', 'intuition', 'communication', 'leadership', 'wisdom', 'magnetism', 'wealth'].includes(t.key)
-    );
-    for (const t of gifts.slice(0, 3)) {
-      script += `<div class="script-gift">`;
-      script += `<b>${t.icon} ${t.zh}</b>（${t.systems.join('、')}）<br>`;
-      script += `${t.desc}。`;
-      script += `</div>`;
-    }
-  }
-  script += `</div></div>`;
-  
-  // === 第三章：你的功課 ===
-  script += `<div class="script-section">`;
-  script += `<div class="script-title">🎯 第三章：你的人生功課</div>`;
-  script += `<div class="script-body">`;
-  
-  const lessonThemes = [...core, ...support].filter(t => 
-    ['patience', 'authenticity', 'emotional', 'resilience', 'transformation'].includes(t.key)
-  );
-  
-  if (lessonThemes.length > 0) {
-    for (const t of lessonThemes.slice(0, 3)) {
-      script += `<div class="script-lesson">`;
-      script += `<b>${t.icon} ${t.zh}</b>——${t.desc}。`;
-      if (t.key === 'authenticity') script += ` 所有系統都在告訴你：做自己不是選項，是必要。`;
-      if (t.key === 'patience') script += ` 你的時機不是別人的時機。等待不是浪費時間，而是為了在正確的時刻全力出擊。`;
-      if (t.key === 'emotional') script += ` 你的情緒不是障礙，而是你最精準的導航系統。學會跟它合作。`;
-      if (t.key === 'resilience') script += ` 你的人生設計就是要經歷挑戰。不是因為你命苦，而是因為你有能力把它轉化為智慧。`;
-      if (t.key === 'transformation') script += ` 你不是在「受苦」——你是在蛻變。每次看似崩塌的時刻，都是重新組裝的開始。`;
-      script += `</div>`;
-    }
-  } else {
-    script += `你的人生功課在各系統中分散出現，沒有壓倒性的單一挑戰。這代表你的成長是多面向的、持續的。`;
-  }
-  script += `</div></div>`;
-  
-  // === 第四章：做自己 ===
-  script += `<div class="script-section">`;
-  script += `<div class="script-title">✨ 第四章：做自己的方式</div>`;
-  script += `<div class="script-body">`;
-  
-  // 從人類圖拉策略和權威
-  const hdData = results.hd?.data;
-  const baziData = results.bazi?.data;
-  
-  if (hdData) {
-    script += `<div class="script-insight">`;
-    script += `<b>人類圖告訴你：</b>你是${hdData.typeInfo?.zh || ''}。`;
-    if (hdData.strategy) script += `策略是「${hdData.strategy.zh}」——${hdData.strategy.desc.split('。')[0]}。`;
-    if (hdData.authority) script += `做決定時信任你的「${hdData.authority.zh}」。`;
+    script += `你的能量多元，以下方向出現在兩個以上系統中：<div class="theme-badges" style="margin:10px 0;">`;
+    for (const t of support.slice(0,5)) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
     script += `</div>`;
   }
-  
-  if (baziData) {
-    script += `<div class="script-insight">`;
-    script += `<b>八字告訴你：</b>你的日主是「${baziData.dayMaster}」（${baziData.dayMasterElem}），`;
-    const elemDesc = {
-      '木': '像樹一樣需要空間成長，不能被壓制',
-      '火': '需要表達和展現，不能被熄滅',
-      '土': '需要穩定的根基，然後滋養萬物',
-      '金': '需要被打磨和提煉，才能發出光芒',
-      '水': '需要流動和自由，不能被堵住',
-    };
-    script += `${elemDesc[baziData.dayMasterElem] || ''}。`;
-    script += `</div>`;
-  }
-  
-  // 共振結論
-  const hasAuth = core.find(t => t.key === 'authenticity') || support.find(t => t.key === 'authenticity');
-  const hasIntuit = core.find(t => t.key === 'intuition') || support.find(t => t.key === 'intuition');
-  
-  if (hasAuth || hasIntuit) {
-    script += `<div class="script-conclusion">`;
-    script += `💡 `;
-    if (hasAuth && hasIntuit) {
-      script += `多個系統共同指出：<b>做自己</b>和<b>相信直覺</b>是你的核心方向。這不是雞湯——這是你的設計。當你違背這兩件事的時候，所有系統都預測你會感到阻力和不對勁。`;
-    } else if (hasAuth) {
-      script += `做自己是你的核心方向。不是「希望」你能做自己，而是「你必須」做自己——你的系統就是這樣設計的。`;
-    } else {
-      script += `相信你的直覺。多個系統都指出你有超越常人的第六感——但前提是你要信任它，而不是用腦袋蓋過它。`;
-    }
-    script += `</div>`;
-  }
-  
   script += `</div></div>`;
+
+  // === 天賦 ===
+  const gifts = core.filter(t => ['creativity','intuition','communication','leadership','wisdom','magnetism','wealth','action'].includes(t.key));
+  if (gifts.length > 0) {
+    script += `<div class="script-section"><div class="script-title">🎁 第二章：你帶來了什麼</div><div class="script-body">你這輩子「自帶」的——不用學、天生就有：`;
+    for (const t of gifts.slice(0,4)) script += `<div class="script-gift"><b>${t.icon} ${t.zh}</b>——${t.desc}。<br><span class="source-hint">${t.systems.join('、')}都指向這個。</span></div>`;
+    script += `</div></div>`;
+  }
+
+  // === 衝突 ===
+  const all = [...core, ...support];
+  const conflicts = CONFLICT_PAIRS.filter(p => has(all,p.a) && has(all,p.b));
+  if (conflicts.length > 0) {
+    script += `<div class="script-section" style="border-left-color:#e0556b;"><div class="script-title">⚔️ 第三章：你的內在拉扯</div><div class="script-body">你可能常覺得自己很矛盾——不是你有問題，是你的設計本來就有張力。這些張力要被「駕馭」而不是「解決」：`;
+    for (const c of conflicts.slice(0,3)) script += `<div class="script-lesson" style="border-left-color:#e0556b;">${c.insight}</div>`;
+    script += `</div></div>`;
+  }
   
+  // === 誤區 ===
+  const pitfalls = PITFALL_RULES.filter(r => r.condition(core,support)).map(r => r.text);
+  if (pitfalls.length > 0) {
+    script += `<div class="script-section" style="border-left-color:#f5c542;"><div class="script-title">⚠️ 第四章：你可能踩的坑</div><div class="script-body">根據你的盤，以下是你最容易走偏的地方——大概你已經踩過了：`;
+    for (const p of pitfalls.slice(0,3)) script += `<div class="script-lesson" style="border-left-color:#f5c542;">${p}</div>`;
+    script += `</div></div>`;
+  }
+
+  // === 怎麼活 ===
+  script += `<div class="script-section"><div class="script-title">✨ 第五章：怎麼活才對</div><div class="script-body">`;
+  const hd = results.hd?.data;
+  const bz = results.bazi?.data;
+  if (hd) {
+    let s = `<div class="script-insight"><b>人類圖：</b>你是${hd.typeInfo?.zh||''}。`;
+    if (hd.strategy) s += `${hd.strategy.desc.split('。')[0]}。`;
+    if (hd.authority) s += `做決定用「${hd.authority.zh}」——${hd.authority.desc.split('。')[0]}。`;
+    script += s + `</div>`;
+  }
+  if (bz) {
+    const adv = { '木':'給自己空間成長，不接受被壓制的環境。你枯萎的原因永遠是空間不夠。', '火':'你需要表達和被看見。壓抑自己等於慢性自殺。找到你的舞台。', '土':'先穩住自己的根基再去養別人。你是大地，但大地也需要被滋養。', '金':'你是被磨出來的鑽石。每次痛苦的打磨都讓你更值錢。相信過程。', '水':'你需要流動。一個地方待太久你就死了。流動不一定是搬家——也可以是換思路、換做法。' };
+    script += `<div class="script-insight"><b>八字：</b>日主「${bz.dayMaster}」屬${bz.dayMasterElem}。${adv[bz.dayMasterElem]||''}</div>`;
+  }
+  script += `<div class="script-conclusion">${conclusion(core,support)}</div></div></div>`;
   return script;
 }
 
-// ============ 渲染 ============
+function oneLiner(core, support, results) {
+  const all = [...core, ...support];
+  const p = [];
+  if (has(all,'intuition')) p.push('靠直覺走路');
+  else if (has(all,'wisdom')) p.push('靠深度思考走路');
+  else if (has(all,'action')) p.push('靠行動力開路');
+  if (has(all,'authenticity') || has(all,'independence')) p.push('走自己的路');
+  if (has(all,'caregiving') || has(all,'family')) p.push('守護身邊的人');
+  if (has(all,'wealth')) p.push('順便把錢吸過來');
+  else if (has(all,'creativity')) p.push('用創造力養活自己');
+  if (has(all,'resilience')) p.push('越摔越強');
+  if (p.length >= 2) return `「你是一個${p.join('、')}的人。」`;
+  const hd = results.hd?.data;
+  if (hd) return `「你是${hd.typeInfo?.zh||''}，做自己就是最大的策略。」`;
+  return `「你的設計獨一無二。做自己，其他的會跟上。」`;
+}
 
-function renderSynthesis(categories, script, allThemes) {
+function conclusion(core, support) {
+  const all = [...core, ...support];
+  let c = '🎯 ';
+  if (has(core,'authenticity') && has(all,'intuition')) c += `五個系統說同一句話：<b>做自己、信直覺</b>。這不是雞湯——這是你的硬體規格。你每一次違背直覺的決定，都在跟自己整張命盤作對。所有「不對勁」的時刻，都是你在偏離軌道。回來。`;
+  else if (has(core,'authenticity')) c += `你不是「可以」做自己——你是<b>非做自己不可</b>。你的盤沒有留空間給「為了別人委屈自己」。你越做自己越順，越裝越卡。就這麼簡單。`;
+  else if (has(core,'intuition')) c += `你的直覺是最貴的資產。多個系統都寫著：<b>你就是知道</b>。你人生中所有的後悔，大概都是「明明知道答案但選了另一條路」的時候。信它。`;
+  else if (has(core,'wealth') && has(all,'independence')) c += `你的盤寫著：<b>走自己的路，錢會追著你跑</b>。為了別人的期待去賺的錢，遲早讓你想掀桌。`;
+  else if (has(core,'caregiving')) c += `你天生是照顧者，但最重要那句：<b>先把自己顧好</b>。你空了誰都救不了。你的照顧是有邊界的、有力量的。`;
+  else if (core.length > 0) c += `你的核心是「<b>${core[0].zh}</b>」${core.length>1?`和「${core[1].zh}」`:''}——出廠設定，不需要改。接受它、善用它。其他的會到位。`;
+  else c += `你的盤說：<b>沒有標準答案</b>。你的路是你自己走出來的。但你已經知道方向了，對吧？`;
+  return c;
+}
+
+// ============ 渲染 ============
+function renderSynthesis(categories, script) {
   const { core, support } = categories;
-  
-  let html = `
-    <div class="sig">
-      <div class="kin">命理交叉比對</div>
-      <div class="big">人生劇本大綱</div>
-      <div style="font-size:.85rem;color:var(--muted);margin-top:8px;">
-        綜合八字、紫微斗數、西洋占星、馬雅曆、人類圖五大系統<br>
-        找出你的生命中不斷重複出現的核心主題
-      </div>
-    </div>
-  `;
-  
-  // 主題雷達圖（文字版）
-  html += `<div class="divider"></div>`;
-  html += `<h3>📊 主題共振分析</h3>`;
-  html += `<div style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">出現在越多系統 = 越是你靈魂深處的基調</div>`;
-  
-  // 核心主題
+  let html = `<div class="sig"><div class="kin">命理交叉比對</div><div class="big">人生劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">綜合八字、紫微斗數、西洋占星、馬雅曆、人類圖五大系統<br>找出你的生命中不斷重複出現的核心主題</div></div>`;
+  html += `<div class="divider"></div><h3>📊 主題共振分析</h3><div style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">出現在越多系統 = 越是你靈魂深處的基調</div>`;
   if (core.length > 0) {
-    html += `<div style="margin-bottom:16px;">`;
-    html += `<div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:8px;">🔥 核心主題（3+ 系統共振）</div>`;
-    for (const t of core) {
-      const barWidth = Math.min(t.systemCount * 20, 100);
-      html += `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">`;
-      html += `<span style="width:90px;font-size:.82rem;white-space:nowrap;">${t.icon} ${t.zh}</span>`;
-      html += `<div style="flex:1;height:18px;background:rgba(255,255,255,.05);border-radius:9px;overflow:hidden;">`;
-      html += `<div style="width:${barWidth}%;height:100%;background:linear-gradient(90deg,var(--accent),#f5c542);border-radius:9px;display:flex;align-items:center;padding-left:6px;">`;
-      html += `<span style="font-size:.7rem;color:#000;font-weight:700;">${t.systemCount} 系統</span>`;
-      html += `</div></div>`;
-      html += `<span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span>`;
-      html += `</div>`;
-    }
+    html += `<div style="margin-bottom:16px;"><div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:8px;">🔥 核心主題（3+ 系統共振）</div>`;
+    for (const t of core) { const w = Math.min(t.systemCount*20,100); html += `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="width:90px;font-size:.82rem;white-space:nowrap;">${t.icon} ${t.zh}</span><div style="flex:1;height:18px;background:rgba(255,255,255,.05);border-radius:9px;overflow:hidden;"><div style="width:${w}%;height:100%;background:linear-gradient(90deg,var(--accent),#f5c542);border-radius:9px;display:flex;align-items:center;padding-left:6px;"><span style="font-size:.7rem;color:#000;font-weight:700;">${t.systemCount} 系統</span></div></div><span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span></div>`; }
     html += `</div>`;
   }
-  
-  // 支持主題
   if (support.length > 0) {
-    html += `<div style="margin-bottom:16px;">`;
-    html += `<div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px;">💫 支持主題（2 系統共振）</div>`;
-    for (const t of support.slice(0, 6)) {
-      html += `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">`;
-      html += `<span style="width:90px;font-size:.8rem;white-space:nowrap;">${t.icon} ${t.zh}</span>`;
-      html += `<div style="flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;">`;
-      html += `<div style="width:40%;height:100%;background:rgba(123,108,246,.4);border-radius:7px;"></div></div>`;
-      html += `<span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span>`;
-      html += `</div>`;
-    }
+    html += `<div style="margin-bottom:16px;"><div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px;">💫 支持主題（2 系統共振）</div>`;
+    for (const t of support.slice(0,6)) html += `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><span style="width:90px;font-size:.8rem;white-space:nowrap;">${t.icon} ${t.zh}</span><div style="flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;"><div style="width:40%;height:100%;background:rgba(123,108,246,.4);border-radius:7px;"></div></div><span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span></div>`;
     html += `</div>`;
   }
-  
-  // 劇本大綱
-  html += `<div class="divider"></div>`;
-  html += script;
-  
-  // 底部說明
-  html += `
-    <div class="note" style="margin-top:16px;">
-      💡 這份劇本大綱是五大系統的<b>交集</b>——它們各自用不同的語言在說同一件事。
-      當你發現「每個系統都在跟我說一樣的話」，那就是你的核心真相。
-      <br><br>
-      📋 <b>系統來源</b>：八字（天干地支）、紫微斗數（命宮主星+四化）、西洋占星（太陽/月亮/上升+相位）、馬雅曆（主印記+調性）、人類圖（類型+通道+Profile+交叉）
-    </div>
-  `;
-  
+  html += `<div class="divider"></div>${script}`;
+  html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們各自用不同語言說同一件事。當你發現「每個系統都在跟我說一樣的話」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支）、紫微斗數（命宮主星+四化）、西洋占星（太陽/月亮/上升+相位）、馬雅曆（主印記+調性）、人類圖（類型+通道+Profile+交叉）</div>`;
   return html;
 }
 
 // ============ 主入口 ============
-
-/**
- * 計算綜合分析（人生劇本大綱）
- * @param {object} results - 所有系統的計算結果 { bazi, ziwei, astro, maya, hd }
- * @returns {{ status: string, html: string }}
- */
 export function calculate(results) {
   try {
-    // 1. 從各系統提取主題
     const allThemes = [
       ...extractBaziThemes(results.bazi?.data),
       ...extractZiweiThemes(results.ziwei?.data),
@@ -649,17 +575,10 @@ export function calculate(results) {
       ...extractMayaThemes(results.maya?.data),
       ...extractHDThemes(results.hd?.data),
     ];
-    
-    // 2. 統計和分析
     const sorted = analyzeThemes(allThemes);
     const categories = categorizeThemes(sorted);
-    
-    // 3. 生成劇本大綱
     const script = generateScript(categories, results);
-    
-    // 4. 渲染
-    const html = renderSynthesis(categories, script, allThemes);
-    
+    const html = renderSynthesis(categories, script);
     return { status: 'ok', html, error: null };
   } catch (err) {
     return { status: 'error', html: `<div class="placeholder">綜合分析錯誤：${err.message}</div>`, error: err.message };
