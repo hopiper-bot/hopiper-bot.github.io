@@ -19,8 +19,8 @@
 
   /* 霧金漸層 — 按鈕/裝飾用 */
   --gold-gradient: linear-gradient(135deg, #F2D06B 0%, #D4AF37 40%, #C6A969 100%);
-  /* 鼠尾綠文字漸層 — 帶灰調的淡綠，同色系但跳出深底 */
-  --gold-text-gradient: linear-gradient(135deg, #D4E6CB 0%, #B2C9A8 40%, #8FB88C 100%);
+  /* 金色文字 — 4段模擬金屬反光 */
+  --gold-text-gradient: linear-gradient(135deg, #F9E7B0 0%, #E6CA65 35%, #D4AF37 70%, #B8860B 100%);
 }
 
 /* ===== Reset & Base ===== */
@@ -254,7 +254,7 @@ h3 {
   filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.3));
   margin: 22px 0 8px;
   font-size: 1.1rem;
-  border-left: 4px solid #8FB88C;
+  border-left: 4px solid var(--accent);
   padding-left: 10px;
 }
 
