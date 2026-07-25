@@ -29,6 +29,7 @@ export const CHANNELS = [
   { gates: [31, 7],  centers: ['throat', 'g'], name: '創始者', keyword: '民主式領導', type: 'projecting' },
   { gates: [8, 1],   centers: ['throat', 'g'], name: '啟發', keyword: '創意的角色典範', type: 'projecting' },
   { gates: [33, 13], centers: ['throat', 'g'], name: '浪子', keyword: '見證者的回憶', type: 'projecting' },
+  { gates: [20, 10], centers: ['throat', 'g'], name: '覺醒', keyword: '活在當下的承諾', type: 'projecting' },
 
   // Throat ↔ Heart/Will (1)
   { gates: [45, 21], centers: ['throat', 'heart'], name: '金錢線', keyword: '物質主義者', type: 'manifesting' },

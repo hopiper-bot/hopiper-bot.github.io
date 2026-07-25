@@ -392,6 +392,14 @@ function renderBodyGraph(data) {
   };
 
   // 通道連線 — 畫所有 36 條通道
+  // 同一對中心之間有多條通道要偏移避免重疊
+  const centerPairCount = {};
+  const centerPairIdx = {};
+  CHANNELS.forEach((ch) => {
+    const key = [ch.centers[0], ch.centers[1]].sort().join('-');
+    centerPairCount[key] = (centerPairCount[key] || 0) + 1;
+  });
+
   const channelLines = CHANNELS.map((ch, idx) => {
     const p1 = centerPos[ch.centers[0]];
     const p2 = centerPos[ch.centers[1]];
@@ -399,38 +407,47 @@ function renderBodyGraph(data) {
     const g1 = ch.gates[0], g2 = ch.gates[1];
     const a1 = gateActivation[g1] || '';
     const a2 = gateActivation[g2] || '';
-    const bothActive = a1 && a2; // 完整通道
-    const oneActive = (a1 && !a2) || (!a1 && a2); // 半啟動
+    const bothActive = a1 && a2;
+    const oneActive = (a1 && !a2) || (!a1 && a2);
     
-    let color, width, dashArray = '';
+    // 同中心對偏移
+    const key = [ch.centers[0], ch.centers[1]].sort().join('-');
+    if (!centerPairIdx[key]) centerPairIdx[key] = 0;
+    const pairTotal = centerPairCount[key];
+    const pairI = centerPairIdx[key]++;
+    const offsetPx = pairTotal > 1 ? (pairI - (pairTotal - 1) / 2) * 8 : 0;
+    
+    // 計算偏移方向（垂直於通道線）
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const nx = -dy / len * offsetPx, ny = dx / len * offsetPx;
+    const x1 = p1.x + nx, y1 = p1.y + ny;
+    const x2 = p2.x + nx, y2 = p2.y + ny;
+
+    let color, width;
     if (bothActive) {
-      // 完整通道：粗實線
       width = 5;
       if (a1 === 'design' && a2 === 'design') color = '#e0556b';
       else if (a1 === 'personality' && a2 === 'personality') color = 'var(--text)';
       else color = 'url(#hdStripe)';
     } else if (oneActive) {
-      // 半啟動：中等線
       width = 3;
       const active = a1 || a2;
       if (active === 'design') color = 'rgba(224,85,107,0.6)';
       else if (active === 'personality') color = 'rgba(236,231,255,0.5)';
       else color = 'rgba(245,197,66,0.5)';
     } else {
-      // 完全未啟動：細灰線（背景結構）
       width = 1;
-      color = 'rgba(169,159,214,0.15)';
+      color = 'rgba(169,159,214,0.12)';
     }
 
-    const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-    // 只有完整通道或半啟動才顯示號碼和可點擊
-    const showLabel = bothActive || oneActive;
+    // 只有完整通道可點擊
     const clickAttr = bothActive ? `data-hd-channel="${idx}"` : '';
-    const labelText = showLabel ? `<text x="${mx}" y="${my + 3}" text-anchor="middle" fill="var(--muted)" font-size="8" pointer-events="none">${g1}-${g2}</text>` : '';
-    const hitArea = bothActive ? `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="transparent" stroke-width="20" data-hd-channel="${idx}" style="cursor:pointer;"/>` : '';
+    const cursor = bothActive ? 'style="cursor:pointer;"' : '';
+    const hitArea = bothActive ? `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="transparent" stroke-width="24" data-hd-channel="${idx}" style="cursor:pointer;"/>` : '';
     
-    return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${clickAttr} ${bothActive ? 'style="cursor:pointer;"' : ''}/>
-      ${hitArea}${labelText}`;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${clickAttr} ${cursor}/>
+      ${hitArea}`;
   }).join('');
 
   // Center 圖形（可點擊）
@@ -452,7 +469,7 @@ function renderBodyGraph(data) {
       return `<tspan fill="${color}">${g}</tspan>`;
     }).join(' ');
 
-    const size = 30;
+    const size = 36;
     let shape = '';
     if (id === 'head') {
       const pts = `${pos.x},${pos.y - size} ${pos.x - size},${pos.y + size} ${pos.x + size},${pos.y + size}`;
@@ -463,7 +480,7 @@ function renderBodyGraph(data) {
     } else if (id === 'throat' || id === 'g') {
       shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else if (id === 'heart') {
-      const s = 24;
+      const s = 30;
       const pts = `${pos.x},${pos.y - s} ${pos.x - s},${pos.y + s} ${pos.x + s},${pos.y + s}`;
       shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else {
