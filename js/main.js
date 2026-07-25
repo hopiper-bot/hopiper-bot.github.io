@@ -8,7 +8,7 @@ import * as mayaEngine from './engines/maya.js';
 import * as astroEngine from './engines/astro.js';
 import * as baziEngine from './engines/bazi.js';
 import * as ziweiEngine from './engines/ziwei.js';
-// import * as hdEngine from './engines/human-design.js';
+import * as hdEngine from './engines/human-design.js';
 // import * as transitEngine from './engines/transit.js';
 // import * as synthesisEngine from './engines/synthesis.js';
 
@@ -150,12 +150,14 @@ async function calculate() {
     const baziResult = baziEngine.calculate(birthData);
     const ziweiResult = ziweiEngine.calculate(birthData);
 
+    const hdResult = hdEngine.calculate(birthData);
+
     const results = {
       maya: mayaResult,
       astro: astroResult,
       bazi: baziResult,
       ziwei: ziweiResult,
-      hd: { status: 'ok', html: '<div class="placeholder">🔷 人類圖模組開發中⋯<br>（九大能量中心 + 類型/策略/權威）</div>' },
+      hd: hdResult,
       transit: { status: 'ok', html: '<div class="placeholder">📅 流年分析模組開發中⋯<br>（五大系統流年交叉比對）</div>' },
       synthesis: { status: 'ok', html: '<div class="placeholder">🔮 綜合分析模組開發中⋯<br>（本命綜合 + 流年綜合）</div>' },
     };
