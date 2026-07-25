@@ -141,7 +141,7 @@
         var html2 = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
         html2 += '<div style="font-size:1rem;font-weight:700;color:var(--accent);">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
         html2 += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
-        html2 += '<div style="padding:8px;background:rgba(245,197,66,.08);border-radius:6px;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
+        html2 += '<div style="padding:10px;background:rgba(245,197,66,.08);border-radius:6px;white-space:pre-line;line-height:1.8;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
         var el2 = document.getElementById('hd-detail');
         if (el2) { el2.innerHTML = html2; el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
         return;
