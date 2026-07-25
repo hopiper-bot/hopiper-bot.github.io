@@ -373,6 +373,9 @@ function renderZiwei(data) {
   const { lunar, mingPos, ju, palaces } = data;
   const mingStars = palaces[0].main;
 
+  // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
+  registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear);
+
   return `
     <div class="sig">
       <div class="kin">紫微斗數命盤</div>
@@ -381,12 +384,12 @@ function renderZiwei(data) {
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]}
       </div>
     </div>
-    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀｜格子內 ⏳ = 大限年齡（★ = 現在走的大限）</div>
+    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
     ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
-    <div id="zw-daxian" style="display:none;">
+    <div id="zw-daxian">
       ${renderDaxian(data.daxian, data.birthYear)}
     </div>
     <div class="divider"></div>
@@ -399,13 +402,6 @@ function renderZiwei(data) {
 
 function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
   // 標準紫微盤方格：4x4，地支位置固定
-  // 上排：巳(5) 午(6) 未(7) 申(8)
-  // 左列：辰(4)               酉(9)
-  // 左列：卯(3)               戌(10)
-  // 下排：寅(2) 丑(1) 子(0) 亥(11)
-  // 中間放基本資料
-
-  // 先建一個 pos → palace 的映射
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
 
@@ -441,15 +437,13 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
       return s+hua;
     }).join(' ')}</div>` : '';
     const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}</div>`;
-    // 大限標籤放格子底部
     let dxLabel = '';
     if (dx) {
       const dxColor = isDxCurrent ? 'color:var(--accent);font-weight:700;' : 'color:var(--muted);';
       const dxMark = isDxCurrent ? ' ★' : '';
       dxLabel = `<div style="font-size:.55rem;${dxColor}margin-top:2px;">⏳${dx.age}-${dx.ageEnd}歲${dxMark}</div>`;
     }
-    const detail = JSON.stringify({name:p.name,branch:p.branch,main:p.main,minor:p.minor}).replace(/"/g,'&quot;');
-    return `<div style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" onclick="showZwDetail(this)" data-palace="${detail}">
+    return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-pos="${branchIdx}">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}
@@ -465,7 +459,6 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
     <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">點宮位看詳情</div>
   </div>`;
 
-  // 4x4 grid
   return `
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;font-size:.75rem;">
       ${cell(5)}${cell(6)}${cell(7)}${cell(8)}
@@ -473,36 +466,185 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
       ${cell(3)}${cell(10)}
       ${cell(2)}${cell(1)}${cell(0)}${cell(11)}
     </div>
-    <script>
-      function showZwDetail(el) {
-        const data = JSON.parse(el.dataset.palace.replace(/&quot;/g,'"'));
-        const info = ${JSON.stringify(STAR_INFO)};
-        const pInfo = ${JSON.stringify(PALACE_INFO)};
-        let html = '<div style="padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.8;">';
-        html += '<b>' + data.name + '（' + data.branch + '宮）</b><br>';
-        html += '<span style="color:var(--muted);">' + (pInfo[data.name]||'') + '</span><br><br>';
-        if (data.main.length > 0) {
-          html += '<b>主星：</b><br>';
-          data.main.forEach(function(s) {
-            var bColor = s.brightness==='廟'||s.brightness==='旺' ? 'var(--accent)' : s.brightness==='陷' ? 'var(--red)' : 'var(--muted)';
-            html += '<span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-            html += '<span style="font-size:.75rem;color:' + bColor + ';">（' + s.brightness + '）</span>：';
-            html += (info[s.name]||'') + '<br>';
-          });
-        } else {
-          html += '<span style="color:var(--muted);">此宮無主星（借對宮星力，性格在此面向受環境影響較大）</span><br>';
-        }
-        if (data.minor.length > 0) {
-          html += '<br><b>副星：</b><br>';
-          data.minor.forEach(function(s) { html += '<span style="color:var(--muted);">' + s + '</span>：' + (info[s]||'') + '<br>'; });
-        }
-        html += '</div>';
-        document.getElementById('zw-detail').innerHTML = html;
-      }
-    </script>
   `;
 }
 
+
+// === 對宮關係（每個位置的對宮 = 位置 +6 mod 12）===
+function getOppositePos(pos) { return (pos + 6) % 12; }
+
+// === 雙星同宮組合解讀 ===
+const STAR_COMBOS = {
+  "紫微+貪狼": "紫貪同宮：有領袖魅力又多才多藝，桃花旺但也有格局。適合演藝、行銷、管理。",
+  "紫微+天府": "紫府同宮：帝星+庫星，穩重有格局，適合高階管理和財務決策。一生少災。",
+  "紫微+天相": "紫相同宮：有領導力又善協調，適合幕僚型主管或制度建立者。",
+  "紫微+七殺": "紫殺同宮：帝星+將星，有魄力有格局，適合獨當一面。一生多大起大落。",
+  "紫微+破軍": "紫破同宮：敢想敢做又有格局，適合開創新局。前半生波折，後半生穩定。",
+  "武曲+天府": "武府同宮：雙財星，理財能力極強，適合金融業、會計、投資。物質運佳。",
+  "武曲+貪狼": "武貪同宮：有財有慾，中年後發達。適合多角化經營。",
+  "武曲+天相": "武相同宮：做事有魄力又條理清楚，適合金融管理、行政主管。",
+  "武曲+七殺": "武殺同宮：果斷殺伐，行動力爆表。適合創業、軍警、工程。辛苦但有成。",
+  "武曲+破軍": "武破同宮：打破舊局找新財路。前半生辛苦，後半生有成。",
+  "太陽+太陰": "日月同宮：陰陽平衡，性格溫和有人緣。但容易左右為難、猶豫不決。",
+  "太陽+巨門": "日巨同宮：口才好又有正義感。適合教育、法律、媒體。化暗為明。",
+  "太陽+天梁": "日梁同宮：正派有威望，逢凶化吉。適合公職、醫療、社工。",
+  "天機+太陰": "機月同宮：聰明細膩，適合幕後策劃、研究、科技業。",
+  "天機+巨門": "機巨同宮：腦袋轉得快又會說。適合顧問、分析師、教師。",
+  "天機+天梁": "機梁同宮：聰明又有長輩緣，適合走專業路線（醫師、律師、工程師）。",
+  "天同+太陰": "同陰同宮：溫和有藝術天份，但容易過於被動。適合文創、設計。",
+  "天同+巨門": "同巨同宮：外表溫和但內心有主見。適合服務業、諮商。",
+  "天同+天梁": "同梁同宮：福氣好又有貴人。適合穩定發展，不宜冒險。",
+  "廉貞+貪狼": "廉貪同宮：野心大又有魅力，桃花很旺。適合業務、公關、演藝。",
+  "廉貞+七殺": "廉殺同宮：有野心有魄力，適合高壓環境（金融、業務主管）。",
+  "廉貞+破軍": "廉破同宮：勇於打破現狀，適合創業。但感情路比較曲折。",
+  "廉貞+天府": "廉府同宮：有野心又懂守成。適合企業中高階。穩中求進。",
+  "廉貞+天相": "廉相同宮：外表斯文有禮但內在有算計。適合公關、政治、法律。",
+};
+
+// === 四化落宮的完整解讀 ===
+const SIHUA_PALACE_INTERP = {
+  "祿": {
+    "命宮": "化祿入命：今生自帶好運氣場，做事容易順利。",
+    "兄弟": "化祿入兄弟：跟朋友同事間財運好，合作有利。",
+    "夫妻": "化祿入夫妻：感情運順，另一半帶財或帶好運。",
+    "子女": "化祿入子女：創作有成、跟子女緣份好、投資運佳。",
+    "財帛": "化祿入財帛：最直接的財運加持，收入管道暢通。",
+    "疾厄": "化祿入疾厄：身體底子好、或是花錢在養生享樂上。",
+    "遷移": "化祿入遷移：外出有好運、貴人在外面、適合發展外地。",
+    "交友": "化祿入交友：朋友幫忙多、社交圈帶來機會。",
+    "事業": "化祿入事業：工作順利、容易有好職位或好項目。",
+    "田宅": "化祿入田宅：有房產運、家裡環境好。",
+    "福德": "化祿入福德：精神層面滿足、懂享受生活。",
+    "父母": "化祿入父母：長輩庇蔭、學習運好、文書順利。",
+  },
+  "忌": {
+    "命宮": "化忌入命：自己容易想太多、操心勞碌。轉念很重要。",
+    "兄弟": "化忌入兄弟：跟同儕間容易有摩擦或金錢糾紛。",
+    "夫妻": "化忌入夫妻：感情上付出多、伴侶關係是功課。",
+    "子女": "化忌入子女：為子女操心、或投資要小心。",
+    "財帛": "化忌入財帛：錢進來也出去、要注意理財紀律。",
+    "疾厄": "化忌入疾厄：要注意健康，特別是過勞和壓力。",
+    "遷移": "化忌入遷移：外出容易不順、出差有阻礙。多留意交通。",
+    "交友": "化忌入交友：交友要謹慎、容易遇到不對的人。",
+    "事業": "化忌入事業：工作壓力大、容易碰到瓶頸。但壓力是成長。",
+    "田宅": "化忌入田宅：居家不太安穩、房產事務多操心。",
+    "福德": "化忌入福德：內心容易焦慮不安、要學放鬆。",
+    "父母": "化忌入父母：跟長輩關係要經營、文書考試多波折。",
+  },
+};
+
+// === 註冊全域點擊處理器 ===
+function registerGlobalClickHandler(palaces, sihua, daxian, birthYear) {
+  const posMap = {};
+  palaces.forEach(p => { posMap[p.pos] = p; });
+
+  // 找出四化落在哪個宮
+  const sihuaPalaces = {};
+  palaces.forEach(p => {
+    p.main.forEach(s => {
+      if (s.name === sihua.lu) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['祿→'+s.name]);
+      if (s.name === sihua.quan) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['權→'+s.name]);
+      if (s.name === sihua.ke) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['科→'+s.name]);
+      if (s.name === sihua.ji) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['忌→'+s.name]);
+    });
+    p.minor.forEach(s => {
+      if (s === sihua.lu) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['祿→'+s]);
+      if (s === sihua.quan) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['權→'+s]);
+      if (s === sihua.ke) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['科→'+s]);
+      if (s === sihua.ji) sihuaPalaces[p.name] = (sihuaPalaces[p.name]||[]).concat(['忌→'+s]);
+    });
+  });
+
+  window.showZwDetail = function(pos) {
+    const p = posMap[pos];
+    if (!p) return;
+    const oppositePos = getOppositePos(pos);
+    const oppP = posMap[oppositePos];
+
+    let html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
+
+    // === 本宮 ===
+    html += `<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">📍 ${p.name}（${p.branch}宮）</div>`;
+    html += `<div style="color:var(--muted);margin-bottom:8px;">${PALACE_INFO[p.name]||''}</div>`;
+
+    if (p.main.length > 0) {
+      html += '<div style="margin-bottom:6px;"><b>主星：</b></div>';
+      p.main.forEach(function(s) {
+        const bColor = (s.brightness==='廟'||s.brightness==='旺') ? 'var(--accent)' : s.brightness==='陷' ? 'var(--red)' : 'var(--muted)';
+        html += `<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">${s.name}</span><span style="font-size:.75rem;color:${bColor};">（${s.brightness}）</span>：${STAR_INFO[s.name]||''}</div>`;
+      });
+
+      // 雙星組合解讀
+      if (p.main.length >= 2) {
+        const key1 = p.main[0].name + '+' + p.main[1].name;
+        const key2 = p.main[1].name + '+' + p.main[0].name;
+        const combo = STAR_COMBOS[key1] || STAR_COMBOS[key2];
+        if (combo) {
+          html += `<div style="margin:8px 0;padding:8px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);"><b>⚡ 組合效應：</b>${combo}</div>`;
+        }
+      }
+    } else {
+      html += `<div style="color:var(--muted);margin-bottom:8px;">此宮無主星 — 借對宮星力。你在這個面向比較「看情況」，受環境和對宮影響大。</div>`;
+    }
+
+    if (p.minor.length > 0) {
+      html += '<div style="margin-top:8px;margin-bottom:4px;"><b>副星：</b></div>';
+      p.minor.forEach(function(s) {
+        html += `<div style="margin-left:8px;font-size:.82rem;color:var(--muted);">${s}：${STAR_INFO[s]||''}</div>`;
+      });
+    }
+
+    // === 四化落此宮 ===
+    if (sihuaPalaces[p.name]) {
+      html += '<div style="margin-top:10px;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">';
+      html += '<b>🌀 此宮有四化：</b><br>';
+      sihuaPalaces[p.name].forEach(function(item) {
+        const type = item.charAt(0); // 祿/權/科/忌
+        let interp = '';
+        if (type === '祿' && SIHUA_PALACE_INTERP['祿']) interp = SIHUA_PALACE_INTERP['祿'][p.name] || '';
+        if (type === '忌' && SIHUA_PALACE_INTERP['忌']) interp = SIHUA_PALACE_INTERP['忌'][p.name] || '';
+        const color = type==='祿'?'#4f4':type==='權'?'#f84':type==='科'?'#8cf':type==='忌'?'#f55':'var(--text)';
+        html += `<span style="color:${color};font-weight:700;">${item}</span>`;
+        if (interp) html += `<br><span style="font-size:.8rem;color:var(--muted);margin-left:8px;">${interp}</span>`;
+        html += '<br>';
+      });
+      html += '</div>';
+    }
+
+    // === 對宮 ===
+    html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
+    html += `<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">🔄 對宮：${oppP?oppP.name:''}（${BRANCHES[oppositePos]}宮）</div>`;
+    html += `<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">對宮的星會「照入」本宮，影響力約本宮的 60-70%。本宮無主星時影響更大。</div>`;
+
+    if (oppP && oppP.main.length > 0) {
+      oppP.main.forEach(function(s) {
+        html += `<div style="margin-left:8px;font-size:.82rem;"><span style="color:var(--accent2);">${s.name}</span>（${s.brightness}）照入：${STAR_INFO[s.name]||''}</div>`;
+      });
+    } else {
+      html += `<div style="font-size:.82rem;color:var(--muted);">對宮也無主星（雙空宮），這個面向比較自由發揮。</div>`;
+    }
+    html += '</div>';
+
+    html += '</div>';
+    document.getElementById('zw-detail').innerHTML = html;
+    // 自動捲到解說區
+    document.getElementById('zw-detail').scrollIntoView({behavior:'smooth', block:'nearest'});
+  };
+
+  // 使用事件委派綁定點擊
+  setTimeout(function() {
+    const grid = document.querySelector('#view-ziwei .zw-cell');
+    if (grid) {
+      const container = grid.parentElement;
+      container.addEventListener('click', function(e) {
+        const cell = e.target.closest('.zw-cell');
+        if (cell) {
+          window.showZwDetail(parseInt(cell.dataset.pos));
+        }
+      });
+    }
+  }, 100);
+}
 
 // === 大限解讀資料（主星×宮位的十年運勢概述）===
 const DAXIAN_INTERP = {
