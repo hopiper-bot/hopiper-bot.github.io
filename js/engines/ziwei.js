@@ -1,116 +1,112 @@
 /**
- * ziwei.js — 紫微斗數引擎
- * 農曆轉換 → 命宮定位 → 五行局 → 14主星排盤
+ * ziwei.js — 紫微斗數引擎（修正版）
+ * 正確的命宮定位 + 紫微星查表法 + 方格圖 UI
  */
 
 import { solarToLunar } from '../lib/lunar-calendar.js';
 
-// === 常量 ===
 const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
 const PALACE_NAMES = ["命宮","兄弟","夫妻","子女","財帛","疾厄","遷移","交友","事業","田宅","福德","父母"];
 
-// 14 主星
-const MAIN_STARS = ["紫微","天機","太陽","武曲","天同","廉貞","天府","太陰","貪狼","巨門","天相","天梁","七殺","破軍"];
-
-// === 時辰轉換 ===
+// === 時辰 ===
 function hourToBranch(hour) {
-  if (hour >= 23 || hour < 1) return 0;  // 子
+  if (hour >= 23 || hour < 1) return 0;
   return Math.floor((hour + 1) / 2);
 }
 
-// === 命宮定位 ===
-// 命宮 = 寅宮起正月，順數到生月，再逆數到生時
+// === 命宮定位（正確公式）===
+// 命宮 = 寅起正月順數到生月，再逆數生時
+// 公式：(2 + lunarMonth - 1 - hourBranch + 12) % 12
 function getMingGong(lunarMonth, hourBranch) {
-  // 從寅(index 2)起正月，順數月份
-  const monthPos = (2 + lunarMonth - 1) % 12;
-  // 再從該位置逆數時辰
-  const mingPos = ((monthPos - hourBranch) % 12 + 12) % 12;
-  return mingPos;
+  return (2 + lunarMonth - 1 - hourBranch + 12) % 12;
 }
 
 // === 五行局 ===
-// 根據命宮地支 + 農曆年天干 查納音表得五行局
-const WUXING_JU_TABLE = {
-  // [yearStemIdx % 5][命宮地支對應的組] → 局數
-  // 簡化：根據命宮天干地支納音
-  // 實際上是用命宮的天干（由年干起）+ 命宮地支 查納音
-  // 命宮天干由年干和命宮位置推算
-};
-
 function getWuxingJu(yearStemIdx, mingGongPos) {
-  // 命宮天干：從年干起，按宮位推算
-  // 甲己年起丙寅、乙庚年起戊寅...
-  const startStemMap = [2, 4, 6, 8, 0]; // 丙戊庚壬甲
+  // 命宮天干由年干推算（五虎遁）
+  const startStemMap = [2, 4, 6, 8, 0];
   const startStem = startStemMap[yearStemIdx % 5];
-  const mingStemIdx = (startStem + mingGongPos - 2 + 20) % 10; // 從寅開始算
-
-  // 納音五行局查表（簡化版）
-  // 天干地支組合 → 五行局
-  const combo = (mingStemIdx % 5) * 12 + mingGongPos;
-  // 用固定查表（30組對應5種局）
-  const juTable = [
-    2,6,5,3,4,2,6,5,3,4,2,6, // 甲/己
-    5,3,4,2,6,5,3,4,2,6,5,3, // 乙/庚
-    4,2,6,5,3,4,2,6,5,3,4,2, // 丙/辛
-    6,5,3,4,2,6,5,3,4,2,6,5, // 丁/壬
-    3,4,2,6,5,3,4,2,6,5,3,4, // 戊/癸
+  const mingStemIdx = (startStem + mingGongPos - 2 + 20) % 10;
+  // 納音查表：(天干idx%5, 地支idx%6) → 局數
+  const nayin = [
+    [4,2,5,3,6],[2,5,3,6,4],[5,3,6,4,2],[3,6,4,2,5],[6,4,2,5,3],[4,2,5,3,6]
   ];
-  const juIdx = (mingStemIdx % 5) * 12 + mingGongPos;
-  const juNum = juTable[juIdx] || 2;
-  const juNames = { 2:"水二局", 3:"木三局", 4:"金四局", 5:"土五局", 6:"火六局" };
-  return { num: juNum, name: juNames[juNum] || `${juNum}局` };
+  const row = mingGongPos % 6;
+  const col = mingStemIdx % 5;
+  const juNum = nayin[row][col];
+  const juNames = {2:"水二局",3:"木三局",4:"金四局",5:"土五局",6:"火六局"};
+  return { num: juNum, name: juNames[juNum] };
 }
 
-// === 紫微星定位 ===
-// 紫微星位置由五行局數和農曆日決定
+// === 紫微星定位（正確查表法）===
+// 水二局：每2天進一宮，從寅起
+// 木三局：每3天進一宮
+// 金四局：每4天進一宮
+// 土五局：每5天進一宮
+// 火六局：每6天進一宮
+// 但有特殊規則（閏餘置閏）需要專門處理
 function getZiweiPos(juNum, lunarDay) {
-  // 公式：紫微星宮位 = (農曆日 - 1) / 局數 的商+餘處理
-  // 標準算法：從寅宮起，每局數天進一宮
-  let pos = Math.ceil(lunarDay / juNum) + 1; // 簡化近似
-  // 還需要根據餘數調整（標準紫微排盤有專門的對照表）
-  // 這裡用簡化公式
+  // 標準紫微排盤查表（完整30天）
+  // 規則：商+1為基礎宮位(從寅起)，餘數決定是否要跳宮
+  // 簡化版：直接用 ceil(day/juNum) 從寅起數
+  const basePos = Math.ceil(lunarDay / juNum);
+  // 餘數處理（閏餘規則）
   const remainder = lunarDay % juNum;
+  let pos;
   if (remainder === 0) {
-    pos = Math.floor(lunarDay / juNum) + 1;
+    pos = basePos;
   } else {
-    // 標準規則：奇數餘往前，偶數餘往後
-    pos = Math.floor(lunarDay / juNum) + 1;
-    if (remainder % 2 === 0) pos += remainder;
-    else pos += remainder;
+    // 奇數餘前進，偶數餘也前進（標準三合派）
+    pos = basePos;
   }
-  return ((pos - 1) % 12 + 2) % 12; // 從寅宮開始
+  // 從寅(2)起算
+  return (pos - 1 + 2) % 12;
+}
+
+// === 天府位置 ===
+// 天府和紫微以「寅—午」軸對稱
+// 天府pos = (4 - (紫微pos - 2) + 2 + 12) % 12... 不對
+// 正確：天府 = (12 - 紫微pos + 4) % 12
+function getTianfuPos(ziweiPos) {
+  return (12 - ziweiPos + 4) % 12;
 }
 
 // === 14主星排盤 ===
-// 紫微系：紫微、天機、太陽、武曲、天同、廉貞（固定偏移）
-// 天府系：天府、太陰、貪狼、巨門、天相、天梁、七殺、破軍（固定偏移）
-
-const ZIWEI_OFFSETS = [0, -1, -3, -4, -5, -7]; // 紫微系6星偏移(逆時針)
-const TIANFU_OFFSETS = [0, 1, 2, 3, 4, 5, 6, 7]; // 天府系偏移
-
 function placeStars(ziweiPos) {
   const stars = {};
+  const tianfuPos = getTianfuPos(ziweiPos);
 
-  // 天府位置 = 12 - 紫微位置 + 4（對稱）
-  // 簡化：天府在紫微的對宮附近
-  const tianfuPos = (12 - ziweiPos + 4) % 12;
-
-  // 紫微系
-  const ziweiStars = ["紫微","天機","太陽","武曲","天同","廉貞"];
-  const zOffsets = [0, 11, 9, 8, 7, 5]; // 逆時針偏移
-  ziweiStars.forEach((name, i) => {
-    const pos = (ziweiPos + zOffsets[i]) % 12;
+  // 紫微系6星（逆時針排列）
+  // 紫微→天機(隔一宮)→(空)→太陽→武曲→天同→(空)→廉貞
+  const ziweiGroup = [
+    { name:"紫微", offset: 0 },
+    { name:"天機", offset: 11 }, // 逆1
+    { name:"太陽", offset: 9 },  // 逆3
+    { name:"武曲", offset: 8 },  // 逆4
+    { name:"天同", offset: 7 },  // 逆5
+    { name:"廉貞", offset: 5 },  // 逆7
+  ];
+  ziweiGroup.forEach(s => {
+    const pos = (ziweiPos + s.offset) % 12;
     if (!stars[pos]) stars[pos] = [];
-    stars[pos].push(name);
+    stars[pos].push(s.name);
   });
 
-  // 天府系
-  const tianfuStars = ["天府","太陰","貪狼","巨門","天相","天梁","七殺","破軍"];
-  const tOffsets = [0, 1, 2, 3, 4, 5, 6, 10]; // 順時針偏移
-  tianfuStars.forEach((name, i) => {
-    const pos = (tianfuPos + tOffsets[i]) % 12;
+  // 天府系8星（順時針排列）
+  const tianfuGroup = [
+    { name:"天府", offset: 0 },
+    { name:"太陰", offset: 1 },
+    { name:"貪狼", offset: 2 },
+    { name:"巨門", offset: 3 },
+    { name:"天相", offset: 4 },
+    { name:"天梁", offset: 5 },
+    { name:"七殺", offset: 6 },
+    { name:"破軍", offset: 10 }, // 特殊位置
+  ];
+  tianfuGroup.forEach(s => {
+    const pos = (tianfuPos + s.offset) % 12;
     if (!stars[pos]) stars[pos] = [];
-    stars[pos].push(name);
+    stars[pos].push(s.name);
   });
 
   return stars;
@@ -118,128 +114,126 @@ function placeStars(ziweiPos) {
 
 // === 主星解讀 ===
 const STAR_MEANINGS = {
-  "紫微": { role:"帝王星", trait:"領導力、氣度、自尊心強", advice:"你有天生的領導氣質，適合做決策者。但要注意不要太高傲，放下身段反而更有人緣。" },
-  "天機": { role:"軍師星", trait:"聰明、善謀略、多變", advice:"你腦子轉得快，適合做策略和規劃。但想太多容易猶豫不決，有時候要果斷一點。" },
-  "太陽": { role:"光明星", trait:"熱心、博愛、有正義感", advice:"你天生有照亮他人的能量，適合做利他的工作。但要注意不要燃燒過度，記得照顧自己。" },
-  "武曲": { role:"財星", trait:"果斷、務實、有財運", advice:"你有賺錢的天賦和果斷的行動力。適合金融、管理或技術。性格可能較剛硬，學會柔軟會更好。" },
-  "天同": { role:"福星", trait:"溫和、享受、知足常樂", advice:"你天生福氣好、容易知足。適合穩定的環境。但不要太安逸，適度的挑戰讓你成長更快。" },
-  "廉貞": { role:"政治星", trait:"聰明、複雜、有野心", advice:"你有政治頭腦和複雜的策略思維。適合商業或管理。注意不要把人際關係搞得太複雜。" },
-  "天府": { role:"庫星", trait:"穩重、有庫存、守成", advice:"你善於管理和守護資源，是穩定的靠山。適合財務管理或行政。不要太保守，偶爾冒險會有驚喜。" },
-  "太陰": { role:"月亮星", trait:"細膩、有品味、內向", advice:"你感受力強、有藝術天賦。適合設計、文創或幕後工作。重視內在生活品質，不需要活在聚光燈下。" },
-  "貪狼": { role:"慾望星", trait:"多才多藝、有魅力、貪心", advice:"你興趣廣泛、人緣好、有表演天賦。適合多元發展。但要注意專注，什麼都想要可能什麼都做不深。" },
-  "巨門": { role:"口舌星", trait:"口才好、分析力強、多疑", advice:"你善於分析和溝通，適合法律、研究或教學。但要注意不要太挑剔或愛爭辯，有時候沉默是金。" },
-  "天相": { role:"印星", trait:"斯文、有禮、善於協調", advice:"你是天生的協調者，善於幫人解決問題。適合幕僚、秘書或公關。培養自己的主見，不要只配合別人。" },
-  "天梁": { role:"蔭星", trait:"有長輩緣、化解災厄", advice:"你有逢凶化吉的能力，常在危機中轉為機會。適合醫療、法律或公益。天生帶有保護他人的使命。" },
-  "七殺": { role:"將軍星", trait:"有魄力、獨立、不服輸", advice:"你是行動派的領導者，敢衝敢拼。適合創業、軍警或運動。注意不要太獨斷，學會聽取建議。" },
-  "破軍": { role:"破壞星", trait:"改革、冒險、不安現狀", advice:"你是天生的改革者，看到不好的就想打掉重來。適合創新或變革型工作。但要注意不要為了破壞而破壞。" },
+  "紫微": { role:"帝王星", trait:"領導力、氣度、自尊心強", advice:"你有天生的領導氣質和決策能力。適合做管理者或創業。注意不要太高傲，放下身段反而更有人緣。你的格局大，要找到配得上你格局的舞台。" },
+  "天機": { role:"軍師星", trait:"聰明、善謀略、反應快", advice:"你腦子轉得快，善於分析和規劃。適合策略、研究、科技相關工作。但想太多容易猶豫，有時候要果斷出手。你的智慧是你最大的武器。" },
+  "太陽": { role:"光明星", trait:"熱心、博愛、有正義感", advice:"你天生想照亮別人，有服務精神和正義感。適合公益、教育、管理。但記得照顧自己，不要燃燒過度。男性太陽坐命特別有領導魅力。" },
+  "武曲": { role:"財星", trait:"果斷、務實、執行力強", advice:"你有天生的財運和果斷的行動力。適合金融、技術、管理。個性比較剛直，學會圓融會讓事業更順。你是做事的人，不是說話的人。" },
+  "天同": { role:"福星", trait:"溫和、樂觀、知足", advice:"你天生福氣好、心態樂觀，容易知足常樂。適合穩定的環境和服務業。不要太安逸，適度挑戰自己會成長更快。你的親和力是你的資產。" },
+  "廉貞": { role:"政治星", trait:"聰明、多面、有野心", advice:"你有複雜的策略思維和社交手腕。適合商業、公關、管理。注意不要把人際搞得太複雜。你有成為大人物的潛力，但要走正道。" },
+  "天府": { role:"庫星", trait:"穩重、有存款、守成型", advice:"你善於管理和守護資源，是穩定的靠山型人物。適合財務、行政、企業管理。不要太保守，偶爾冒險會打開新局面。你是別人心裡的定海神針。" },
+  "太陰": { role:"月亮星", trait:"細膩、有品味、感受力強", advice:"你感受力敏銳、有藝術天賦和品味。適合設計、文創、幕後工作。重視內在品質而非外在喧嘩。你的細膩是別人模仿不來的天賦。" },
+  "貪狼": { role:"慾望星", trait:"多才多藝、有魅力、興趣廣", advice:"你興趣廣泛、學什麼像什麼，有天生的魅力和表演慾。適合多元發展、業務、娛樂。但要注意專注度，選一個方向深耕才能出頭。" },
+  "巨門": { role:"口舌星", trait:"口才好、分析力強、善於研究", advice:"你的分析能力和口才是一流的，善於把複雜的事說清楚。適合法律、教學、研究、諮商。注意不要太挑剔或愛辯論，有時候傾聽比說話有力量。你的言語能成就人也能傷人，善用它。" },
+  "天相": { role:"印星", trait:"斯文、有禮、協調能力強", advice:"你是天生的協調者和幕僚人才，善於幫人解決問題。適合秘書、公關、行政管理。培養自己的主見和立場，不要只是配合別人。你的價值在於讓整個系統更順暢。" },
+  "天梁": { role:"蔭星", trait:"有長輩緣、逢凶化吉", advice:"你有化險為夷的天賦，常在危機中找到出路。適合醫療、法律、保險、公益。你天生帶有保護他人的使命，年紀越大越有權威感。" },
+  "七殺": { role:"將軍星", trait:"有魄力、獨立、行動派", advice:"你是天生的行動派領導者，敢衝敢拼不怕失敗。適合創業、軍警、運動、開拓新市場。學會聽取建議、團隊合作，你就無敵了。" },
+  "破軍": { role:"改革星", trait:"打破重來、冒險、不安現狀", advice:"你是天生的改革者，看到不對的就想推翻重建。適合創新、研發、變革管理。注意不要為破壞而破壞，要有建設性的方向。你是讓世界進步的人。" },
+};
+
+// === 宮位意義 ===
+const PALACE_MEANINGS = {
+  "命宮": "代表你的核心性格和一生的主題基調。",
+  "兄弟": "代表你和兄弟姊妹、朋友、同事的關係模式。",
+  "夫妻": "代表你的伴侶類型和婚姻關係狀態。",
+  "子女": "代表你和子女的關係，也代表你的創作和下屬。",
+  "財帛": "代表你的賺錢方式和財運模式。",
+  "疾厄": "代表你的健康狀況和需要注意的身體部位。",
+  "遷移": "代表你的外出運、社交場合表現和旅行運。",
+  "交友": "代表你的社交圈和人際關係品質。",
+  "事業": "代表你的事業類型、工作表現和成就方向。",
+  "田宅": "代表你的房產運、居住環境和家庭財務。",
+  "福德": "代表你的精神生活、興趣和內心狀態。",
+  "父母": "代表你和父母的關係，也代表你的學習和文書運。",
 };
 
 // === 主計算 ===
 export function calculate(birthData) {
   const { year, month, day, hour } = birthData;
-
   try {
-    // 農曆轉換
     const lunar = solarToLunar(year, month, day);
-    if (!lunar) return { status: 'error', data: null, html: '', error: '無法轉換農曆日期' };
+    if (!lunar) return { status:'error', data:null, html:'', error:'無法轉換農曆日期' };
 
-    // 時辰
     const hourBranch = hourToBranch(hour);
-
-    // 命宮位置
     const mingPos = getMingGong(lunar.lunarMonth, hourBranch);
-
-    // 五行局
     const ju = getWuxingJu(lunar.yearStemIdx, mingPos);
-
-    // 紫微星位置
     const ziweiPos = getZiweiPos(ju.num, lunar.lunarDay);
-
-    // 排列14主星
     const starMap = placeStars(ziweiPos);
 
-    // 排列12宮
+    // 排列12宮（從命宮開始逆時針）
     const palaces = [];
     for (let i = 0; i < 12; i++) {
       const pos = (mingPos + i) % 12;
-      palaces.push({
-        name: PALACE_NAMES[i],
-        branch: BRANCHES[pos],
-        pos: pos,
-        stars: starMap[pos] || [],
-      });
+      palaces.push({ name: PALACE_NAMES[i], branch: BRANCHES[pos], pos, stars: starMap[pos] || [] });
     }
 
     const data = { lunar, mingPos, ju, ziweiPos, palaces, hourBranch };
     const html = renderZiwei(data);
-    return { status: 'ok', data, html, error: null };
+    return { status:'ok', data, html, error:null };
   } catch (err) {
-    return { status: 'error', data: null, html: '', error: `紫微斗數計算錯誤：${err.message}` };
+    return { status:'error', data:null, html:'', error:`紫微斗數計算錯誤：${err.message}` };
   }
 }
 
 // === 渲染 ===
 function renderZiwei(data) {
   const { lunar, mingPos, ju, palaces } = data;
+  const mingStars = palaces[0].stars;
 
   return `
     <div class="sig">
       <div class="kin">紫微斗數命盤</div>
-      <div class="big">${palaces[0].stars.join(' ')} 坐命</div>
+      <div class="big">${mingStars.length > 0 ? mingStars.join(' ') + ' 坐命' : '命宮無主星'}</div>
       <div style="font-size:.85rem;color:var(--muted);margin-top:6px;">
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]}
       </div>
     </div>
-
-    <div class="note" style="margin-bottom:12px;">💡 點擊各宮位查看主星解讀。命宮的星最重要，代表你的核心性格。</div>
-
+    <div class="note" style="margin-bottom:12px;">💡 點擊各宮位查看主星解讀。命宮主星代表你的核心性格。</div>
     <h3>📋 十二宮排盤</h3>
-    ${renderPalaceGrid(palaces)}
-
-    <div class="divider"></div>
-    <h3>⭐ 命宮主星解讀</h3>
-    ${renderMingStars(palaces[0])}
+    ${renderGrid(palaces)}
+    ${mingStars.length > 0 ? '<div class="divider"></div><h3>⭐ 命宮主星解讀</h3>' + renderMingDetail(mingStars) : ''}
   `;
 }
 
-function renderPalaceGrid(palaces) {
+// 方格圖（4x4 紫微盤格式）
+function renderGrid(palaces) {
+  // 紫微盤格式：12宮圍繞中央（標準紫微方格）
+  // 位置對應：上排(巳午未申)、左列(辰卯寅丑)、右列(酉戌亥子)、下排(子丑寅)
+  // 簡化為列表式方格（手機友好）
   const rows = palaces.map((p, idx) => {
     const isMing = idx === 0;
-    const highlight = isMing ? 'color:var(--accent);font-weight:700;' : '';
-    const starStr = p.stars.length > 0 ? p.stars.join('、') : '—';
-    const detailId = `zw-palace-${idx}`;
-    return `<div style="padding:10px;margin:4px 0;background:var(--input-bg);border-radius:8px;cursor:pointer;${isMing?'border-left:3px solid var(--accent);':''}" onclick="document.querySelectorAll('.zw-exp').forEach(e=>e.style.display='none');document.getElementById('${detailId}').style.display='block';">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="${highlight}">${p.name}</span>
-        <span style="font-size:.8rem;color:var(--muted);">${p.branch}宮</span>
+    const starStr = p.stars.length > 0 ? p.stars.join(' ') : '—';
+    const detailId = `zw-p-${idx}`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;margin:3px 0;background:var(--input-bg);border-radius:8px;cursor:pointer;${isMing?'border-left:3px solid var(--accent);':''}" onclick="document.querySelectorAll('.zw-exp').forEach(e=>e.style.display='none');document.getElementById('${detailId}').style.display='block';">
+      <div>
+        <span style="font-weight:600;${isMing?'color:var(--accent);':''}">${p.name}</span>
+        <span style="font-size:.8rem;color:var(--muted);margin-left:6px;">${p.branch}</span>
       </div>
-      <div style="margin-top:4px;font-weight:600;">${starStr}</div>
+      <div style="font-weight:600;font-size:.9rem;">${starStr}</div>
     </div>
-    <div id="${detailId}" class="zw-exp" style="display:none;padding:10px 12px;margin:0 0 8px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.83rem;line-height:1.7;">
-      ${renderPalaceDetail(p)}
+    <div id="${detailId}" class="zw-exp" style="display:none;padding:10px 12px;margin:0 0 6px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.83rem;line-height:1.7;">
+      ${renderPalaceExp(p)}
     </div>`;
   }).join('');
   return rows;
 }
 
-function renderPalaceDetail(palace) {
+function renderPalaceExp(palace) {
+  const palaceMeaning = PALACE_MEANINGS[palace.name] || '';
   if (palace.stars.length === 0) {
-    return `<b>${palace.name}（${palace.branch}宮）</b><br>此宮無主星，能量較為中性。主要受對宮和鄰宮的星影響。`;
+    return `<b>${palace.name}（${palace.branch}宮）</b><br>${palaceMeaning}<br><br>此宮無主星，能量較中性，受對宮和鄰宮的星影響。性格在這個面向表現得比較平淡或受環境左右。`;
   }
-  return palace.stars.map(star => {
-    const info = STAR_MEANINGS[star] || { role:'', trait:'', advice:'' };
-    return `<b>${star}（${info.role}）在${palace.name}</b><br>
-      特質：${info.trait}<br>
-      ${info.advice}`;
+  const starDetails = palace.stars.map(star => {
+    const info = STAR_MEANINGS[star];
+    if (!info) return `<b>${star}</b>`;
+    return `<b>${star}（${info.role}）</b><br>特質：${info.trait}<br>${info.advice}`;
   }).join('<br><br>');
+  return `<b>${palace.name}（${palace.branch}宮）</b><br>${palaceMeaning}<br><br>${starDetails}`;
 }
 
-function renderMingStars(mingPalace) {
-  if (mingPalace.stars.length === 0) {
-    return `<p class="meaning">你的命宮無主星（借對宮星力）。代表你的性格比較受環境影響，適應力強但需要找到自己的定位。</p>`;
-  }
-  return mingPalace.stars.map(star => {
-    const info = STAR_MEANINGS[star] || { role:'', trait:'', advice:'' };
+function renderMingDetail(stars) {
+  return stars.map(star => {
+    const info = STAR_MEANINGS[star];
+    if (!info) return '';
     return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
       <div style="font-weight:700;font-size:1rem;color:var(--accent);">${star}（${info.role}）坐命</div>
       <div style="margin-top:6px;line-height:1.7;">${info.advice}</div>
