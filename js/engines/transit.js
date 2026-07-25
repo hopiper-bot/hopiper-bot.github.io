@@ -273,10 +273,11 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
     html += `<div class="script-gift"><b>♄ 土星過境 ${astro.satHouse} 宮</b>（${HOUSE_TOPICS[astro.satHouse]||''}）<br>土星帶來責任和考驗的領域。今年在這裡會被要求「認真面對」。撐過去就是成長。</div>`;
     // 重要相位
     if (astro.aspects.length > 0) {
-      html += `<div style="margin-top:8px;font-size:.82rem;"><b>今年重要相位：</b></div>`;
+      html += `<div style="margin-top:10px;font-size:.82rem;"><b>今年重要相位：</b></div>`;
       for (const a of astro.aspects.slice(0, 5)) {
         const emoji = a.type === '合' ? '☌' : a.type === '對沖' ? '☍' : a.type === '三合' ? '△' : '□';
-        html += `<div style="font-size:.82rem;padding:2px 0;color:var(--text);">${emoji} 流年${a.transit} ${a.type} 本命${a.natal}（容許度 ${a.exact}°）</div>`;
+        const aspDesc = a.type === '合' ? '能量融合加強' : a.type === '對沖' ? '拉扯但帶來覺察' : a.type === '三合' ? '順流支持' : '摩擦但推動成長';
+        html += `<div style="font-size:.82rem;padding:3px 0;color:var(--text);">${emoji} 流年${a.transit} ${a.type} 本命${a.natal} <span style="color:var(--muted);">— ${aspDesc}</span></div>`;
       }
     }
   }
@@ -284,40 +285,43 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
   // 人類圖流年
   if (hd) {
     html += `<div class="divider"></div><h3>△ 人類圖流年（行星通道）</h3>`;
+    html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">慢行星今年停留的閘門——這些能量整年都在背景運作</div>`;
     if (hd.transitGates.length > 0) {
-      html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">慢行星今年啟動的閘門</div>`;
       for (const tg of hd.transitGates) {
         const gInfo = GATES[tg.gate] || {};
-        html += `<div style="font-size:.82rem;padding:2px 0;">${tg.planet} → 閘門 <b>${tg.gate}</b>（${gInfo.keyword||''}）${tg.line}爻</div>`;
+        html += `<div style="font-size:.82rem;padding:3px 0;">${tg.planet} → 閘門 <b>${tg.gate}</b>「${gInfo.keyword||''}」</div>`;
       }
     }
     if (hd.tempChannels.length > 0) {
-      html += `<div style="margin-top:10px;padding:10px;background:rgba(245,197,66,.08);border-radius:8px;"><div style="font-weight:700;color:#f5c542;margin-bottom:6px;">⚡ 今年臨時啟動的通道</div>`;
-      html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:6px;">流年行星補上你本命的另一端 = 今年會額外感受到的能量</div>`;
+      html += `<div style="margin-top:10px;padding:12px;background:rgba(245,197,66,.08);border-radius:8px;"><div style="font-weight:700;color:#f5c542;margin-bottom:6px;">⚡ 今年臨時啟動的通道</div>`;
+      html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">流年行星補上你本命的另一端 = 今年會額外感受到的能量（平常沒有，今年暫時打開）</div>`;
+      const chDescMap = { '好奇心':'今年會更想分享想法、學新東西、到處問為什麼', '金錢線':'今年跟「掌握資源」有關——控制感加強，可能在金錢或權力上有變化', '魅力':'今年行動力和存在感爆發，別人更容易注意到你', '腦波':'今年直覺和表達連結加強——腦中一閃的念頭更值得信任', '啟發':'今年有「創意角色典範」的能量——你做的事會啟發別人', '力量原型':'今年直覺配合行動力，「感覺對就做」的效率極高', '蛻變':'今年有轉型的能量——舊的結束、新的開始', '無常':'今年體驗慾望強——想到什麼就想去做，渴望多樣化', '探索':'今年適合嘗試新行為、新身份——做以前不會做的事', '社群':'今年社群和團體互動增加——注意你在群體中的角色', '抽象思維':'今年思緒特別多，從混亂中找到意義是主題', '覺察':'今年內在洞察力加強——會有「啊哈！」的頓悟時刻' };
       for (const tc of hd.tempChannels) {
-        html += `<div style="font-size:.85rem;padding:4px 0;"><b>${tc.planet}</b> 啟動 ${tc.channel.gates[0]}-${tc.channel.gates[1]}「${tc.channel.name}」通道</div>`;
+        const desc = chDescMap[tc.channel.name] || `「${tc.channel.keyword||tc.channel.name}」的能量今年暫時開通`;
+        html += `<div style="font-size:.85rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);"><b>${tc.planet}</b> 開通 ${tc.channel.gates[0]}-${tc.channel.gates[1]}「${tc.channel.name}」<br><span style="font-size:.8rem;color:var(--muted);">${desc}</span></div>`;
       }
       html += `</div>`;
     } else {
-      html += `<div style="font-size:.82rem;color:var(--muted);">今年沒有慢行星為你臨時開通新通道。能量穩定運行中。</div>`;
+      html += `<div style="font-size:.82rem;color:var(--muted);margin-top:8px;">今年沒有慢行星為你臨時開通新通道。能量穩定運行，照著你本命的設計走就好。</div>`;
     }
   }
 
   // 紫微流年
   if (ziwei) {
     html += `<div class="divider"></div><h3>🌟 紫微流年</h3>`;
+    html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">流年四化 = 今年的能量分配，化祿是順風、化忌是功課</div>`;
     html += `<div style="display:flex;gap:12px;align-items:center;margin:8px 0;">`;
     html += `<div style="text-align:center;padding:8px 16px;background:rgba(123,108,246,.1);border-radius:8px;"><div style="font-size:1rem;font-weight:700;">${ziwei.yearStem}${ziwei.yearBranch}年</div></div>`;
-    html += `<div style="font-size:.85rem;">流年四化：化祿<b>${ziwei.sihua.lu}</b>、化權<b>${ziwei.sihua.quan}</b>、化科<b>${ziwei.sihua.ke}</b>、化忌<b>${ziwei.sihua.ji}</b></div>`;
+    html += `<div style="font-size:.85rem;">化祿<b>${ziwei.sihua.lu}</b>、化權<b>${ziwei.sihua.quan}</b>、化科<b>${ziwei.sihua.ke}</b>、化忌<b>${ziwei.sihua.ji}</b></div>`;
     html += `</div>`;
-    // 四化落宮
-    const huaNames = { lu:'化祿（財運/順利）', quan:'化權（掌控/升遷）', ke:'化科（名聲/貴人）', ji:'化忌（執著/卡關）' };
+    // 四化落宮 + 白話解說
+    const huaDesc = { lu:'今年最順的領域，能量加持', quan:'今年掌控感最強的地方', ke:'今年有貴人/名聲的方向', ji:'今年最容易卡住的地方（也是成長點）' };
+    const huaIcon = { lu:'🟢', quan:'🔵', ke:'🟡', ji:'🔴' };
     for (const key of ['lu','quan','ke','ji']) {
       const p = ziwei.sihuaPalaces[key];
       if (p) {
         const palaceName = PALACE_NAMES[p.pos] || `${p.pos}宮`;
-        const color = key === 'ji' ? 'var(--red)' : 'var(--accent)';
-        html += `<div style="font-size:.85rem;padding:3px 0;"><span style="color:${color};font-weight:600;">${ziwei.sihua[key]}${huaNames[key].split('（')[0]}</span> 落入 <b>${palaceName}</b>（${huaNames[key].split('（')[1]||''}）</div>`;
+        html += `<div style="font-size:.85rem;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03);">${huaIcon[key]} <b>${ziwei.sihua[key]}</b>化${key==='lu'?'祿':key==='quan'?'權':key==='ke'?'科':'忌'} → <b>${palaceName}</b><br><span style="font-size:.8rem;color:var(--muted);">${huaDesc[key]}</span></div>`;
       }
     }
   }
