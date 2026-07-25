@@ -343,13 +343,25 @@ function renderBazi(data) {
           </tr>
           <tr style="font-size:.7rem;color:var(--muted);border-top:1px solid rgba(255,255,255,.04);">
             <td style="padding:4px;">藏干十神</td>
-            <td style="padding:4px;">${p.year.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;">${p.month.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;">${p.day.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
-            <td style="padding:4px;">${p.hour.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-y').style.display=document.getElementById('hid-y').style.display==='none'?'block':'none';">${p.year.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-m').style.display=document.getElementById('hid-m').style.display==='none'?'block':'none';">${p.month.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-d').style.display=document.getElementById('hid-d').style.display==='none'?'block':'none';">${p.day.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
+            <td style="padding:4px;cursor:pointer;" onclick="document.getElementById('hid-h').style.display=document.getElementById('hid-h').style.display==='none'?'block':'none';">${p.hour.hidden.map(h=>getTenGod(dayMaster,h).slice(0,1)).join(' ')}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div id="hid-y" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>年柱藏干十神：</b><br>${p.year.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    </div>
+    <div id="hid-m" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>月柱藏干十神：</b><br>${p.month.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    </div>
+    <div id="hid-d" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>日柱藏干十神：</b><br>${p.day.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
+    </div>
+    <div id="hid-h" style="display:none;margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.05);border-radius:8px;font-size:.82rem;line-height:1.7;">
+      <b>時柱藏干十神：</b><br>${p.hour.hidden.map(h=>`${h}（${STEM_ELEMENT[h]}）→ <span style="color:var(--accent)">${getTenGod(dayMaster,h)}</span>：${getGodBrief(getTenGod(dayMaster,h))}`).join('<br>')}
     </div>
     <div id="bz-y" style="display:none;margin-top:8px;padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.7;">
       <b>年柱（祖上・童年）：${p.year.stem}${p.year.branch}</b><br>
@@ -558,6 +570,23 @@ function renderShensha(shensha) {
       <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">${s.desc}</div>
     </div>`;
   }).join('');
+}
+
+/** 十神簡短解說 */
+function getGodBrief(god) {
+  const briefs = {
+    "比肩": "朋友、平等、獨立",
+    "劫財": "競爭、行動、破財風險",
+    "食神": "才華、享受、創作",
+    "傷官": "聰明、叛逆、表達",
+    "偏財": "人脈、意外財、社交",
+    "正財": "穩定收入、務實、節儉",
+    "七殺": "壓力、魄力、突破",
+    "正官": "責任、地位、規矩",
+    "偏印": "獨立思考、冷門才能",
+    "正印": "貴人、學習、保護",
+  };
+  return briefs[god] || '';
 }
 
 /** 取得特定柱位+十神的解讀文字 */
