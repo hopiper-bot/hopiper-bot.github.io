@@ -375,12 +375,13 @@ function renderBodyGraph(data) {
   });
 
   // Center 位置 (SVG 座標 — 更大的畫布)
+  // 參考標準 Body Graph 佈局
   const centerPos = {
     head:   { x: 250, y: 50 },
     ajna:   { x: 250, y: 130 },
     throat: { x: 250, y: 220 },
     g:      { x: 250, y: 330 },
-    heart:  { x: 155, y: 285 },
+    heart:  { x: 345, y: 275 },
     solar:  { x: 345, y: 420 },
     sacral: { x: 250, y: 460 },
     spleen: { x: 140, y: 420 },
@@ -409,8 +410,10 @@ function renderBodyGraph(data) {
   // Center 圖形（可點擊）
   const centerShapes = Object.entries(centerPos).map(([id, pos]) => {
     const isDefined = defSet.has(id);
-    const fill = isDefined ? getCenterColor(id) : 'rgba(30,20,60,0.6)';
-    const stroke = isDefined ? getCenterStroke(id) : 'var(--muted)';
+    // 定義的 = 實色填滿，未定義的 = 透明空心
+    const fill = isDefined ? getCenterColor(id) : 'none';
+    const stroke = isDefined ? getCenterStroke(id) : 'rgba(169,159,214,0.4)';
+    const opacity = isDefined ? '1' : '0.5';
     const centerInfo = CENTERS[id];
     const label = centerInfo ? centerInfo.zh.replace('中心', '').replace('（', '').replace('）', '').split('/')[0] : id;
     
@@ -427,19 +430,18 @@ function renderBodyGraph(data) {
     let shape = '';
     if (id === 'head') {
       const pts = `${pos.x},${pos.y - size} ${pos.x - size},${pos.y + size} ${pos.x + size},${pos.y + size}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else if (id === 'ajna') {
       const pts = `${pos.x - size},${pos.y - size} ${pos.x + size},${pos.y - size} ${pos.x},${pos.y + size}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else if (id === 'throat' || id === 'g') {
-      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else if (id === 'heart') {
-      // 小三角
       const s = 24;
       const pts = `${pos.x},${pos.y - s} ${pos.x - s},${pos.y + s} ${pos.x + s},${pos.y + s}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     } else {
-      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
     }
 
     return `${shape}
@@ -468,33 +470,34 @@ function renderBodyGraph(data) {
 }
 
 function getCenterColor(centerId) {
-  const colors = {
-    head: 'rgba(245,197,66,0.25)',
-    ajna: 'rgba(90,200,90,0.25)',
-    throat: 'rgba(139,115,85,0.3)',
-    g: 'rgba(245,197,66,0.25)',
-    heart: 'rgba(224,85,107,0.25)',
-    solar: 'rgba(139,115,85,0.3)',
-    sacral: 'rgba(224,85,107,0.25)',
-    spleen: 'rgba(139,115,85,0.3)',
-    root: 'rgba(139,115,85,0.3)',
-  };
-  return colors[centerId] || 'rgba(123,108,246,0.2)';
-}
-
-function getCenterStroke(centerId) {
+  // 定義時的實色填滿
   const colors = {
     head: '#f5c542',
     ajna: '#5ac85a',
     throat: '#8b7355',
     g: '#f5c542',
     heart: '#e0556b',
-    solar: '#8b7355',
-    sacral: '#e0556b',
-    spleen: '#8b7355',
-    root: '#8b7355',
+    solar: '#8b6b3a',
+    sacral: '#e05555',
+    spleen: '#8b6b3a',
+    root: '#8b6b3a',
   };
-  return colors[centerId] || 'var(--accent2)';
+  return colors[centerId] || '#7b6cf6';
+}
+
+function getCenterStroke(centerId) {
+  const colors = {
+    head: '#d4a420',
+    ajna: '#3da03d',
+    throat: '#6e5a42',
+    g: '#d4a420',
+    heart: '#c03050',
+    solar: '#6e5530',
+    sacral: '#c03030',
+    spleen: '#6e5530',
+    root: '#6e5530',
+  };
+  return colors[centerId] || '#5a4cc6';
 }
 
 /** 渲染通道區塊 */
