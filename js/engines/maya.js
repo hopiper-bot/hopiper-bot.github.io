@@ -265,26 +265,28 @@ function renderOracle(o) {
   const antipode = kinInfo(o.antipode);
   const occult = kinInfo(o.occult);
   const destiny = kinInfo(o.destiny);
-  const selfGuide = (o.guide === o.destiny); // 引導=自己
+  const selfGuide = (o.guide === o.destiny);
+  const uid = Math.random().toString(36).slice(2, 8); // 避免兩套系統 ID 衝突
 
   return `
     <h3>🔮 神諭五角</h3>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin:6px 0 8px;">
-      ${oracleCell("引導", guide, false, selfGuide)}
+      ${oracleCell("引導", guide, false, selfGuide, uid)}
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        ${oracleCell("挑戰", antipode)}
-        ${oracleCell("主印記", destiny, true)}
-        ${oracleCell("支持", analog)}
+        ${oracleCell("挑戰", antipode, false, false, uid)}
+        ${oracleCell("主印記", destiny, true, false, uid)}
+        ${oracleCell("支持", analog, false, false, uid)}
       </div>
-      ${oracleCell("隱藏推動", occult)}
+      ${oracleCell("隱藏推動", occult, false, false, uid)}
     </div>
     <p class="meaning" style="font-size:.8rem;color:var(--muted);"><b>主印記</b>＝本質　·　<b>引導</b>＝方向指引　·　<b>支持</b>＝背後助力　·　<b>挑戰</b>＝要學習的功課　·　<b>隱藏</b>＝深層驅動力</p>
   `;
 }
 
-function oracleCell(role, info, center = false, isSelfGuide = false) {
+function oracleCell(role, info, center = false, isSelfGuide = false, uid = '') {
   const borderStyle = center ? 'border-color:var(--accent);background:linear-gradient(135deg,rgba(245,197,66,.16),rgba(123,108,246,.16));' : '';
-  const detailId = `oracle-${role}-${info.kin}`;
+  const roleKey = role === '主印記' ? 'main' : role === '引導' ? 'guide' : role === '支持' ? 'support' : role === '挑戰' ? 'challenge' : 'occult';
+  const detailId = `o-${roleKey}-${uid}`;
   const roleDetail = isSelfGuide ? getSelfGuideDetail() : getOracleRoleDetail(role, info);
   return `<div style="background:var(--input-bg);border:1px solid rgba(123,108,246,.4);border-radius:14px;padding:12px 10px;width:150px;text-align:center;cursor:pointer;${borderStyle}" onclick="const el=document.getElementById('${detailId}');el.style.display=el.style.display==='none'?'block':'none';">
     <div style="font-size:.75rem;color:var(--muted);letter-spacing:1px;">${role}</div>
