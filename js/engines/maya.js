@@ -299,13 +299,14 @@ function oracleCell(role, info, center = false) {
 
 /** 神諭角色解說 */
 function getOracleRoleDetail(role, info) {
-  const sealText = info.seal.text.split("。").slice(0, 2).join("。") + "。";
+  const sealText = info.seal.text;
+  const toneText = info.tone.text;
   const roleTexts = {
-    "主印記": `<b>主印記（你的本質）</b><br>這就是「你」— 你最核心的能量特質。<br><br>${sealText}`,
-    "引導": `<b>引導（你的方向）</b><br>當你迷路時，往這個方向走就對了。這是你的內在 GPS。<br><br>${sealText}`,
-    "支持": `<b>支持（你的助力）</b><br>這是你背後最大的靠山。這股能量天生就支持你，不需要努力就有。<br><br>${sealText}`,
-    "挑戰": `<b>挑戰（你的功課）</b><br>這是你這輩子要學會的東西。一開始可能不舒服，但學會了就是你最大的力量。<br><br>${sealText}`,
-    "隱藏推動": `<b>隱藏推動（你的深層動力）</b><br>這是你自己可能都沒意識到的內在驅動力。它在潛意識推動你前進。<br><br>${sealText}`,
+    "主印記": `<b>主印記（你的本質）</b><br>這就是「你」— 你最核心的能量特質。<br><br><b>🎨 圖騰：${info.seal.zh}（${info.seal.en}）</b><br>${sealText}<br><br><b>🎵 調性：${info.tone.num} · ${info.tone.zh}（${info.tone.kw}）</b><br>${toneText}`,
+    "引導": `<b>引導（你的方向）</b><br>當你迷路時，往這個方向走就對了。這是你的內在 GPS。<br><br><b>${info.seal.glyph} ${info.seal.zh}</b><br>${sealText}`,
+    "支持": `<b>支持（你的助力）</b><br>這是你背後最大的靠山。這股能量天生就支持你，不需要努力就有。<br><br><b>${info.seal.glyph} ${info.seal.zh}</b><br>${sealText}`,
+    "挑戰": `<b>挑戰（你的功課）</b><br>這是你這輩子要學會的東西。一開始可能不舒服，但學會了就是你最大的力量。<br><br><b>${info.seal.glyph} ${info.seal.zh}</b><br>${sealText}`,
+    "隱藏推動": `<b>隱藏推動（你的深層動力）</b><br>這是你自己可能都沒意識到的內在驅動力。它在潛意識推動你前進。<br><br><b>${info.seal.glyph} ${info.seal.zh}</b><br>${sealText}`,
   };
   return roleTexts[role] || sealText;
 }
