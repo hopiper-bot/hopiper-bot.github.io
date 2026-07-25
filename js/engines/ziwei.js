@@ -893,15 +893,81 @@ function renderDaxian(daxian, birthYear) {
 function renderLiunian(liunian, palaces) {
   const lnPalace = palaces.find(p => p.pos === liunian.branchIdx);
   const lnStars = lnPalace ? lnPalace.main.map(s=>s.name).join('、') || '無主星' : '無主星';
-  return `<div style="padding:10px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.8;">
+
+  // 流年命宮主星的年運解讀
+  const LIUNIAN_STAR_INTERP = {
+    "紫微": "今年有領袖氣場加持，適合做重大決策、爭取升遷或主導計畫。貴人運強。",
+    "天機": "今年腦子轉得特別快，適合學習新技能、換跑道、做策略調整。變動多但有機會。",
+    "太陽": "今年適合對外發展、曝光、幫助他人。名聲可能上升，但要注意別太操勞。",
+    "武曲": "今年財運實在，適合務實地賺錢和理財。行動力強，做就對了。",
+    "天同": "今年步調輕鬆，有福可享。但要小心太安逸而錯過機會。適合休息充電。",
+    "廉貞": "今年人際關係是重點，有野心但也有競爭。感情方面可能有波動。",
+    "天府": "今年穩定有保障，適合守成、存錢、長期投資。不要衝動冒險。",
+    "太陰": "今年感受力增強，適合做需要品味和細膩的事。女性貴人或被動收入有利。",
+    "貪狼": "今年機會多、桃花旺、慾望強。適合多元發展，但要注意聚焦。",
+    "巨門": "今年口舌是非多，但也代表靠口才賺錢的機會。教學、業務、諮詢有利。",
+    "天相": "今年貴人運佳，適合跟人合作或做輔佐角色。不宜獨斷。",
+    "天梁": "今年逢凶化吉，有長輩或制度保護你。適合走穩健路線。",
+    "七殺": "今年變動大、有挑戰但也有突破。適合下定決心做大改變。",
+    "破軍": "今年是打破重建的一年。舊的不去新的不來，勇敢斷捨離。",
+  };
+
+  // 四化飛入宮位的具體影響
+  function sihuaDetail(starName, type, palaces) {
+    // 找這顆星在哪個宮
+    let targetPalace = null;
+    for (const p of palaces) {
+      if (p.main.some(s => s.name === starName) || p.minor.includes(starName)) {
+        targetPalace = p;
+        break;
+      }
+    }
+    if (!targetPalace) return '';
+    const typeLabel = type === 'lu' ? '化祿' : type === 'quan' ? '化權' : type === 'ke' ? '化科' : '化忌';
+    const typeEmoji = type === 'lu' ? '🟢' : type === 'quan' ? '🟠' : type === 'ke' ? '🔵' : '🔴';
+    const typeDesc = {
+      lu: '有好事、順利、有資源進來',
+      quan: '有掌控力、有表現機會、能做主',
+      ke: '有貴人、有名聲、考試學習有利',
+      ji: '要多注意、容易操心或卡住',
+    };
+    return `<div style="margin:4px 0 4px 8px;">${typeEmoji} <b>${typeLabel}</b>（${starName}）飛入 <b>${targetPalace.name}</b>：今年${targetPalace.name}方面${typeDesc[type]}。</div>`;
+  }
+
+  // 組合解讀
+  let starInterp = '';
+  if (lnPalace && lnPalace.main.length > 0) {
+    starInterp = lnPalace.main.map(s => LIUNIAN_STAR_INTERP[s.name] || '').filter(x=>x).join(' ');
+  } else {
+    starInterp = '今年流年命宮無主星，借對宮力量。表現較受外在環境影響。';
+  }
+
+  const luDetail = sihuaDetail(liunian.sihua.lu, 'lu', palaces);
+  const quanDetail = sihuaDetail(liunian.sihua.quan, 'quan', palaces);
+  const keDetail = sihuaDetail(liunian.sihua.ke, 'ke', palaces);
+  const jiDetail = sihuaDetail(liunian.sihua.ji, 'ji', palaces);
+
+  return `<div style="padding:12px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.8;">
     <b>${liunian.year} 年（${liunian.stem}${liunian.branch}年）</b><br><br>
-    <b>流年命宮在：${liunian.branch}宮</b>（${lnPalace?lnPalace.name:''}）<br>
-    主星：${lnStars}<br><br>
-    <b>流年四化：</b><br>
+
+    <div style="padding:8px;background:rgba(245,197,66,.06);border-radius:6px;border-left:3px solid var(--accent);margin-bottom:10px;">
+      <b>📌 今年主旋律：</b><br>
+      <span>流年命宮在 <b>${liunian.branch}宮</b>（${lnPalace?lnPalace.name:''}），主星：${lnStars}</span><br>
+      <span style="margin-top:4px;display:block;">${starInterp}</span>
+    </div>
+
+    <b>流年四化（今年被激活的宮位）：</b><br>
     <span style="color:#4f4;">祿</span> → ${liunian.sihua.lu}　
     <span style="color:#f84;">權</span> → ${liunian.sihua.quan}　
     <span style="color:#8cf;">科</span> → ${liunian.sihua.ke}　
-    <span style="color:#f55;">忌</span> → ${liunian.sihua.ji}<br><br>
-    <span style="color:var(--muted);">流年四化飛入哪個宮，那個宮今年就被激活。化祿=有好事、化忌=要注意。</span>
+    <span style="color:#f55;">忌</span> → ${liunian.sihua.ji}<br>
+
+    <div style="margin-top:8px;padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
+      ${luDetail}${quanDetail}${keDetail}${jiDetail}
+    </div>
+
+    <div style="margin-top:10px;padding:8px;background:rgba(245,197,66,.04);border-radius:6px;">
+      <b>⚠️ 今年注意：</b> 化忌飛入的宮位是今年最需要留意的面向 — 不代表壞事，而是需要你花更多心力經營的地方。化祿飛入的宮位則是今年的好運方向，多往那個方向使力。
+    </div>
   </div>`;
 }
