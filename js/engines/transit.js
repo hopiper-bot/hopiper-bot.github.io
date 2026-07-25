@@ -236,9 +236,12 @@ function ziweiTransit(year, ziweiData) {
 // === 5. 馬雅流年 ===
 function mayaTransit(year, mayaData) {
   if (!mayaData) return null;
-  // 取今年的 Dreamspell 年度 Kin（7/26 為馬雅新年）
-  // 簡化：用 mayaData 裡已有的 annualDream
-  return { annualDream: mayaData.annualDream, annualGmt: mayaData.annualGmt };
+  // annualDream = { yearKin, personalKin, galacticYear }
+  // 需要從 kin 解出 seal/tone
+  const ad = mayaData.annualDream;
+  const ds = mayaData.dreamspell; // 本命的 dreamspell 有完整的 seal/tone
+  if (!ad) return null;
+  return { yearKin: ad.yearKin, personalKin: ad.personalKin, galacticYear: ad.galacticYear, natalSeal: ds?.seal, natalTone: ds?.tone };
 }
 
 // === 渲染 ===
@@ -320,13 +323,13 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
   }
 
   // 馬雅流年
-  if (maya && maya.annualDream) {
+  if (maya) {
     html += `<div class="divider"></div><h3>🌀 馬雅年度能量</h3>`;
-    const ad = maya.annualDream;
-    if (ad.seal && ad.tone) {
+    if (maya.yearKin) {
       html += `<div style="margin:8px 0;">`;
-      html += `<div style="font-size:.9rem;font-weight:600;">今年的 Kin：${ad.tone.zh}的${ad.seal.zh}</div>`;
-      html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">調性 ${ad.tone.num}（${ad.tone.kw}）× ${ad.seal.zh}（${ad.seal.kw}）</div>`;
+      html += `<div style="font-size:.9rem;font-weight:600;">銀河年度 Kin：${maya.yearKin}</div>`;
+      if (maya.galacticYear) html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">銀河年：${maya.galacticYear}</div>`;
+      if (maya.personalKin) html += `<div style="font-size:.82rem;color:var(--muted);margin-top:2px;">你的今年個人 Kin：${maya.personalKin}</div>`;
       html += `</div>`;
     }
   }
@@ -394,10 +397,10 @@ function extractYearThemes(bazi, hd, astro, ziwei, maya) {
   }
   
   // 馬雅
-  if (maya && maya.annualDream && maya.annualDream.seal) {
+  if (maya && maya.natalSeal) {
     const sealTheme = { '紅龍':'relationship', '白風':'creativity', '藍夜':'money', '黃種子':'growth', '紅蛇':'change', '白世界橋':'change', '藍手':'creativity', '黃星星':'creativity', '紅月':'spiritual', '白狗':'relationship', '藍猴':'creativity', '黃人':'growth', '紅天行者':'change', '白巫師':'spiritual', '藍鷹':'career', '黃戰士':'career', '紅地球':'health', '白鏡':'spiritual', '藍風暴':'change', '黃太陽':'lucky' };
-    const seal = maya.annualDream.seal.zh;
-    if (sealTheme[seal]) themes.push({ theme: sealTheme[seal], source: '馬雅' });
+    const seal = maya.natalSeal?.zh;
+    if (seal && sealTheme[seal]) themes.push({ theme: sealTheme[seal], source: '馬雅' });
   }
   
   return themes;
