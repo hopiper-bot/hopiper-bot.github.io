@@ -441,13 +441,13 @@ const GIFT_VARIANTS = {
     { cond: () => true, text: '你的設計需要自主權。被管太多、被限制太死，你的能量就會斷電。自由是你的氧氣。' },
   ],
   wisdom: [
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微的天機/天梁能量加上人類圖的投射者特質——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微的天機/天梁能量加上人類圖的設計——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
     { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字印星 + 占星的配置都強化了你的學習力和理解深度。你天生吃資訊的速度比別人快，而且能消化成自己的東西。' },
     { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你「通往古老智慧的頻率」——你可能常覺得某些知識你「本來就知道」，只是被提醒了。' },
     { cond: () => true, text: '你的盤寫著「深度」。你不是那種淺嚐即止的人——你需要把事情搞懂到底才罷休。這是你的力量來源。' },
   ],
   action: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的薦骨 + 八字七殺：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的能量設計 + 八字七殺：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。等待正確的訊號再全力出擊。' },
     { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星火象能量 + 馬雅的行動印記：你是「做了再說」型。你從行動中學到的東西比思考多十倍。' },
     { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有衝勁。你不是安靜等待型——你是「看到機會就撲上去」的人。' },
     { cond: () => true, text: '你有強大的執行力。別人還在想的時候你已經做了。你的風險是不會轉彎——動之前花三秒想方向。' },
@@ -492,7 +492,7 @@ const GIFT_VARIANTS = {
   ],
   strategy: [
     { cond: (t) => t.systems.includes('紫微') && t.systems.includes('占星'), text: '紫微天機 + 占星的風象/土象配置：你是天生的棋手。你看三步以後的能力是本能——問題只是你願不願意用這份天賦。' },
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖投射者的觀察力 + 八字的策略星組合：你的優勢不在「做最多」，在「做最對的那一步」。少動、精準、一擊必中。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的策略設計 + 八字的策略星組合：你的優勢不在「做最多」，在「做最對的那一步」。少動、精準、一擊必中。' },
     { cond: () => true, text: '你有佈局的天賦。不需要跟人家比衝勁——你的強項是「想清楚再動」，一動就到位。' },
   ],
   service: [
@@ -507,12 +507,24 @@ const GIFT_VARIANTS = {
   ],
 };
 
-/** 取得天賦文案（根據來源系統選變體） */
-function getGiftText(themeItem) {
+/** 取得天賦文案（根據來源系統選變體）
+ * @param {object} themeItem - 主題項目（含 systems, key 等）
+ * @param {object} results - 各系統計算結果（可選，用於動態替換類型描述）
+ */
+function getGiftText(themeItem, results) {
   const variants = GIFT_VARIANTS[themeItem.key];
   if (!variants) return themeItem.desc;
   for (const v of variants) {
-    if (v.cond(themeItem)) return v.text;
+    if (v.cond(themeItem)) {
+      let text = v.text;
+      // 動態替換人類圖類型描述（避免硬寫「投射者」等錯誤）
+      if (results?.hd?.data?.typeInfo) {
+        const hdType = results.hd.data.typeInfo.zh;
+        text = text.replace(/人類圖的投射者特質/g, `人類圖${hdType}的特質`);
+        text = text.replace(/人類圖投射者的觀察力/g, `人類圖${hdType}的能量模式`);
+      }
+      return text;
+    }
   }
   return themeItem.desc;
 }
@@ -802,7 +814,7 @@ function generateScript(categories, results) {
   if (gifts.length > 0) {
     script += `<div class="script-section"><div class="script-title">🎁 第二章：你帶來了什麼</div><div class="script-body">你這輩子「自帶」的——不用學、天生就有：`;
     for (const t of gifts.slice(0,4)) {
-      const text = getGiftText(t);
+      const text = getGiftText(t, results);
       script += `<div class="script-gift"><b>${t.icon} ${t.zh}</b>——${text}<br><span class="source-hint">${t.systems.join('、')}都指向這個。</span></div>`;
     }
     script += `</div></div>`;

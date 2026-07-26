@@ -25,12 +25,68 @@ function getWuxingJu(yearStemIdx, mingGongPos) {
   const startStem = startStemMap[yearStemIdx % 5];
   const mingStemIdx = (startStem + mingGongPos - 2 + 20) % 10;
   const nayinLookup = {
-    "0_0":4,"1_1":4,"2_2":6,"3_3":6,"4_4":3,"5_5":3,"6_6":2,"7_7":2,"8_8":5,"9_9":5,
-    "0_10":6,"1_11":6,"2_0":2,"3_1":2,"4_2":5,"5_3":5,"6_4":4,"7_5":4,"8_6":3,"9_7":3,
-    "0_8":2,"1_9":2,"2_10":5,"3_11":5,"4_0":6,"5_1":6,"6_2":3,"7_3":3,"8_4":4,"9_5":4,
-    "0_6":6,"1_7":6,"2_8":3,"3_9":3,"4_10":4,"5_11":4,"6_0":5,"7_1":5,"8_2":6,"9_3":6,
-    "0_4":3,"1_5":3,"2_6":2,"3_7":2,"4_8":5,"5_9":5,"6_10":4,"7_11":4,"8_0":5,"9_1":5,
-    "0_2":5,"1_3":5,"2_4":4,"3_5":4,"4_6":6,"5_7":6,"6_8":2,"7_9":2,"8_10":3,"9_11":3,
+    // 六十甲子納音→五行局 完整對照表
+    // 格式：天干idx_地支idx → 局數 (金4/木3/水2/火6/土5)
+    // 1. 甲子乙丑 海中金(4)
+    "0_0":4,"1_1":4,
+    // 2. 丙寅丁卯 爐中火(6)
+    "2_2":6,"3_3":6,
+    // 3. 戊辰己巳 大林木(3)
+    "4_4":3,"5_5":3,
+    // 4. 庚午辛未 路旁土(5)
+    "6_6":5,"7_7":5,
+    // 5. 壬申癸酉 劍鋒金(4)
+    "8_8":4,"9_9":4,
+    // 6. 甲戌乙亥 山頭火(6)
+    "0_10":6,"1_11":6,
+    // 7. 丙子丁丑 澗下水(2)
+    "2_0":2,"3_1":2,
+    // 8. 戊寅己卯 城頭土(5)
+    "4_2":5,"5_3":5,
+    // 9. 庚辰辛巳 白蠟金(4)
+    "6_4":4,"7_5":4,
+    // 10. 壬午癸未 楊柳木(3)
+    "8_6":3,"9_7":3,
+    // 11. 甲申乙酉 泉中水(2)
+    "0_8":2,"1_9":2,
+    // 12. 丙戌丁亥 屋上土(5)
+    "2_10":5,"3_11":5,
+    // 13. 戊子己丑 霹靂火(6)
+    "4_0":6,"5_1":6,
+    // 14. 庚寅辛卯 松柏木(3)
+    "6_2":3,"7_3":3,
+    // 15. 壬辰癸巳 長流水(2)
+    "8_4":2,"9_5":2,
+    // 16. 甲午乙未 砂中金(4)
+    "0_6":4,"1_7":4,
+    // 17. 丙申丁酉 山下火(6)
+    "2_8":6,"3_9":6,
+    // 18. 戊戌己亥 平地木(3)
+    "4_10":3,"5_11":3,
+    // 19. 庚子辛丑 壁上土(5)
+    "6_0":5,"7_1":5,
+    // 20. 壬寅癸卯 金箔金(4)
+    "8_2":4,"9_3":4,
+    // 21. 甲辰乙巳 覆燈火(6)
+    "0_4":6,"1_5":6,
+    // 22. 丙午丁未 天河水(2)
+    "2_6":2,"3_7":2,
+    // 23. 戊申己酉 大驛土(5)
+    "4_8":5,"5_9":5,
+    // 24. 庚戌辛亥 釵釧金(4)
+    "6_10":4,"7_11":4,
+    // 25. 壬子癸丑 桑拓木(3)
+    "8_0":3,"9_1":3,
+    // 26. 甲寅乙卯 大溪水(2)
+    "0_2":2,"1_3":2,
+    // 27. 丙辰丁巳 沙中土(5)
+    "2_4":5,"3_5":5,
+    // 28. 戊午己未 天上火(6)
+    "4_6":6,"5_7":6,
+    // 29. 庚申辛酉 石榴木(3)
+    "6_8":3,"7_9":3,
+    // 30. 壬戌癸亥 大海水(2)
+    "8_10":2,"9_11":2,
   };
   const key = `${mingStemIdx}_${mingGongPos}`;
   const juNum = nayinLookup[key] || 2;
@@ -39,9 +95,11 @@ function getWuxingJu(yearStemIdx, mingGongPos) {
 }
 
 // === 紫微星定位 ===
+// 三合派標準安星法：以局數為步長，從寅宮起順數
+// 初1~局數日 → 寅，(局數+1)~(2*局數)日 → 卯...以此類推
+// 等價公式：寅(2) + ceil(day/ju) - 1
 function getZiweiPos(juNum, lunarDay) {
-  const basePos = Math.ceil(lunarDay / juNum);
-  return (basePos - 1 + 2) % 12;
+  return (2 + Math.ceil(lunarDay / juNum) - 1) % 12;
 }
 
 // === 天府位置 ===
@@ -470,12 +528,14 @@ function calculateDaxian(mingPos, juNum, isForward, palaces) {
 
   for (let i = 0; i < 12; i++) {
     const age = startAge + i * 10;
-    // 大限宮位：從命宮開始，順行或逆行
+    // 大限宮位：從命宮開始
+    // 順行（陽男陰女）= 地支數值增加方向（寅→卯→辰→巳...）
+    // 逆行（陰男陽女）= 地支數值減少方向（寅→丑→子→亥...）
     let pos;
     if (isForward) {
-      pos = ((mingPos - i) % 12 + 12) % 12; // 順行 = 逆時針（跟宮位排列同方向）
+      pos = (mingPos + i) % 12; // 順行 = 地支遞增方向
     } else {
-      pos = (mingPos + i) % 12; // 逆行 = 順時針
+      pos = ((mingPos - i) % 12 + 12) % 12; // 逆行 = 地支遞減方向
     }
     const palace = palaces.find(p => p.pos === pos);
     steps.push({
@@ -517,12 +577,17 @@ export function calculate(birthData) {
     const lunar = solarToLunar(year, month, day);
     if (!lunar) return { status:'error', data:null, html:'', error:'無法轉換農曆日期' };
 
+    // 閏月處理：紫微斗數閏月生人以下一個月計算
+    const effectiveMonth = lunar.isLeap ? lunar.lunarMonth + 1 : lunar.lunarMonth;
+    // 若閏十二月(極罕見)則仍算12
+    const lunarMonthForCalc = Math.min(effectiveMonth, 12);
+
     const hourBranch = hourToBranch(hour);
-    const mingPos = getMingGong(lunar.lunarMonth, hourBranch);
+    const mingPos = getMingGong(lunarMonthForCalc, hourBranch);
     const ju = getWuxingJu(lunar.yearStemIdx, mingPos);
     const ziweiPos = getZiweiPos(ju.num, lunar.lunarDay);
     const mainStars = placeMainStars(ziweiPos);
-    const minorStars = placeMinorStars(lunar.yearStemIdx, lunar.yearBranchIdx, lunar.lunarMonth, hourBranch, mingPos);
+    const minorStars = placeMinorStars(lunar.yearStemIdx, lunar.yearBranchIdx, lunarMonthForCalc, hourBranch, mingPos);
     const sihua = getSihua(lunar.yearStemIdx);
 
     // 合併主星和副星
@@ -756,17 +821,19 @@ function registerGlobalClickHandler(palaces, sihua, daxian, birthYear) {
   });
 
   // 把完整資料序列化到 window 上，供全域 script 使用
-  window._zwData = {
-    posMap: posMap,
-    sihuaPalaces: sihuaPalaces,
-    starInfo: STAR_INFO,
-    starInPalace: STAR_IN_PALACE,
-    palaceInfo: PALACE_INFO,
-    palaceRole: PALACE_ROLE,
-    starCombos: STAR_COMBOS,
-    sihuaPalaceInterp: SIHUA_PALACE_INTERP,
-    branches: BRANCHES,
-  };
+  if (typeof window !== 'undefined') {
+    window._zwData = {
+      posMap: posMap,
+      sihuaPalaces: sihuaPalaces,
+      starInfo: STAR_INFO,
+      starInPalace: STAR_IN_PALACE,
+      palaceInfo: PALACE_INFO,
+      palaceRole: PALACE_ROLE,
+      starCombos: STAR_COMBOS,
+      sihuaPalaceInterp: SIHUA_PALACE_INTERP,
+      branches: BRANCHES,
+    };
+  }
 }
 
 // === 大限解讀資料（主星×宮位的十年運勢概述）===
