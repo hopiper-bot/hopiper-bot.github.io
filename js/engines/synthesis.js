@@ -537,7 +537,7 @@ function applyDynamicReplacements(text, results) {
   }
   // 動態替換八字十神描述（根據實際命盤中存在的十神選字）
   if (results?.bazi?.data?.tenGods) {
-    const gods = results.bazi.data.tenGods.map(tg => tg.god);
+    const gods = [...new Set(results.bazi.data.tenGods.map(tg => tg.god))];
     // 官殺類：官星 → 實際有正官/七殺
     const guanSha = gods.filter(g => g === '正官' || g === '七殺');
     if (guanSha.length > 0) {
