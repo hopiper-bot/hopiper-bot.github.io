@@ -612,6 +612,53 @@ function applyDynamicReplacements(text, results) {
       text = text.replace(/八字的正官/g, `八字的${guanSha[0]}`);
     }
   }
+  // 動態替換紫微星曜描述（根據實際命宮主星選字）
+  if (results?.ziwei?.data?.palaces) {
+    const zw = results.ziwei.data;
+    const mingPalace = zw.palaces.find(p => p.pos === zw.mingPos);
+    if (mingPalace && mingPalace.main && mingPalace.main.length > 0) {
+      const mainStars = mingPalace.main.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean);
+      const starStr = mainStars.join('、');
+      // 替換「紫微命宮的星曜」泛稱
+      text = text.replace(/紫微命宮的星曜組合帶有強烈的藝術性和不走尋常路的特質/g, `紫微命宮${starStr}帶有獨特的創造特質`);
+      text = text.replace(/紫微命宮的星曜給你一種「看穿表面」的能力/g, `紫微命宮${starStr}給你一種「看穿表面」的能力`);
+      text = text.replace(/紫微命宮的星曜帶有「一個人也能活得很好」的特質/g, `紫微命宮${starStr}帶有「一個人也能活得很好」的特質`);
+      text = text.replace(/紫微命宮的星曜帶有衝勁/g, `紫微命宮${starStr}帶有衝勁`);
+      // 替換具體硬寫的星曜組合 → 實際命宮主星
+      if (!mainStars.includes('天機') || !mainStars.includes('天梁')) {
+        text = text.replace(/紫微的天機\/天梁能量/g, `紫微命宮${starStr}的能量`);
+        text = text.replace(/紫微天機\/天梁/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('天機')) {
+        text = text.replace(/紫微天機/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('巨門')) {
+        text = text.replace(/紫微巨門/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('天同')) {
+        if (!mainStars.includes('天梁')) {
+          text = text.replace(/紫微天同\/天梁/g, `紫微${starStr}`);
+        }
+        text = text.replace(/紫微天同/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('貪狼')) {
+        text = text.replace(/紫微貪狼\/紫微星/g, `紫微${starStr}`);
+        text = text.replace(/紫微貪狼/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('破軍') || !mainStars.includes('廉貞')) {
+        text = text.replace(/紫微破軍\/廉貞的能量/g, `紫微${starStr}的能量`);
+      }
+      if (!mainStars.includes('天府')) {
+        text = text.replace(/紫微天府/g, `紫微${starStr}`);
+      }
+      if (!mainStars.includes('天相')) {
+        if (!mainStars.includes('天梁')) {
+          text = text.replace(/紫微天相\/天梁/g, `紫微${starStr}`);
+        }
+        text = text.replace(/紫微天相/g, `紫微${starStr}`);
+      }
+    }
+  }
   return text;
 }
 
