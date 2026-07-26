@@ -517,16 +517,102 @@ function getGiftText(themeItem, results) {
   for (const v of variants) {
     if (v.cond(themeItem)) {
       let text = v.text;
-      // 動態替換人類圖類型描述（避免硬寫「投射者」等錯誤）
-      if (results?.hd?.data?.typeInfo) {
-        const hdType = results.hd.data.typeInfo.zh;
-        text = text.replace(/人類圖的投射者特質/g, `人類圖${hdType}的特質`);
-        text = text.replace(/人類圖投射者的觀察力/g, `人類圖${hdType}的能量模式`);
-      }
+      text = applyDynamicReplacements(text, results);
       return text;
     }
   }
   return themeItem.desc;
+}
+
+/**
+ * 動態替換文案中的硬寫描述（人類圖類型 + 八字十神）
+ * 讓文案根據實際命盤內容顯示正確的用詞
+ */
+function applyDynamicReplacements(text, results) {
+  // 動態替換人類圖類型描述（避免硬寫「投射者」等錯誤）
+  if (results?.hd?.data?.typeInfo) {
+    const hdType = results.hd.data.typeInfo.zh;
+    text = text.replace(/人類圖的投射者特質/g, `人類圖${hdType}的特質`);
+    text = text.replace(/人類圖投射者的觀察力/g, `人類圖${hdType}的能量模式`);
+  }
+  // 動態替換八字十神描述（根據實際命盤中存在的十神選字）
+  if (results?.bazi?.data?.tenGods) {
+    const gods = results.bazi.data.tenGods.map(tg => tg.god);
+    // 官殺類：官星 → 實際有正官/七殺
+    const guanSha = gods.filter(g => g === '正官' || g === '七殺');
+    if (guanSha.length > 0) {
+      text = text.replace(/八字的官星/g, `八字的${guanSha.join('・')}`);
+      text = text.replace(/八字官星/g, `八字${guanSha.join('・')}`);
+    }
+    // 食傷類：食傷星/食傷 → 實際有食神/傷官
+    const shiShang = gods.filter(g => g === '食神' || g === '傷官');
+    if (shiShang.length > 0) {
+      text = text.replace(/八字的食傷星/g, `八字的${shiShang.join('・')}`);
+      text = text.replace(/八字食傷星/g, `八字${shiShang.join('・')}`);
+      text = text.replace(/八字食傷/g, `八字${shiShang.join('・')}`);
+    }
+    // 財星類：財星 → 實際有正財/偏財
+    const caiXing = gods.filter(g => g === '正財' || g === '偏財');
+    if (caiXing.length > 0) {
+      text = text.replace(/八字的財星/g, `八字的${caiXing.join('・')}`);
+      text = text.replace(/八字財星/g, `八字${caiXing.join('・')}`);
+    }
+    // 印星類：印星 → 實際有正印/偏印
+    const yinXing = gods.filter(g => g === '正印' || g === '偏印');
+    if (yinXing.length > 0) {
+      text = text.replace(/八字印星/g, `八字${yinXing.join('・')}`);
+      text = text.replace(/八字的印星/g, `八字的${yinXing.join('・')}`);
+    }
+    // 比劫類：比劫星/比劫 → 實際有比肩/劫財
+    const biJie = gods.filter(g => g === '比肩' || g === '劫財');
+    if (biJie.length > 0) {
+      text = text.replace(/八字比劫星/g, `八字${biJie.join('・')}`);
+      text = text.replace(/八字的比劫/g, `八字的${biJie.join('・')}`);
+      text = text.replace(/八字比劫/g, `八字${biJie.join('・')}`);
+    }
+    // 單一十神直接提到的（七殺、傷官、正印等）——如果盤中沒有該神，替換為實際同類的
+    if (!gods.includes('七殺') && guanSha.length > 0) {
+      text = text.replace(/八字七殺/g, `八字${guanSha[0]}`);
+      text = text.replace(/八字的七殺/g, `八字的${guanSha[0]}`);
+    }
+    if (!gods.includes('傷官') && shiShang.length > 0) {
+      text = text.replace(/八字傷官/g, `八字${shiShang[0]}`);
+      text = text.replace(/八字的傷官/g, `八字的${shiShang[0]}`);
+    }
+    if (!gods.includes('正印') && yinXing.length > 0) {
+      text = text.replace(/八字正印/g, `八字${yinXing[0]}`);
+      text = text.replace(/八字的正印/g, `八字的${yinXing[0]}`);
+    }
+    if (!gods.includes('偏印') && yinXing.length > 0) {
+      text = text.replace(/八字偏印/g, `八字${yinXing[0]}`);
+      text = text.replace(/八字的偏印/g, `八字的${yinXing[0]}`);
+    }
+    if (!gods.includes('比肩') && biJie.length > 0) {
+      text = text.replace(/八字比肩/g, `八字${biJie[0]}`);
+      text = text.replace(/八字的比肩/g, `八字的${biJie[0]}`);
+    }
+    if (!gods.includes('劫財') && biJie.length > 0) {
+      text = text.replace(/八字劫財/g, `八字${biJie[0]}`);
+      text = text.replace(/八字的劫財/g, `八字的${biJie[0]}`);
+    }
+    if (!gods.includes('食神') && shiShang.length > 0) {
+      text = text.replace(/八字食神/g, `八字${shiShang[0]}`);
+      text = text.replace(/八字的食神/g, `八字的${shiShang[0]}`);
+    }
+    if (!gods.includes('正財') && caiXing.length > 0) {
+      text = text.replace(/八字正財/g, `八字${caiXing[0]}`);
+      text = text.replace(/八字的正財/g, `八字的${caiXing[0]}`);
+    }
+    if (!gods.includes('偏財') && caiXing.length > 0) {
+      text = text.replace(/八字偏財/g, `八字${caiXing[0]}`);
+      text = text.replace(/八字的偏財/g, `八字的${caiXing[0]}`);
+    }
+    if (!gods.includes('正官') && guanSha.length > 0) {
+      text = text.replace(/八字正官/g, `八字${guanSha[0]}`);
+      text = text.replace(/八字的正官/g, `八字的${guanSha[0]}`);
+    }
+  }
+  return text;
 }
 
 // ============ 衝突張力（v2: 根據來源系統+核心/支持分類給不同版本） ============
@@ -830,13 +916,14 @@ function generateScript(categories, results) {
       for (const v of c.variants) {
         if (v.cond(all)) { text = v.text; break; }
       }
+      text = applyDynamicReplacements(text, results);
       script += `<div class="script-lesson" style="border-left-color:#e0556b;">${text}</div>`;
     }
     script += `</div></div>`;
   }
   
   // === 誤區 ===
-  const pitfalls = PITFALL_RULES.filter(r => r.condition(core,support)).map(r => r.text);
+  const pitfalls = PITFALL_RULES.filter(r => r.condition(core,support)).map(r => applyDynamicReplacements(r.text, results));
   if (pitfalls.length > 0) {
     script += `<div class="script-section" style="border-left-color:#f5c542;"><div class="script-title">⚠️ 第四章：你可能踩的坑</div><div class="script-body">根據你的盤，以下是你最容易走偏的地方——大概你已經踩過了：`;
     for (const p of pitfalls.slice(0,3)) script += `<div class="script-lesson" style="border-left-color:#f5c542;">${p}</div>`;
