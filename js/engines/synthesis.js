@@ -496,7 +496,7 @@ const GIFT_VARIANTS = {
     { cond: () => true, text: '你有佈局的天賦。不需要跟人家比衝勁——你的強項是「想清楚再動」，一動就到位。' },
   ],
   service: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖5爻的投射 + 馬雅的服務印記：你來這裡是帶著「解決問題」的任務的。別人的困難到你手上就有出路——你是天生的問題解決者。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖的服務投射 + 馬雅的服務印記：你來這裡是帶著「解決問題」的任務的。別人的困難到你手上就有出路——你是天生的問題解決者。' },
     { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字天德/正印 + 紫微天相/天梁：你的存在感來自「被需要」。你在幫助別人的過程中找到自己的位置和價值。' },
     { cond: () => true, text: '你有服務的天賦。不是卑微那種——是你天生有能力看到別人的需要，並且知道怎麼幫。' },
   ],
@@ -538,7 +538,7 @@ const CONFLICT_PAIRS = [
     { cond: () => true, text: '你同時有強烈的「我要自由」和「我要照顧人」——這不是bug，是feature。你的功課是「在自由中照顧、在照顧時保有自由」。你是用自己的方式守護你在乎的人。' },
   ]},
   { a: 'action', b: 'patience', variants: [
-    { cond: (all) => find(all,'action')?.systems.includes('人類圖') && find(all,'patience')?.systems.includes('人類圖'), text: '你的人類圖裡「行動力」和「等待」同時存在——典型的生產者/顯示生產者矛盾：引擎很強，但策略是等回應。解法：不主動發起，但回應來了就全力衝。平常養精蓄銳，訊號來了一秒變閃電。' },
+    { cond: (all) => find(all,'action')?.systems.includes('人類圖') && find(all,'patience')?.systems.includes('人類圖'), text: '你的人類圖裡「行動力」和「等待」同時存在——引擎很強，但策略是等待正確的訊號。解法：不主動發起，但回應來了就全力衝。平常養精蓄銳，訊號來了一秒變閃電。' },
     { cond: (all) => find(all,'action')?.systems.includes('八字'), text: '八字給你衝勁，但其他系統又說「等」。你的節奏是：觀察、觀察、觀察、然後——爆發。不是穩定輸出型，是脈衝式爆發型。' },
     { cond: () => true, text: '你的油門和煞車一樣猛。秘訣不是「學平衡」——是認出「現在是衝的時候還是等的時候」。你的身體會告訴你。' },
   ]},
@@ -586,7 +586,7 @@ const CONFLICT_PAIRS = [
     { cond: () => true, text: '你的創造力和策略能力在拉鋸。一邊想天馬行空，一邊想有條有理。最佳模式：先發散不批判，然後用策略腦挑出最好的那個去執行。' },
   ]},
   { a: 'service', b: 'independence', variants: [
-    { cond: (all) => find(all,'service')?.systems.includes('人類圖'), text: '人類圖5爻的服務投射加上獨立需求——你被設計來幫助別人，但你需要「在自己準備好的時候幫」。被強迫服務會讓你burn out。你的奉獻是有條件的——條件是你自己心甘情願。' },
+    { cond: (all) => find(all,'service')?.systems.includes('人類圖'), text: '人類圖的服務設計加上獨立需求——你被設計來幫助別人，但你需要「在自己準備好的時候幫」。被強迫服務會讓你burn out。你的奉獻是有條件的——條件是你自己心甘情願。' },
     { cond: () => true, text: '你想幫人但又不想被綁住。你的奉獻方式是「我來教你/給你工具/點你一下」，而不是「我全部幫你做完」。' },
   ]},
 ];
