@@ -4,16 +4,17 @@
  * 從五個命理系統提取核心主題，交叉比對找出共振點，
  * 生成一份統一的「人生劇本」敘事。
  * 
+ * v2: 大幅增加文案變體，根據主題組合+來源系統產出差異化劇本
+ * 
  * 核心邏輯：
  * 1. 每個系統抽出「主題標籤」(themes)
  * 2. 統計主題出現頻率（≥3 系統 = 核心主題、2 系統 = 支持主題）
- * 3. 根據主題組合生成劇本大綱
+ * 3. 根據主題組合+來源組合生成劇本大綱
  */
 
 // ============ 主題標籤定義 ============
 
 const THEME_DEFS = {
-  // 天賦與特質
   leadership:    { zh: '領導力', icon: '👑', desc: '你天生有帶領他人的能力' },
   intuition:     { zh: '直覺力', icon: '🔮', desc: '你的第六感是你最可靠的指引' },
   creativity:    { zh: '創造力', icon: '🎨', desc: '你需要透過創造來表達自己' },
@@ -40,9 +41,8 @@ const THEME_DEFS = {
 function extractBaziThemes(data) {
   if (!data) return [];
   const themes = [];
-  const { dayMasterElem, elements, tenGods, dayun, shensha } = data;
+  const { dayMasterElem, tenGods, shensha } = data;
   
-  // 日主五行特質
   const elemTraits = {
     '木': ['creativity', 'independence', 'action'],
     '火': ['leadership', 'communication', 'action'],
@@ -54,7 +54,6 @@ function extractBaziThemes(data) {
     themes.push(...elemTraits[dayMasterElem].map(t => ({ theme: t, source: '八字日主', weight: 2 })));
   }
   
-  // 十神特質
   if (tenGods) {
     const godThemes = {
       '比肩': ['independence', 'resilience'],
@@ -75,7 +74,6 @@ function extractBaziThemes(data) {
     }
   }
   
-  // 神煞
   if (shensha) {
     const shenshaThemes = {
       '天乙貴人': ['magnetism'],
@@ -104,7 +102,6 @@ function extractZiweiThemes(data) {
   if (!data) return [];
   const themes = [];
   
-  // 命宮主星特質
   if (data.palaces) {
     const mingPalace = data.palaces.find(p => p.pos === data.mingPos);
     if (mingPalace && mingPalace.main) {
@@ -132,7 +129,6 @@ function extractZiweiThemes(data) {
       }
     }
     
-    // 財帛宮主星
     const caiPos = (data.mingPos + 4) % 12;
     const caiPalace = data.palaces.find(p => p.pos === caiPos);
     if (caiPalace && caiPalace.main) {
@@ -145,7 +141,6 @@ function extractZiweiThemes(data) {
     }
   }
   
-  // 四化
   if (data.sihua) {
     if (data.sihua.lu) themes.push({ theme: 'wealth', source: `紫微化祿(${data.sihua.lu})`, weight: 1 });
     if (data.sihua.quan) themes.push({ theme: 'leadership', source: `紫微化權(${data.sihua.quan})`, weight: 1 });
@@ -161,7 +156,6 @@ function extractAstroThemes(data) {
   if (!data) return [];
   const themes = [];
   
-  // 太陽星座特質
   const signThemes = {
     '白羊座': ['action', 'leadership', 'independence'],
     '金牛座': ['wealth', 'patience', 'resilience'],
@@ -177,25 +171,18 @@ function extractAstroThemes(data) {
     '雙魚座': ['intuition', 'emotional', 'creativity'],
   };
   
-  // 太陽
   if (data.sunSign && signThemes[data.sunSign.zh]) {
     themes.push(...signThemes[data.sunSign.zh].map(t => ({ theme: t, source: `占星太陽${data.sunSign.zh}`, weight: 2 })));
   }
-  
-  // 月亮
   if (data.moonSign && signThemes[data.moonSign.zh]) {
     themes.push(...signThemes[data.moonSign.zh].map(t => ({ theme: t, source: `占星月亮${data.moonSign.zh}`, weight: 1 })));
   }
-  
-  // 上升
   if (data.risingSign && signThemes[data.risingSign.zh]) {
     themes.push(...signThemes[data.risingSign.zh].map(t => ({ theme: t, source: `占星上升${data.risingSign.zh}`, weight: 1 })));
   }
   
-  // 主要相位
   if (data.aspects) {
     for (const asp of data.aspects) {
-      // 太陽/月亮的合相、刑衝
       if (asp.type === '合' || asp.type === '對衝') {
         if (asp.planet1 === 'sun' || asp.planet2 === 'sun') {
           if (['jupiter', 'venus'].includes(asp.planet1) || ['jupiter', 'venus'].includes(asp.planet2)) {
@@ -219,7 +206,6 @@ function extractMayaThemes(data) {
   if (!data) return [];
   const themes = [];
   
-  // Dreamspell 主印記
   const sealThemes = {
     '紅龍': ['caregiving', 'family', 'action'],
     '白風': ['communication', 'intuition', 'creativity'],
@@ -250,23 +236,22 @@ function extractMayaThemes(data) {
     }
   }
   
-  // 調性特質
   if (data.dreamspell && data.dreamspell.tone) {
     const toneNum = data.dreamspell.tone.num || data.dreamspell.tone.number;
     const toneThemes = {
-      1: ['leadership', 'independence'],       // 磁性
-      2: ['strategy', 'patience'],             // 月亮
-      3: ['action', 'creativity'],             // 電力
-      4: ['strategy', 'family'],               // 自我存在
-      5: ['leadership', 'action'],             // 超頻
-      6: ['magnetism', 'communication'],       // 韻律
-      7: ['intuition', 'communication'],       // 共振
-      8: ['resilience', 'wisdom'],             // 銀河
-      9: ['action', 'service'],                // 太陽
-      10: ['authenticity', 'leadership'],      // 行星
-      11: ['independence', 'transformation'],  // 光譜
-      12: ['caregiving', 'magnetism'],         // 水晶
-      13: ['intuition', 'transformation'],     // 宇宙
+      1: ['leadership', 'independence'],
+      2: ['strategy', 'patience'],
+      3: ['action', 'creativity'],
+      4: ['strategy', 'family'],
+      5: ['leadership', 'action'],
+      6: ['magnetism', 'communication'],
+      7: ['intuition', 'communication'],
+      8: ['resilience', 'wisdom'],
+      9: ['action', 'service'],
+      10: ['authenticity', 'leadership'],
+      11: ['independence', 'transformation'],
+      12: ['caregiving', 'magnetism'],
+      13: ['intuition', 'transformation'],
     };
     if (toneNum && toneThemes[toneNum]) {
       themes.push(...toneThemes[toneNum].map(t => ({ theme: t, source: `馬雅調性${toneNum}`, weight: 1 })));
@@ -281,7 +266,6 @@ function extractHDThemes(data) {
   if (!data) return [];
   const themes = [];
   
-  // 類型
   const typeThemes = {
     'MG': ['action', 'resilience', 'authenticity'],
     'G': ['patience', 'action', 'authenticity'],
@@ -293,7 +277,6 @@ function extractHDThemes(data) {
     themes.push(...typeThemes[data.typeInfo.type].map(t => ({ theme: t, source: `人類圖${data.typeInfo.zh}`, weight: 2 })));
   }
   
-  // 權威
   const authThemes = {
     '情緒權威': ['emotional', 'patience'],
     '薦骨權威': ['intuition', 'action', 'authenticity'],
@@ -306,7 +289,6 @@ function extractHDThemes(data) {
     themes.push(...authThemes[data.authority.zh].map(t => ({ theme: t, source: `人類圖${data.authority.zh}`, weight: 1 })));
   }
   
-  // 定義通道的能量
   if (data.definedChannels) {
     const channelThemeMap = {
       '金錢線': ['wealth', 'leadership'],
@@ -352,7 +334,6 @@ function extractHDThemes(data) {
     }
   }
   
-  // Profile
   if (data.profile) {
     const profileThemes = {
       '1/3': ['wisdom', 'resilience', 'independence'],
@@ -378,12 +359,8 @@ function extractHDThemes(data) {
 
 // ============ 主題統計與分析 ============
 
-/**
- * 統計各主題的出現頻率和來源系統數
- */
 function analyzeThemes(allThemes) {
   const stats = {};
-  
   for (const item of allThemes) {
     if (!stats[item.theme]) {
       stats[item.theme] = { count: 0, weight: 0, sources: [], systems: new Set() };
@@ -391,12 +368,9 @@ function analyzeThemes(allThemes) {
     stats[item.theme].count++;
     stats[item.theme].weight += item.weight;
     stats[item.theme].sources.push(item.source);
-    // 提取系統名稱（八字/紫微/占星/馬雅/人類圖）
     const sys = item.source.match(/^(八字|紫微|占星|馬雅|人類圖)/)?.[1] || '';
     stats[item.theme].systems.add(sys);
   }
-  
-  // 轉為陣列並排序
   const sorted = Object.entries(stats)
     .map(([key, val]) => ({
       key,
@@ -407,53 +381,403 @@ function analyzeThemes(allThemes) {
       systems: [...val.systems],
     }))
     .sort((a, b) => {
-      // 先按系統數排，再按權重排
       if (b.systemCount !== a.systemCount) return b.systemCount - a.systemCount;
       return b.totalWeight - a.totalWeight;
     });
-  
   return sorted;
 }
 
-/**
- * 分類主題
- */
 function categorizeThemes(sorted) {
-  const core = sorted.filter(t => t.systemCount >= 3);      // 核心主題（≥3 系統共振）
-  const support = sorted.filter(t => t.systemCount === 2);  // 支持主題（2 系統）
-  const single = sorted.filter(t => t.systemCount === 1 && t.totalWeight >= 2); // 單系統但權重高
-  
+  const core = sorted.filter(t => t.systemCount >= 3);
+  const support = sorted.filter(t => t.systemCount === 2);
+  const single = sorted.filter(t => t.systemCount === 1 && t.totalWeight >= 2);
   return { core, support, single };
 }
 
-// ============ 劇本大綱生成（尖銳版） ============
+function has(list, key) { return list.some(t => t.key === key); }
+function find(list, key) { return list.find(t => t.key === key); }
+
+// ============ v2: 差異化文案系統 ============
+
+/**
+ * 天賦描述：根據主題 key + 來源系統組合，選不同文案
+ * 每個主題有 3~4 個變體，依據「哪些系統觸發了這個主題」選用
+ */
+const GIFT_VARIANTS = {
+  leadership: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('紫微'), text: '你的領導力是與生俱來的氣場——人類圖給你發起的能量，紫微給你坐鎮中央的格局。你不用爭，站在那裡就會被推上去。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的官星和占星的太陽都指向同一件事：你的生命裡注定要扛責任。不是你想當頭，是事情到最後都會落到你手上。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你一種「照亮別人」的天賦——你的領導不是管人，是用你的存在讓別人看見方向。' },
+    { cond: () => true, text: '多個系統都指出你有帶頭的設計。你可能不覺得自己「想當領導」，但你會發現：團隊沒你就散了。' },
+  ],
+  intuition: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的直覺權威 + 八字的偏印，你的第六感不只是「感覺」——是一套完整的生存雷達。你就是知道，不需要理由。' },
+    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星的水象能量和馬雅的印記都在強化你的感知力。你接收訊息的方式跟大多數人不一樣——你是「整個身體在接收」。' },
+    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜給你一種「看穿表面」的能力。別人在分析數據的時候，你已經知道答案了。' },
+    { cond: () => true, text: '你的直覺是經過多個系統認證的硬體配備。問題不是「要不要信直覺」，而是「你有多常忽略它然後後悔」。' },
+  ],
+  creativity: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的食傷星和占星的配置同時亮燈——你的腦袋永遠在冒新想法。不創造你會憋死。你需要的不是靈感，是出口。' },
+    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('人類圖'), text: '馬雅印記 + 人類圖通道的組合：你的創造力帶有「通道」的特質——靈感不是你想出來的，是流經你的。你是管道，不是發明家。' },
+    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜組合帶有強烈的藝術性和不走尋常路的特質。你的創意不是「做不一樣的事」，是「你做什麼都跟別人不一樣」。' },
+    { cond: () => true, text: '你天生是創造者。可能不是畫畫寫歌那種——也可能是用全新的方式解決老問題、把兩個不相關的東西接起來。' },
+  ],
+  communication: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字食傷 + 紫微巨門，你的表達力是帶穿透力的。你說的話會在別人腦裡迴盪。這是天賦也是責任——你的話比你以為的有份量。' },
+    { cond: (t) => t.systems.includes('占星') && t.systems.includes('人類圖'), text: '占星的風象能量加上人類圖喉嚨中心的設計：你是天生的「轉譯器」，能把複雜的事講到誰都懂。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅白風的能量在你身上——你的溝通帶有「傳遞訊息」的使命感。你說的不只是自己的想法，有時候你是在替某種更大的東西發聲。' },
+    { cond: () => true, text: '你有話語的天賦。不只是「會說話」——是你的表達方式能真正改變別人的想法和行動。' },
+  ],
+  wealth: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字的財星 + 紫微財帛宮的配置：你跟錢的關係是「內建」的。不是說錢會從天上掉下來，是你天生知道怎麼讓價值流動。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('占星'), text: '人類圖的金錢通道加上占星的木金配置——你的財富設計是「做對的事，錢就跟著來」。你越追錢越累，越做自己越有。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅藍夜的豐盛能量：你跟物質世界的關係是「吸引」而非「追逐」。你的富足感從內在開始，外在只是反映。' },
+    { cond: () => true, text: '多個系統都亮起財富訊號。你不缺賺錢的能力，關鍵是找到「讓你保持在正確頻率上」的那件事。' },
+  ],
+  independence: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的類型設計 + 八字比劫星的能量：你天生需要「自己的空間」。不是孤僻——是你在群體裡待太久會窒息。你需要獨處來充電。' },
+    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('占星'), text: '馬雅的印記和占星的配置都寫著自由。你無法在別人的框架裡活太久——你會一直想打破牆壁。' },
+    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有「一個人也能活得很好」的特質。你的獨立不是被迫的，是你享受的。' },
+    { cond: () => true, text: '你的設計需要自主權。被管太多、被限制太死，你的能量就會斷電。自由是你的氧氣。' },
+  ],
+  wisdom: [
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微的天機/天梁能量加上人類圖的投射者特質——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字印星 + 占星的配置都強化了你的學習力和理解深度。你天生吃資訊的速度比別人快，而且能消化成自己的東西。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你「通往古老智慧的頻率」——你可能常覺得某些知識你「本來就知道」，只是被提醒了。' },
+    { cond: () => true, text: '你的盤寫著「深度」。你不是那種淺嚐即止的人——你需要把事情搞懂到底才罷休。這是你的力量來源。' },
+  ],
+  action: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的薦骨 + 八字七殺：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。' },
+    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星火象能量 + 馬雅的行動印記：你是「做了再說」型。你從行動中學到的東西比思考多十倍。' },
+    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有衝勁。你不是安靜等待型——你是「看到機會就撲上去」的人。' },
+    { cond: () => true, text: '你有強大的執行力。別人還在想的時候你已經做了。你的風險是不會轉彎——動之前花三秒想方向。' },
+  ],
+  emotional: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('占星'), text: '人類圖的情緒中心 + 占星的水象配置：你的情緒不是弱點——是一套精密的感知系統。你的高低起伏裡藏著真正的智慧，但前提是你不在浪頭上做決定。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字和紫微都指向情緒的深度。你感受事情的強度是一般人的三倍——這讓你能共感他人，但也容易被拖進別人的情緒裡。' },
+    { cond: () => true, text: '你是情緒敏感體質。這不是需要「修復」的問題——這是你感知世界的方式。學會跟情緒共處，它就是你的超能力。' },
+  ],
+  transformation: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字七殺 + 占星冥王配置：你的人生劇本裡寫著「死而復生」。不是一次，可能好幾次。每一次你都會脫胎換骨成更強的版本。' },
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微破軍/廉貞的能量加人類圖的蛻變通道——你是「先破壞再重建」的設計。你人生中的崩塌都不是意外，是翻新工程。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的蛻變能量在你身上。你的人生像是一連串的「版本更新」——每幾年你就不再是之前那個人了。' },
+    { cond: () => true, text: '你帶有強烈的轉化設計。人生不會是一條直線——你會經歷幾次「看起來全毀了」的時刻，然後發現那其實是升級。' },
+  ],
+  caregiving: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字印星 + 紫微天同/天梁：你天生會照顧人。不是學來的——是看到別人需要，你的身體就自動動了。你的課題不是「學會照顧」，是「學會有界線地照顧」。' },
+    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('人類圖'), text: '馬雅紅龍/白狗 + 人類圖的設計：你的照顧帶有「滋養」的品質——不是苦情犧牲型，是你的存在本身就讓人覺得被接住了。' },
+    { cond: (t) => t.systems.includes('占星'), text: '占星的月亮/巨蟹能量：你的照顧是帶著情緒智慧的。你能感受到別人需要什麼，甚至在他們開口之前。' },
+    { cond: () => true, text: '你是天生的照顧者。但記得：空了的杯子倒不出水。你的照顧能力跟「自己有沒有先被照顧好」直接相關。' },
+  ],
+  resilience: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('人類圖'), text: '八字七殺/比劫 + 人類圖的設計：你是打不死的。不是不會痛——是你痛完會站起來，而且每次站起來都比上次高。你的人生成就跟你「承受過多少」成正比。' },
+    { cond: (t) => t.systems.includes('占星') && t.systems.includes('紫微'), text: '占星土星/冥王的磨練加紫微的剛硬星曜——你被設計成「越壓越硬」。壓力是你的燃料，不是你的敵人。' },
+    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅黃戰士的韌性能量：你不是不怕——你是怕了還是會做。你的勇氣不是「不恐懼」，是「帶著恐懼前進」。' },
+    { cond: () => true, text: '你的盤寫著「打不倒」。回顧你的人生——你已經撐過了多少你以為撐不過的事？那就是你的本事。' },
+  ],
+  magnetism: [
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('占星'), text: '紫微貪狼/紫微星 + 占星金星/木星的加持：人就是會靠近你。你可能覺得自己沒做什麼——但你的頻率天生讓人想待在你旁邊。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('人類圖'), text: '八字桃花/偏財 + 人類圖的磁性：你不只吸引人——你吸引「資源」。人脈、機會、錢，都是同一個頻率的不同顯化。' },
+    { cond: () => true, text: '你有天生的人際磁場。不需要刻意經營——做你自己，對的人就會被吸過來。你的挑戰反而是「太多人靠近」時怎麼篩選。' },
+  ],
+  authenticity: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖的內在權威 + 馬雅的印記都在說一件事：你這輩子最重要的功課就是「不裝」。你的盤沒有留空間給偽裝——你越假裝越痛。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字傷官 + 占星的配置：你骨子裡就不是隨波逐流的人。你對「做真實的自己」有近乎固執的堅持——而這正是你的力量來源。' },
+    { cond: () => true, text: '做自己不是選項，是必要條件。你的盤寫得很清楚：偽裝=卡住，真實=通暢。就這麼直接。' },
+  ],
+  patience: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的策略 + 八字正財的穩定能量：你不是慢——你是「在等最好的時機出手」。你一出手的效率抵過別人十次亂衝。' },
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('馬雅'), text: '紫微天同 + 馬雅的耐心印記：你的速度不在表面看得到，是在底下默默累積。別人覺得你慢的時候，你在紮根。' },
+    { cond: () => true, text: '你的設計裡有一個清楚的訊息：急不得。不是叫你躺平——是你的正確節奏就是「等到對了再動」。' },
+  ],
+  strategy: [
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('占星'), text: '紫微天機 + 占星的風象/土象配置：你是天生的棋手。你看三步以後的能力是本能——問題只是你願不願意用這份天賦。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖投射者的觀察力 + 八字的策略星組合：你的優勢不在「做最多」，在「做最對的那一步」。少動、精準、一擊必中。' },
+    { cond: () => true, text: '你有佈局的天賦。不需要跟人家比衝勁——你的強項是「想清楚再動」，一動就到位。' },
+  ],
+  service: [
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖5爻的投射 + 馬雅的服務印記：你來這裡是帶著「解決問題」的任務的。別人的困難到你手上就有出路——你是天生的問題解決者。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字天德/正印 + 紫微天相/天梁：你的存在感來自「被需要」。你在幫助別人的過程中找到自己的位置和價值。' },
+    { cond: () => true, text: '你有服務的天賦。不是卑微那種——是你天生有能力看到別人的需要，並且知道怎麼幫。' },
+  ],
+  family: [
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字正官/正印 + 紫微天府：家庭在你的盤裡佔了很重的位置。你可能覺得被綁住——但你的安全感和力量很大一部分來自「知道自己有根」。' },
+    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星巨蟹/四宮能量 + 馬雅紅龍/白狗：你跟家族的連結很深。不一定是血緣——可能是你自己創造的「家」。' },
+    { cond: () => true, text: '家庭和歸屬感是你的重要主題。你需要一個「自己人」的圈子——那是你充電的地方。' },
+  ],
+};
+
+/** 取得天賦文案（根據來源系統選變體） */
+function getGiftText(themeItem) {
+  const variants = GIFT_VARIANTS[themeItem.key];
+  if (!variants) return themeItem.desc;
+  for (const v of variants) {
+    if (v.cond(themeItem)) return v.text;
+  }
+  return themeItem.desc;
+}
+
+// ============ 衝突張力（v2: 根據來源系統+核心/支持分類給不同版本） ============
 
 const CONFLICT_PAIRS = [
-  { a: 'independence', b: 'caregiving', insight: '你同時有強烈的「我要自由」和「我要照顧人」——這兩個會打架。你的人生功課不是二選一，而是找到「在自由中照顧人、在照顧人時保有自由」的姿態。你不是傳統那種犧牲式的照顧者，你是用自己的方式守護你在乎的人。' },
-  { a: 'action', b: 'patience', insight: '你的油門和煞車一樣強——一腳踩下去就想衝，但另一個聲音說「等一下」。這不是矛盾，這是你的超能力：你有爆發力，也有等待最佳時機的智慧。秘訣是聽身體——身體說衝就衝，身體說等就等。' },
-  { a: 'leadership', b: 'patience', insight: '你有領導能量，但不是衝出去的那種——你是「等到所有人都亂了然後你站出來，一句話定方向」的那種。你的權威不是搶來的，是等到正確時機自然浮現的。' },
-  { a: 'wisdom', b: 'action', insight: '你的腦袋跟身體在賽跑。一邊想深入研究、一邊又想立刻動手。最好的平衡是：快速原型、邊做邊學。你適合「做一個小版本，看結果，再決定下一步」。' },
-  { a: 'independence', b: 'family', insight: '你需要自由但你也重視家人——這是你最深的拉扯之一。你不適合「犧牲自己成全家庭」。你需要一種讓你有自己空間、同時又能守護家人的架構。物理距離不等於情感距離。' },
-  { a: 'wealth', b: 'authenticity', insight: '你的財富能量和「做自己」是綁在一起的。你越做自己、越走自己的路，錢越會來。反過來，你越為了錢去做不是自己的事，財路越卡。你不是追錢的命，你是吸引錢的命。' },
-  { a: 'intuition', b: 'wisdom', insight: '你同時有直覺和分析力。陷阱是用腦袋否定直覺。正確用法：先聽直覺給第一個答案，然後用腦袋規劃「怎麼執行」。不是用腦袋決定「做不做」，而是決定「怎麼做」。' },
-  { a: 'emotional', b: 'independence', insight: '你的情緒很豐富但又不想被情緒綁住。你不是要消滅情緒——你是要學會「感受到但不被帶走」。情緒是情報來源，不是指揮官。' },
-  { a: 'magnetism', b: 'independence', insight: '你天生吸引人但又需要空間。人靠近了你想退、退了又覺得孤單。不是你有問題，是你需要「有距離的親密」。找能給你空間的人。' },
-  { a: 'resilience', b: 'caregiving', insight: '你自己能扛也習慣照顧別人——但你最大的盲點是不讓人照顧你。允許自己偶爾軟弱、偶爾被照顧，不會讓你變弱——反而能續航更久。' },
+  { a: 'independence', b: 'caregiving', variants: [
+    { cond: (all) => find(all,'independence')?.systems.includes('人類圖') && find(all,'caregiving')?.systems.includes('八字'), text: '人類圖要你「等待邀請、做自己」，八字說你天生帶著照顧人的基因——這兩個會打架。你不是那種犧牲式照顧者，你是「用自己的方式、在自己願意的時候」照顧人。區別在於：是你選擇的，不是被迫的。' },
+    { cond: (all) => find(all,'independence')?.systems.includes('占星'), text: '占星的獨立配置碰上照顧的天賦——你需要「有退路的付出」。你可以全心照顧某人，但你需要知道隨時可以回到自己的空間。沒有退路你會窒息。' },
+    { cond: () => true, text: '你同時有強烈的「我要自由」和「我要照顧人」——這不是bug，是feature。你的功課是「在自由中照顧、在照顧時保有自由」。你是用自己的方式守護你在乎的人。' },
+  ]},
+  { a: 'action', b: 'patience', variants: [
+    { cond: (all) => find(all,'action')?.systems.includes('人類圖') && find(all,'patience')?.systems.includes('人類圖'), text: '你的人類圖裡「行動力」和「等待」同時存在——典型的生產者/顯示生產者矛盾：引擎很強，但策略是等回應。解法：不主動發起，但回應來了就全力衝。平常養精蓄銳，訊號來了一秒變閃電。' },
+    { cond: (all) => find(all,'action')?.systems.includes('八字'), text: '八字給你衝勁，但其他系統又說「等」。你的節奏是：觀察、觀察、觀察、然後——爆發。不是穩定輸出型，是脈衝式爆發型。' },
+    { cond: () => true, text: '你的油門和煞車一樣猛。秘訣不是「學平衡」——是認出「現在是衝的時候還是等的時候」。你的身體會告訴你。' },
+  ]},
+  { a: 'leadership', b: 'patience', variants: [
+    { cond: (all) => find(all,'leadership')?.systems.includes('人類圖'), text: '人類圖給你的領導力是「被邀請」型。你衝出去帶頭會碰壁——等人來問你「怎麼辦」的時候，你一句話就能定方向。你的權威是「別人認出來的」，不是「自己宣稱的」。' },
+    { cond: (all) => find(all,'leadership')?.systems.includes('紫微'), text: '紫微給你帝王的格局但配上等待的設計——你是那種「前面十年沒人認識你，一朝被發現就直接坐上高位」的劇本。別急，位子是留給你的。' },
+    { cond: () => true, text: '你有領導能量但不適合搶跑。你是「等所有人都亂了你站出來，一句話穩住全場」的類型。時機到了你會知道。' },
+  ]},
+  { a: 'wisdom', b: 'action', variants: [
+    { cond: (all) => find(all,'wisdom')?.systems.includes('紫微') && find(all,'action')?.systems.includes('人類圖'), text: '紫微讓你想研究透徹，人類圖讓你想馬上動——折衷方案：MVP思維。先做最小可行版本，邊做邊修。你的完美主義會害你永遠停在起跑線。' },
+    { cond: (all) => find(all,'action')?.systems.includes('八字'), text: '八字給你的行動力碰上深度思考的天賦——你需要「設定截止時間」。沒有 deadline 你會一直研究不動手。給自己一個時限，時間到了就衝。' },
+    { cond: () => true, text: '你的腦袋跟身體在賽跑。最好的平衡：快速原型、邊做邊學。「做一個小版本看結果再決定下一步」——這就是你的最佳模式。' },
+  ]},
+  { a: 'independence', b: 'family', variants: [
+    { cond: (all) => find(all,'family')?.systems.includes('八字'), text: '八字的家族責任壓在你身上，但你的靈魂需要自由。你不適合「犧牲自己成全家庭」的劇本——你需要在家庭責任裡保有獨立的空間。不是逃避，是「保持距離的深愛」。' },
+    { cond: (all) => find(all,'independence')?.systems.includes('馬雅'), text: '馬雅給你的自由印記很強烈，同時你又重視歸屬。你的解法是：創造一種「大家各自獨立但心在一起」的關係模式。物理距離不等於情感距離。' },
+    { cond: () => true, text: '你需要自由但也重視家人——這是你的深層拉扯。解法不是二選一，是找到「有自己空間又能守護家人」的結構。' },
+  ]},
+  { a: 'wealth', b: 'authenticity', variants: [
+    { cond: (all) => find(all,'wealth')?.systems.includes('人類圖'), text: '人類圖的金錢設計跟「做自己」直接掛鉤。你越「演」越窮。你發現沒有？你賺到最多錢的時候，都是在做「你覺得理所當然」的事的時候。那就是訊號。' },
+    { cond: (all) => find(all,'wealth')?.systems.includes('八字'), text: '八字的財星和你的做自己能量是正相關的。為了穩定去做你討厭的工作，那份薪水永遠不夠。走你的路，財來得比你預期的快。' },
+    { cond: () => true, text: '你的財富跟真實程度成正比。越做自己越有錢，越委屈自己越窮。你不是追錢的命——你是吸引錢的命，前提是你在正確的頻率上。' },
+  ]},
+  { a: 'intuition', b: 'wisdom', variants: [
+    { cond: (all) => find(all,'intuition')?.systems.includes('人類圖') && find(all,'wisdom')?.systems.includes('紫微'), text: '人類圖的直覺權威說「瞬間知道」，紫微天機說「需要分析」——正確用法：直覺負責「做不做」，分析負責「怎麼做」。不要用腦袋推翻直覺的第一個答案。' },
+    { cond: (all) => find(all,'intuition')?.systems.includes('占星'), text: '占星的水象直覺力加上學術型智慧——你有兩套系統在運作：一套是瞬間感知，一套是慢慢消化。兩套都要用，但順序很重要：先聽直覺，再用邏輯規劃。' },
+    { cond: () => true, text: '你同時有直覺和分析力。陷阱是用腦袋否定直覺。先聽直覺說什麼，再用邏輯想「怎麼執行」。不是用腦決定「做不做」。' },
+  ]},
+  { a: 'emotional', b: 'independence', variants: [
+    { cond: (all) => find(all,'emotional')?.systems.includes('人類圖'), text: '人類圖的情緒中心被定義，但你又需要獨立空間——你需要的是「可以安全感受情緒的私密空間」。你在別人面前會壓情緒，回到自己的空間才能真正處理。尊重這個需求。' },
+    { cond: (all) => find(all,'emotional')?.systems.includes('占星'), text: '占星給你的水象情緒深度加上獨立需求——你可能對自己的情緒需求覺得「煩」。不要。你的情緒是GPS，獨處是你讀取GPS的時間。兩者都不能省。' },
+    { cond: () => true, text: '情緒豐富卻又不想被情緒控制。你不是要消滅情緒——你需要學會「感受到但不被帶走」。情緒是情報來源，不是指揮官。' },
+  ]},
+  { a: 'magnetism', b: 'independence', variants: [
+    { cond: (all) => find(all,'magnetism')?.systems.includes('紫微'), text: '紫微的桃花/貪狼能量讓人不斷靠近你，但你又需要空間——你的解法是「有選擇性地靠近」。不是對所有人都敞開，而是精選你願意投入的關係。品質重於數量。' },
+    { cond: (all) => find(all,'magnetism')?.systems.includes('人類圖'), text: '人類圖的磁性吸引力加上獨立需求：你天生的氣場讓人想靠近，但你需要「被邀請後再選擇接受或拒絕」的節奏。你有權利說不。' },
+    { cond: () => true, text: '天生吸引人但又需要空間。人靠近了想退、退了又覺得孤單。你需要的不是「學社交」——是建立「有距離的親密」。' },
+  ]},
+  { a: 'resilience', b: 'caregiving', variants: [
+    { cond: (all) => find(all,'resilience')?.systems.includes('八字'), text: '八字給你的硬度加上照顧人的天賦——你的模式是「自己扛一切然後去照顧別人」。但你最大的成長不是變更強，是學會讓別人也照顧你。你不示弱不是因為沒弱點，是因為你不讓人看到。' },
+    { cond: () => true, text: '你自己能扛也習慣照顧別人——但你最大的盲點是不讓人照顧你。允許自己偶爾軟弱、被人接住，不會讓你變弱——反而能續航更久。' },
+  ]},
+  { a: 'creativity', b: 'strategy', variants: [
+    { cond: (all) => find(all,'creativity')?.systems.includes('馬雅'), text: '馬雅給你的創意能量碰上策略思維——你不是那種「衝動創作」型，你是「有計劃的創造者」。你的創意需要框架才能落地——但不要讓框架殺死靈感。先放飛再收斂。' },
+    { cond: () => true, text: '你的創造力和策略能力在拉鋸。一邊想天馬行空，一邊想有條有理。最佳模式：先發散不批判，然後用策略腦挑出最好的那個去執行。' },
+  ]},
+  { a: 'service', b: 'independence', variants: [
+    { cond: (all) => find(all,'service')?.systems.includes('人類圖'), text: '人類圖5爻的服務投射加上獨立需求——你被設計來幫助別人，但你需要「在自己準備好的時候幫」。被強迫服務會讓你burn out。你的奉獻是有條件的——條件是你自己心甘情願。' },
+    { cond: () => true, text: '你想幫人但又不想被綁住。你的奉獻方式是「我來教你/給你工具/點你一下」，而不是「我全部幫你做完」。' },
+  ]},
 ];
+
+// ============ 誤區（v2: 擴展到 20+ 條件） ============
 
 const PITFALL_RULES = [
-  { condition: (core, sup) => has(core,'wealth') && !has(core,'action'), text: '你的盤有財富能量，但沒叫你「衝」。你的錢不是拼命賺來的——是做對的事之後自然到手的。你越追錢越累，越做自己越有錢。' },
-  { condition: (core, sup) => has(core,'patience') && has(core,'action'), text: '你同時有「等」和「衝」的訊號——是叫你：平常等、時機到了全力衝。不是龜速前進，是蓄力後一擊必中。' },
-  { condition: (core, sup) => has(core,'leadership') && has(core,'patience'), text: '你有領導能量但不是「主動出擊型」。一直衝在前面找人跟你會累死。等人來問你、等機會來敲門——你的領導力是被邀請出來的。' },
-  { condition: (core, sup) => has(core,'intuition') && has(sup,'wisdom'), text: '你直覺很準但會用邏輯推翻它。注意是不是常「早就知道答案但說服自己走另一條路然後後悔」？直覺第一、邏輯第二。' },
-  { condition: (core, sup) => has(core,'caregiving') && !has(core,'authenticity'), text: '你天生會照顧人，但小心「為了照顧別人把自己搞不見了」。空了的杯子倒不出水。先顧好自己。' },
-  { condition: (core, sup) => has(core,'transformation') && has(core,'resilience'), text: '你的命帶有「重來」的設計——每次覺得完蛋了，那是正常劇情。你會重來得比之前更好。不要在谷底做永久的決定。' },
+  { condition: (core, sup) => has(core,'wealth') && !has(core,'action') && has(core,'patience'), text: '你的財富設計是「等到對的時機出手一次抵十次」。你不適合每天衝業績——你適合等到看準了，一次大的。急躁是你最大的財務漏洞。' },
+  { condition: (core, sup) => has(core,'wealth') && !has(core,'action') && !has(core,'patience'), text: '你有財富能量但不是靠「做很多」來賺的。你的錢來自「做對的事」。你花力氣在不喜歡的事上，回報永遠不成正比。' },
+  { condition: (core, sup) => has(core,'wealth') && has(core,'action'), text: '你有行動力也有財運——風險是「什麼都想做」。你需要專注：同時做五件事不如把一件事做到極致。散焦是你最大的財富漏洞。' },
+  { condition: (core, sup) => has(core,'patience') && has(core,'action'), text: '「等」和「衝」同時亮燈——是叫你：平常養精蓄銳、時機到了全力爆發。不是龜速前進，是蓄力後一擊必中。你最忌諱「因為等太久煩了就隨便衝」。' },
+  { condition: (core, sup) => has(core,'leadership') && has(core,'patience'), text: '你有領導能量但不是「衝在前面」型。主動搶位置會碰壁——等人來邀請你、等事情明顯需要你出面的時候，你一站出來就能定局。' },
+  { condition: (core, sup) => has(core,'leadership') && has(core,'independence'), text: '你想帶頭但又不想管太多——你適合的不是「管理者」而是「方向指引者」。設方向，讓別人去執行細節。你管太細會把自己累死也把團隊逼瘋。' },
+  { condition: (core, sup) => has(core,'intuition') && has(sup,'wisdom'), text: '你直覺很準但會用邏輯推翻它。注意：是不是常「早就知道答案但說服自己走另一條路然後後悔」？以後試試直覺第一、邏輯第二。' },
+  { condition: (core, sup) => has(core,'intuition') && has(core,'emotional'), text: '你有直覺也有情緒波動——陷阱是「把情緒當成直覺」。區別方法：直覺是瞬間的、清晰的、平靜的；情緒是波動的、帶有重量的。在情緒高峰/低谷時做的決定，大概率是情緒，不是直覺。' },
+  { condition: (core, sup) => has(core,'caregiving') && !has(core,'authenticity') && !has(sup,'authenticity'), text: '你天生會照顧人，但小心「為了照顧別人把自己搞不見了」。你不是永動機。你空了誰都救不了。先養自己再養人。' },
+  { condition: (core, sup) => has(core,'caregiving') && has(core,'resilience'), text: '你能扛也願意照顧——最大的盲點是「覺得自己不需要被照顧」。你不是鋼鐵人。讓別人進來幫你，不是示弱——是智慧。' },
+  { condition: (core, sup) => has(core,'transformation') && has(core,'resilience'), text: '你帶有「重來」的設計——每次覺得完蛋了，那是正常劇情。你會重來得比之前更好。不要在谷底做永久的決定（辭職、分手、搬家），等浪過了再說。' },
+  { condition: (core, sup) => has(core,'transformation') && !has(core,'resilience'), text: '你帶有蛻變能量但不一定有「硬撐」的設計——你的轉化方式可能是「放下」而非「撐住」。該丟的丟，該結束的結束。你的重生在「放手」之後。' },
+  { condition: (core, sup) => has(core,'communication') && has(core,'emotional'), text: '你有表達天賦但情緒波動大——注意：不要在情緒最滿的時候說話。你情緒穩定時的表達能改變世界；情緒失控時的話會傷人比你想像的深。多給自己一個呼吸的時間。' },
+  { condition: (core, sup) => has(core,'magnetism') && has(core,'independence'), text: '你吸引人但又需要空間——你最容易犯的錯是「因為不想讓人失望而不設邊界」。結果：所有人都靠近你，你累到想消失。學會優雅地說「不」。' },
+  { condition: (core, sup) => has(core,'creativity') && has(core,'wisdom'), text: '你有創意也有深度——風險是「永遠在構思不動手」。你的完美主義會讓你錯過時機。80分就先出手，做了再調整。' },
+  { condition: (core, sup) => has(core,'strategy') && has(core,'action'), text: '你能想也能衝——但這兩個會搶主導權。想太多你焦慮，衝太快你後悔。設定一個簡單規則：想三分鐘，超過三分鐘還在想就直接動。' },
+  { condition: (core, sup) => has(core,'independence') && has(core,'magnetism') && has(sup,'family'), text: '你自由、有魅力、又有家族牽掛——這三重拉扯可能讓你「每條路都走不徹底」。你的解法不是三選一，是「設定每個面向各自的時間和空間」。' },
+  { condition: (core, sup) => has(core,'service') && has(core,'wealth'), text: '你想幫人又想賺錢——好消息：你的盤說這兩件事可以同時發生。你的財富來自「解決別人的問題」。壞消息：你很容易免費幫忙——學會開價。你的幫助有價值。' },
+  { condition: (core, sup) => has(core,'authenticity') && has(sup,'magnetism'), text: '你做自己會吸引人、但不是所有人。你最大的坑是「為了維持人氣而微調自己」——一旦開始裝，你的磁場就弱了。真實的你才有磁性。' },
+  { condition: (core, sup) => has(core,'emotional') && has(core,'patience'), text: '你的情緒有波動、決策需要等——雙重等待設計。你可能覺得自己「反應很慢」，但其實是你的決定需要時間發酵。急著在幾秒內回答「要不要」是你最大的決策失誤來源。' },
 ];
 
-function has(list, key) { return list.some(t => t.key === key); }
+// ============ 一句話版本（v2: 大幅擴展組合） ============
+
+function oneLiner(core, support, results) {
+  const all = [...core, ...support];
+  const hd = results.hd?.data;
+  const bz = results.bazi?.data;
+  
+  // 嘗試根據前兩個核心主題的組合產出獨特句子
+  if (core.length >= 2) {
+    const k1 = core[0].key, k2 = core[1].key;
+    const combos = {
+      'intuition+authenticity': '「你的人生指南針只有一個：內心那個安靜但清楚的聲音。聽它的。」',
+      'intuition+action': '「你是閃電型的人——直覺來了就動，別人還在分析你已經到終點了。」',
+      'intuition+wisdom': '「你先知道答案，然後才找到理由。」',
+      'intuition+creativity': '「你的靈感從虛空中來——你不是在創造，你是在接收。」',
+      'intuition+independence': '「你天生知道自己要什麼——問題只是你願不願意忽略別人的意見。」',
+      'action+resilience': '「你是戰場上最後站著的那個人——不是因為最強，是因為你就是不停。」',
+      'action+authenticity': '「你做自己的方式就是——直接去做。想太多不是你的風格。」',
+      'action+independence': '「你需要一條沒人走過的路，然後用你的速度跑出一條痕跡。」',
+      'action+creativity': '「你是邊做邊創的人——你的創意不在腦袋裡，在手上。」',
+      'action+wealth': '「你的行動力就是你的提款機——你做的每一步都在累積價值。」',
+      'leadership+independence': '「你不是跟著別人走的人——你是那個走自己的路然後回頭發現一群人跟上來的人。」',
+      'leadership+action': '「你是先鋒型領導——不是坐鎮後方，是衝在第一個然後大家跟上。」',
+      'leadership+wisdom': '「你的領導力來自你看得比別人遠——你一句話就能讓混亂變清晰。」',
+      'leadership+magnetism': '「你站在那裡就是中心——不用開口，人已經在往你的方向看了。」',
+      'wisdom+patience': '「你是沉穩型的——別人在著急的時候你在思考，然後一出手就是最精準的。」',
+      'wisdom+creativity': '「你把深度變成創作——你的作品不只好看，有東西在裡面。」',
+      'wisdom+resilience': '「你從每次跌倒中撿起的不只是經驗，是看穿本質的眼力。」',
+      'wisdom+independence': '「你是獨行的思考者——你需要安靜、需要空間，然後回來給出別人想不到的答案。」',
+      'wealth+magnetism': '「你不追錢也不追人——兩者都是被你吸過來的。你的存在本身就是磁鐵。」',
+      'wealth+strategy': '「你不衝動花錢也不衝動投資——你是算準了再出手，一出手就到位。」',
+      'wealth+patience': '「你的財富是「慢慢變有錢」型——不是暴富，是越來越厚。時間是你最大的盟友。」',
+      'creativity+authenticity': '「你不模仿任何人——你的創造力來自「你就是你」這件事本身。」',
+      'creativity+magnetism': '「你創造的東西自帶吸引力——不用行銷，做出來就有人想看。」',
+      'resilience+transformation': '「你的人生是一部重生記——每次以為結束了，其實是新版本的開始。」',
+      'resilience+independence': '「你一個人扛過的那些，成就了別人打不倒的你。」',
+      'caregiving+emotional': '「你用情緒感知別人的需要，用行動去照顧——你是用心在看的人。」',
+      'caregiving+wisdom': '「你的照顧帶著智慧——不是溺愛，是精準地給對方真正需要的。」',
+      'emotional+creativity': '「你的情緒就是你的創作素材——感受越深，作品越動人。」',
+      'emotional+intuition': '「你的情緒和直覺交織在一起——學會分辨哪個是哪個，你就無敵了。」',
+      'independence+authenticity': '「你注定走自己的路——不是叛逆，是你的設計就是「不跟」。」',
+      'magnetism+communication': '「你一開口就改變氣場——你的聲音、你的表達，天生有穿透力。」',
+      'patience+authenticity': '「你的節奏跟別人不一樣——不是慢，是你有自己的時區。」',
+      'transformation+independence': '「你的人生每隔幾年就重來一次——每次重來你都更自由。」',
+      'service+wisdom': '「你的價值在於看到別人看不到的——然後用最少的力氣指出最關鍵的那一點。」',
+      'family+caregiving': '「你是家族的核心支柱——大家都知道有你在就有底氣。」',
+      'strategy+independence': '「你是獨立作戰的策略家——不需要團隊，你一個人就是一支軍隊。」',
+    };
+    const key = `${k1}+${k2}`;
+    const keyRev = `${k2}+${k1}`;
+    if (combos[key]) return combos[key];
+    if (combos[keyRev]) return combos[keyRev];
+  }
+  
+  // fallback: 拼接式（但更豐富）
+  const p = [];
+  if (has(all,'intuition') && has(all,'action')) p.push('直覺來了就衝');
+  else if (has(all,'intuition')) p.push('靠直覺走路');
+  else if (has(all,'wisdom') && has(all,'strategy')) p.push('想清楚再出手');
+  else if (has(all,'wisdom')) p.push('靠深度思考走路');
+  else if (has(all,'action')) p.push('靠行動力開路');
+  else if (has(all,'patience')) p.push('等到對的時機出手');
+  
+  if (has(all,'authenticity') || has(all,'independence')) p.push('走自己的路');
+  else if (has(all,'leadership')) p.push('帶著別人一起走');
+  
+  if (has(all,'caregiving') || has(all,'family')) p.push('守護你在乎的人');
+  else if (has(all,'service')) p.push('在幫助別人中找到意義');
+  
+  if (has(all,'wealth') && has(all,'magnetism')) p.push('錢和人都被你吸過來');
+  else if (has(all,'wealth')) p.push('順便把錢吸過來');
+  else if (has(all,'creativity')) p.push('用創造力養活自己');
+  else if (has(all,'magnetism')) p.push('走到哪裡都有人跟');
+  
+  if (has(all,'resilience') && has(all,'transformation')) p.push('每次重來都更強');
+  else if (has(all,'resilience')) p.push('越摔越強');
+  else if (has(all,'transformation')) p.push('不斷蛻變升級');
+  
+  if (p.length >= 2) return `「你是一個${p.join('、')}的人。」`;
+  if (hd?.typeInfo?.zh) return `「你是${hd.typeInfo.zh}，做自己就是最大的策略。」`;
+  return `「你的設計獨一無二。做自己，其他的會跟上。」`;
+}
+
+// ============ 結論（v2: 根據核心主題組合產出差異化結尾） ============
+
+function conclusion(core, support, results) {
+  const all = [...core, ...support];
+  const hd = results?.hd?.data;
+  let c = '🎯 ';
+  
+  // 根據核心主題的「前兩名組合」給不同結尾
+  if (core.length >= 2) {
+    const k1 = core[0].key, k2 = core[1].key;
+    const pair = new Set([k1, k2]);
+    
+    if (pair.has('authenticity') && pair.has('intuition')) {
+      c += `五個系統用五種語言說同一句話：<b>做自己、信直覺</b>。這不是雞湯——這是你的硬體規格。你每次違背直覺的決定，都在跟自己整張命盤作對。回來。`;
+      return c;
+    }
+    if (pair.has('action') && pair.has('resilience')) {
+      c += `你的設計是<b>行動 + 打不死</b>。你的人生不需要「想通了才動」——先動，撞牆了爬起來再動。你的智慧來自行動中的修正，不是書本上的理論。`;
+      return c;
+    }
+    if (pair.has('wisdom') && pair.has('patience')) {
+      c += `你的節奏是<b>慢工出細活</b>。所有催你的人都不懂你——你需要的是時間和深度。急了就錯了。給自己空間慢慢來，結果會好得超出所有人的預期。`;
+      return c;
+    }
+    if (pair.has('leadership') && pair.has('action')) {
+      c += `你是<b>帶頭衝的人</b>。你的能量適合開疆闢土，不適合守成。找到值得你衝的方向，然後別回頭。跟不上的人自然會掉隊，跟得上的才是你的戰友。`;
+      return c;
+    }
+    if (pair.has('creativity') && pair.has('independence')) {
+      c += `你需要<b>一個自己的舞台</b>。在別人的框架裡你會枯萎——你得自己創造遊戲規則。你不是打工仔的命，你是「做自己的事」的命。`;
+      return c;
+    }
+    if (pair.has('wealth') && pair.has('magnetism')) {
+      c += `你的盤寫著<b>「你不需要追——只需要在正確的位置上等」</b>。錢和人都會被你吸引。你的功課不是「如何得到更多」，是「如何選擇正確的」。`;
+      return c;
+    }
+    if (pair.has('intuition') && pair.has('action')) {
+      c += `你的最佳模式：<b>直覺閃過就動</b>。不要等、不要分析太久。你猶豫的每一秒都在消耗你的正確率。相信第一個念頭。`;
+      return c;
+    }
+    if (pair.has('caregiving') && pair.has('emotional')) {
+      c += `你是<b>用心在感知世界的人</b>。你的照顧帶著情緒智慧——但最重要的一課：先照顧自己的情緒，才有能量照顧別人。你空了，周圍的人也會感受到。`;
+      return c;
+    }
+    if (pair.has('transformation') && pair.has('independence')) {
+      c += `你的人生是<b>一連串的破繭</b>。每次覺得「卡住了」，就是要你脫掉舊殼的訊號。你不是在受苦——你是在進化。每次蛻變後的自由感，就是你的獎賞。`;
+      return c;
+    }
+    if (pair.has('wisdom') && pair.has('service')) {
+      c += `你的價值是<b>「看穿問題本質然後指出方向」</b>。你不需要做最多——你需要在對的時候說對的那句話。一句話就能改變別人的人生軌跡。那就是你的天賦。`;
+      return c;
+    }
+    if (pair.has('resilience') && pair.has('wisdom')) {
+      c += `你的智慧是<b>摔出來的</b>——不是書上讀來的。你每經歷一次谷底，就多一份「過來人」的深度。你的過去不是傷疤，是資產。用它去幫助還在路上的人。`;
+      return c;
+    }
+  }
+  
+  // 單一核心主題的結論
+  if (has(core,'authenticity')) {
+    c += `你不是「可以」做自己——你是<b>非做自己不可</b>。你的盤沒有留空間給「為了別人委屈自己」。越做自己越順，越裝越卡。就這麼簡單。`;
+  } else if (has(core,'intuition')) {
+    const hdType = hd?.typeInfo?.zh || '';
+    c += `你的直覺是最貴的資產。${hdType ? `身為${hdType}，你的內在權威比任何外在建議都準。` : ''}多個系統都寫著：<b>你就是知道</b>。你人生所有的後悔，大概都是「明明知道答案但選了另一條路」。信它。`;
+  } else if (has(core,'wealth') && has(all,'independence')) {
+    c += `你的盤寫著：<b>走自己的路，錢會追著你跑</b>。為了別人的期待去賺的錢，遲早讓你想掀桌。找到你的路，財務自由是副產品。`;
+  } else if (has(core,'leadership')) {
+    c += `你的設計裡有<b>帶領的能量</b>。不一定是「當主管」——可能是「成為某個領域的指引者」。人們需要方向的時候會看向你。準備好。`;
+  } else if (has(core,'action')) {
+    c += `你的正確模式是<b>動起來</b>。想太多反而卡住。你的智慧在行動中顯現——先做、發現問題、修正、再做。停下來對你來說才是最大的風險。`;
+  } else if (has(core,'caregiving')) {
+    c += `你天生是照顧者，但最重要那句：<b>先把自己顧好</b>。你空了誰都救不了。你的照顧是有邊界的、有力量的——不是無止盡的消耗。`;
+  } else if (has(core,'resilience')) {
+    c += `你被設計成<b>打不倒的人</b>。但這不代表你不能喊痛——你可以。痛過之後站起來，那才是你真正的模式。你已經證明過很多次了。`;
+  } else if (has(core,'wisdom')) {
+    c += `你的核心價值在<b>深度</b>。這個淺薄的世界需要你這種「把事情搞懂到底」的人。不要覺得自己「太慢」或「太深」——那正是你不可取代的地方。`;
+  } else if (has(core,'creativity')) {
+    c += `你來這裡是要<b>創造</b>的。不一定是藝術——可能是創造新的做事方式、新的關係模式、新的可能性。你不創造就會枯萎。給自己出口。`;
+  } else if (core.length > 0) {
+    c += `你的核心是「<b>${core[0].zh}</b>」${core.length>1?`和「<b>${core[1].zh}</b>」`:''}——出廠設定。接受它、善用它、活出它。其他的會到位。`;
+  } else {
+    c += `你的盤能量多元，沒有單一主軸壓倒性地突出——這代表<b>你的路不是別人能定義的</b>。你有很多種活法，關鍵是哪一種讓你「覺得對」。跟著那個感覺。`;
+  }
+  return c;
+}
+
+// ============ 劇本生成（v2） ============
 
 function generateScript(categories, results) {
   const { core, support } = categories;
+  const all = [...core, ...support];
   let script = '';
   
   // === 一句話 ===
@@ -466,26 +790,36 @@ function generateScript(categories, results) {
     for (const t of core) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
     script += `</div>這些不是「你可以選擇發展的方向」——這是你的出廠設定。回顧人生，它們一直都在。`;
   } else if (support.length > 0) {
-    script += `你的能量多元，以下方向出現在兩個以上系統中：<div class="theme-badges" style="margin:10px 0;">`;
+    script += `你的能量分佈多元，沒有單一主題壓倒性出現——這代表你的設計不走極端。以下方向出現在兩個以上系統中：<div class="theme-badges" style="margin:10px 0;">`;
     for (const t of support.slice(0,5)) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
-    script += `</div>`;
+    script += `</div>你的人生會有更多彈性和選擇空間——好處是不容易被困住，挑戰是容易什麼都想要。`;
   }
   script += `</div></div>`;
 
-  // === 天賦 ===
-  const gifts = core.filter(t => ['creativity','intuition','communication','leadership','wisdom','magnetism','wealth','action'].includes(t.key));
+  // === 天賦（v2: 用差異化文案） ===
+  const giftKeys = ['creativity','intuition','communication','leadership','wisdom','magnetism','wealth','action','resilience','emotional'];
+  const gifts = core.filter(t => giftKeys.includes(t.key));
   if (gifts.length > 0) {
     script += `<div class="script-section"><div class="script-title">🎁 第二章：你帶來了什麼</div><div class="script-body">你這輩子「自帶」的——不用學、天生就有：`;
-    for (const t of gifts.slice(0,4)) script += `<div class="script-gift"><b>${t.icon} ${t.zh}</b>——${t.desc}。<br><span class="source-hint">${t.systems.join('、')}都指向這個。</span></div>`;
+    for (const t of gifts.slice(0,4)) {
+      const text = getGiftText(t);
+      script += `<div class="script-gift"><b>${t.icon} ${t.zh}</b>——${text}<br><span class="source-hint">${t.systems.join('、')}都指向這個。</span></div>`;
+    }
     script += `</div></div>`;
   }
 
-  // === 衝突 ===
-  const all = [...core, ...support];
+  // === 衝突（v2: 用變體文案） ===
   const conflicts = CONFLICT_PAIRS.filter(p => has(all,p.a) && has(all,p.b));
   if (conflicts.length > 0) {
     script += `<div class="script-section" style="border-left-color:#e0556b;"><div class="script-title">⚔️ 第三章：你的內在拉扯</div><div class="script-body">你可能常覺得自己很矛盾——不是你有問題，是你的設計本來就有張力。這些張力要被「駕馭」而不是「解決」：`;
-    for (const c of conflicts.slice(0,3)) script += `<div class="script-lesson" style="border-left-color:#e0556b;">${c.insight}</div>`;
+    for (const c of conflicts.slice(0,3)) {
+      // 選變體
+      let text = c.variants[c.variants.length - 1].text; // default
+      for (const v of c.variants) {
+        if (v.cond(all)) { text = v.text; break; }
+      }
+      script += `<div class="script-lesson" style="border-left-color:#e0556b;">${text}</div>`;
+    }
     script += `</div></div>`;
   }
   
@@ -508,41 +842,17 @@ function generateScript(categories, results) {
     script += s + `</div>`;
   }
   if (bz) {
-    const adv = { '木':'給自己空間成長，不接受被壓制的環境。你枯萎的原因永遠是空間不夠。', '火':'你需要表達和被看見。壓抑自己等於慢性自殺。找到你的舞台。', '土':'先穩住自己的根基再去養別人。你是大地，但大地也需要被滋養。', '金':'你是被磨出來的鑽石。每次痛苦的打磨都讓你更值錢。相信過程。', '水':'你需要流動。一個地方待太久你就死了。流動不一定是搬家——也可以是換思路、換做法。' };
+    const adv = {
+      '木':'給自己空間成長，不接受被壓制的環境。你枯萎的原因永遠是空間不夠——不管是物理空間還是心理空間。',
+      '火':'你需要表達和被看見。壓抑自己等於慢性自殺。找到你的舞台，哪怕只是一小塊——你需要發光。',
+      '土':'先穩住自己的根基再去養別人。你是大地，但大地也需要被滋養。過度消耗的土會龜裂。',
+      '金':'你是被磨出來的鑽石。每次痛苦的打磨都讓你更值錢。相信過程——你的價值跟你經歷的磨練成正比。',
+      '水':'你需要流動。一個地方待太久你就死了。流動不一定是搬家——也可以是換思路、換做法、換圈子。',
+    };
     script += `<div class="script-insight"><b>八字：</b>日主「${bz.dayMaster}」屬${bz.dayMasterElem}。${adv[bz.dayMasterElem]||''}</div>`;
   }
-  script += `<div class="script-conclusion">${conclusion(core,support)}</div></div></div>`;
+  script += `<div class="script-conclusion">${conclusion(core,support,results)}</div></div></div>`;
   return script;
-}
-
-function oneLiner(core, support, results) {
-  const all = [...core, ...support];
-  const p = [];
-  if (has(all,'intuition')) p.push('靠直覺走路');
-  else if (has(all,'wisdom')) p.push('靠深度思考走路');
-  else if (has(all,'action')) p.push('靠行動力開路');
-  if (has(all,'authenticity') || has(all,'independence')) p.push('走自己的路');
-  if (has(all,'caregiving') || has(all,'family')) p.push('守護身邊的人');
-  if (has(all,'wealth')) p.push('順便把錢吸過來');
-  else if (has(all,'creativity')) p.push('用創造力養活自己');
-  if (has(all,'resilience')) p.push('越摔越強');
-  if (p.length >= 2) return `「你是一個${p.join('、')}的人。」`;
-  const hd = results.hd?.data;
-  if (hd) return `「你是${hd.typeInfo?.zh||''}，做自己就是最大的策略。」`;
-  return `「你的設計獨一無二。做自己，其他的會跟上。」`;
-}
-
-function conclusion(core, support) {
-  const all = [...core, ...support];
-  let c = '🎯 ';
-  if (has(core,'authenticity') && has(all,'intuition')) c += `五個系統說同一句話：<b>做自己、信直覺</b>。這不是雞湯——這是你的硬體規格。你每一次違背直覺的決定，都在跟自己整張命盤作對。所有「不對勁」的時刻，都是你在偏離軌道。回來。`;
-  else if (has(core,'authenticity')) c += `你不是「可以」做自己——你是<b>非做自己不可</b>。你的盤沒有留空間給「為了別人委屈自己」。你越做自己越順，越裝越卡。就這麼簡單。`;
-  else if (has(core,'intuition')) c += `你的直覺是最貴的資產。多個系統都寫著：<b>你就是知道</b>。你人生中所有的後悔，大概都是「明明知道答案但選了另一條路」的時候。信它。`;
-  else if (has(core,'wealth') && has(all,'independence')) c += `你的盤寫著：<b>走自己的路，錢會追著你跑</b>。為了別人的期待去賺的錢，遲早讓你想掀桌。`;
-  else if (has(core,'caregiving')) c += `你天生是照顧者，但最重要那句：<b>先把自己顧好</b>。你空了誰都救不了。你的照顧是有邊界的、有力量的。`;
-  else if (core.length > 0) c += `你的核心是「<b>${core[0].zh}</b>」${core.length>1?`和「${core[1].zh}」`:''}——出廠設定，不需要改。接受它、善用它。其他的會到位。`;
-  else c += `你的盤說：<b>沒有標準答案</b>。你的路是你自己走出來的。但你已經知道方向了，對吧？`;
-  return c;
 }
 
 // ============ 渲染 ============
@@ -561,7 +871,7 @@ function renderSynthesis(categories, script) {
     html += `</div>`;
   }
   html += `<div class="divider"></div>${script}`;
-  html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們各自用不同語言說同一件事。當你發現「每個系統都在跟我說一樣的話」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支）、紫微斗數（命宮主星+四化）、西洋占星（太陽/月亮/上升+相位）、馬雅曆（主印記+調性）、人類圖（類型+通道+Profile+交叉）</div>`;
+  html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們用不同語言說同一件事。當你發現「每個系統都在講同一個主題」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支＋十神＋神煞）、紫微斗數（命宮主星＋四化）、西洋占星（太陽/月亮/上升＋相位）、馬雅曆（主印記＋調性）、人類圖（類型＋權威＋通道＋Profile）</div>`;
   return html;
 }
 
