@@ -1266,7 +1266,7 @@ const AI_SYSTEM_PROMPT = `你是一位整合五大命理系統（八字、紫微
 5. 用自然、溫暖但精準的語氣，像一位認識對方很久的人在聊天
 6. 最後給一段具體的人生建議——不是雞湯，是根據命盤得出的結論
 7. 全程用繁體中文
-8. 控制在 800 字以內
+8. 控制在 2000 字以內
 9. 不要用markdown格式，直接用純文字段落`;
 
 function buildPromptJSON(results) {
@@ -1339,7 +1339,7 @@ export function attachAIButtons(results) {
             { role: 'system', content: AI_SYSTEM_PROMPT },
             { role: 'user', content: '以下是我的命盤資料：\n```json\n' + JSON.stringify(buildPromptJSON(results), null, 2) + '\n```\n請開始分析。' },
           ],
-          max_tokens: 1500,
+          max_tokens: 3000,
           temperature: 0.7,
         }),
       });
