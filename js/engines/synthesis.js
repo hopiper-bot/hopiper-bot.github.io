@@ -1234,11 +1234,133 @@ function renderSynthesis(categories, script) {
     html += `</div>`;
   }
   html += `<div class="divider"></div>${script}`;
+
+  // === AI 深度解讀區塊 ===
+  html += `<div class="divider"></div>`;
+  html += `<div class="script-section" style="border-left-color:#4ecdc4;">`;
+  html += `<div class="script-title">🤖 AI 深度融合解讀</div>`;
+  html += `<div class="script-body">`;
+  html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">上面是規則引擎的分析。想要像「一位看完全部命盤的朋友跟你聊天」的解讀？</p>`;
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">`;
+  html += `<button id="btn-ai-groq" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:700;font-size:.85rem;cursor:pointer;">✨ AI 即時解讀</button>`;
+  html += `<button id="btn-ai-copy" style="padding:8px 16px;background:rgba(255,255,255,.1);color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:.85rem;cursor:pointer;">📋 複製 Prompt（貼到 ChatGPT）</button>`;
+  html += `</div>`;
+  html += `<div id="ai-result" style="display:none;"></div>`;
+  html += `</div></div>`;
+
   html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們用不同語言說同一件事。當你發現「每個系統都在講同一個主題」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支＋十神＋神煞）、紫微斗數（命宮主星＋四化）、西洋占星（太陽/月亮/上升＋相位）、馬雅曆（主印記＋調性）、人類圖（類型＋權威＋通道＋Profile）</div>`;
   return html;
 }
 
-// ============ 主入口 ============
+// ============ AI 解讀：Prompt 建構 + Groq 呼叫 ============
+
+const AI_SYSTEM_PROMPT = `你是一位整合五大命理系統（八字、紫微斗數、西洋占星、馬雅曆、人類圖）的分析師。
+
+你的任務：根據使用者的命盤 JSON 資料，寫一段像朋友聊天的融合分析。
+
+規則：
+1. 不要逐系統解釋。不要說「你的八字是...你的紫微是...」
+2. 找出五個系統共同指向的人生主題（什麼特質一直重複出現）
+3. 找出互相印證的地方（不同系統用不同語言說同一件事）
+4. 找出互相矛盾的地方（內在的拉扯）
+5. 用自然、溫暖但精準的語氣，像一位認識對方很久的人在聊天
+6. 最後給一段具體的人生建議——不是雞湯，是根據命盤得出的結論
+7. 全程用繁體中文
+8. 控制在 800 字以內
+9. 不要用markdown格式，直接用純文字段落`;
+
+function buildPromptJSON(results) {
+  const j = {};
+  const bz = results.bazi?.data;
+  if (bz) {
+    j.bazi = { dayMaster: bz.dayMaster, element: bz.dayMasterElem, tenGods: bz.tenGods?.map(t => t.god) || [], shensha: bz.shensha?.map(s => s.name) || [] };
+  }
+  const zw = results.ziwei?.data;
+  if (zw) {
+    const ming = zw.palaces?.find(p => p.pos === zw.mingPos);
+    const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/,'').trim() : (s.name||'')).filter(Boolean) || [];
+    j.ziwei = { mingStars: stars, sihua: zw.sihua };
+  }
+  const astro = results.astro?.data;
+  if (astro) {
+    j.astro = { sun: astro.sunSign?.zh, moon: astro.moonSign?.zh, rising: astro.risingSign?.zh, aspects: astro.aspects?.slice(0,5).map(a => a.name) || [] };
+  }
+  const maya = results.maya?.data;
+  if (maya) {
+    j.maya = { seal: maya.dreamspell?.seal?.zh, tone: maya.dreamspell?.tone?.num, toneName: maya.dreamspell?.tone?.zh };
+  }
+  const hd = results.hd?.data;
+  if (hd) {
+    j.humanDesign = { type: hd.typeInfo?.zh, strategy: hd.strategy?.zh, authority: hd.authority?.zh, profile: hd.profile?.profile, channels: hd.definedChannels?.map(c => c.name) || [] };
+  }
+  return j;
+}
+
+function getFullPrompt(results) {
+  const json = buildPromptJSON(results);
+  return AI_SYSTEM_PROMPT + '\n\n---\n\n以下是這位使用者的命盤資料：\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```\n\n請開始分析。';
+}
+
+export function attachAIButtons(results) {
+  const btnGroq = document.getElementById('btn-ai-groq');
+  const btnCopy = document.getElementById('btn-ai-copy');
+  const resultDiv = document.getElementById('ai-result');
+  if (!btnGroq || !btnCopy || !resultDiv) return;
+
+  const fullPrompt = getFullPrompt(results);
+
+  btnCopy.addEventListener('click', () => {
+    navigator.clipboard.writeText(fullPrompt).then(() => {
+      btnCopy.textContent = '✅ 已複製！貼到 ChatGPT / Claude 即可';
+      setTimeout(() => { btnCopy.textContent = '📋 複製 Prompt（貼到 ChatGPT）'; }, 3000);
+    });
+  });
+
+  btnGroq.addEventListener('click', async () => {
+    // Groq key 從 localStorage 讀取，沒有則提示設定
+    let apiKey = localStorage.getItem('groq_api_key');
+    if (!apiKey) {
+      const input = prompt('首次使用需要 Groq API Key（免費申請：console.groq.com）\n貼上你的 Key：');
+      if (!input) return;
+      apiKey = input.trim();
+      localStorage.setItem('groq_api_key', apiKey);
+    }
+    btnGroq.disabled = true;
+    btnGroq.textContent = '⏳ AI 思考中...';
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div style="color:var(--muted);font-size:.85rem;">正在連線 AI，請稍候…</div>';
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: AI_SYSTEM_PROMPT },
+            { role: 'user', content: '以下是我的命盤資料：\n```json\n' + JSON.stringify(buildPromptJSON(results), null, 2) + '\n```\n請開始分析。' },
+          ],
+          max_tokens: 1500,
+          temperature: 0.7,
+        }),
+      });
+      if (!resp.ok) {
+        if (resp.status === 401) { localStorage.removeItem('groq_api_key'); throw new Error('Key 無效，已清除。請重新點擊按鈕輸入正確的 Key。'); }
+        throw new Error(`API 錯誤 ${resp.status}`);
+      }
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || '（無回應）';
+      const html = content.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+      resultDiv.innerHTML = `<div style="background:rgba(78,205,196,.08);border:1px solid rgba(78,205,196,.3);border-radius:8px;padding:16px;margin-top:8px;line-height:1.9;font-size:.9rem;"><p>${html}</p></div>`;
+      btnGroq.textContent = '✨ 再生成一次';
+      btnGroq.disabled = false;
+    } catch (err) {
+      resultDiv.innerHTML = `<div style="color:#f55;font-size:.85rem;">AI 連線失敗：${err.message}<br>可用「複製 Prompt」手動貼到 ChatGPT。</div>`;
+      btnGroq.textContent = '✨ AI 即時解讀（重試）';
+      btnGroq.disabled = false;
+    }
+  });
+}
+
 export function calculate(results) {
   try {
     const allThemes = [
