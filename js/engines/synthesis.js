@@ -423,7 +423,7 @@ const GIFT_VARIANTS = {
     { cond: () => true, text: '你天生是創造者。可能不是畫畫寫歌那種——也可能是用全新的方式解決老問題、把兩個不相關的東西接起來。' },
   ],
   communication: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字食傷 + 紫微巨門，你的表達力是帶穿透力的。你說的話會在別人腦裡迴盪。這是天賦也是責任——你的話比你以為的有份量。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字的食傷星加上紫微命宮的配置，你的表達力是帶穿透力的。你說的話會在別人腦裡迴盪。這是天賦也是責任——你的話比你以為的有份量。' },
     { cond: (t) => t.systems.includes('占星') && t.systems.includes('人類圖'), text: '占星的風象能量加上人類圖喉嚨中心的設計：你是天生的「轉譯器」，能把複雜的事講到誰都懂。' },
     { cond: (t) => t.systems.includes('馬雅'), text: '馬雅白風的能量在你身上——你的溝通帶有「傳遞訊息」的使命感。你說的不只是自己的想法，有時候你是在替某種更大的東西發聲。' },
     { cond: () => true, text: '你有話語的天賦。不只是「會說話」——是你的表達方式能真正改變別人的想法和行動。' },
@@ -441,13 +441,13 @@ const GIFT_VARIANTS = {
     { cond: () => true, text: '你的設計需要自主權。被管太多、被限制太死，你的能量就會斷電。自由是你的氧氣。' },
   ],
   wisdom: [
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微的天機/天梁能量加上人類圖的設計——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字印星 + 占星的配置都強化了你的學習力和理解深度。你天生吃資訊的速度比別人快，而且能消化成自己的東西。' },
+    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微命宮的星曜加上人類圖的設計——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
+    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的印星加上占星的配置都強化了你的學習力和理解深度。你天生吃資訊的速度比別人快，而且能消化成自己的東西。' },
     { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你「通往古老智慧的頻率」——你可能常覺得某些知識你「本來就知道」，只是被提醒了。' },
     { cond: () => true, text: '你的盤寫著「深度」。你不是那種淺嚐即止的人——你需要把事情搞懂到底才罷休。這是你的力量來源。' },
   ],
   action: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的能量設計 + 八字七殺：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。等待正確的訊號再全力出擊。' },
+    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的能量設計加上八字的行動星：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。等待正確的訊號再全力出擊。' },
     { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星火象能量 + 馬雅的行動印記：你是「做了再說」型。你從行動中學到的東西比思考多十倍。' },
     { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有衝勁。你不是安靜等待型——你是「看到機會就撲上去」的人。' },
     { cond: () => true, text: '你有強大的執行力。別人還在想的時候你已經做了。你的風險是不會轉彎——動之前花三秒想方向。' },
@@ -619,43 +619,18 @@ function applyDynamicReplacements(text, results) {
     if (mingPalace && mingPalace.main && mingPalace.main.length > 0) {
       const mainStars = mingPalace.main.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean);
       const starStr = mainStars.join('、');
-      // 替換「紫微命宮的星曜」泛稱
-      text = text.replace(/紫微命宮的星曜組合帶有強烈的藝術性和不走尋常路的特質/g, `紫微命宮${starStr}帶有獨特的創造特質`);
-      text = text.replace(/紫微命宮的星曜給你一種「看穿表面」的能力/g, `紫微命宮${starStr}給你一種「看穿表面」的能力`);
-      text = text.replace(/紫微命宮的星曜帶有「一個人也能活得很好」的特質/g, `紫微命宮${starStr}帶有「一個人也能活得很好」的特質`);
-      text = text.replace(/紫微命宮的星曜帶有衝勁/g, `紫微命宮${starStr}帶有衝勁`);
-      // 替換具體硬寫的星曜組合 → 實際命宮主星
-      if (!mainStars.includes('天機') || !mainStars.includes('天梁')) {
-        text = text.replace(/紫微的天機\/天梁能量/g, `紫微命宮${starStr}的能量`);
-        text = text.replace(/紫微天機\/天梁/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('天機')) {
-        text = text.replace(/紫微天機/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('巨門')) {
-        text = text.replace(/紫微巨門/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('天同')) {
-        if (!mainStars.includes('天梁')) {
-          text = text.replace(/紫微天同\/天梁/g, `紫微${starStr}`);
+      // 通用泛稱替換
+      text = text.replace(/紫微命宮的星曜/g, `紫微命宮${starStr}`);
+      text = text.replace(/紫微命宮的配置/g, `紫微命宮${starStr}的配置`);
+      // 所有硬寫的具體星曜 → 統一替換為實際命宮主星
+      const allStarNames = ['紫微','天機','太陽','武曲','天同','廉貞','天府','太陰','貪狼','巨門','天相','天梁','七殺','破軍'];
+      for (const star of allStarNames) {
+        if (!mainStars.includes(star)) {
+          text = text.replace(new RegExp(`紫微的${star}[/／]\\S+能量`, 'g'), `紫微命宮${starStr}的能量`);
+          text = text.replace(new RegExp(`紫微${star}[/／]\\S+的能量`, 'g'), `紫微${starStr}的能量`);
+          text = text.replace(new RegExp(`紫微${star}[/／]\\S+`, 'g'), `紫微${starStr}`);
+          text = text.replace(new RegExp(`紫微${star}`, 'g'), `紫微${starStr}`);
         }
-        text = text.replace(/紫微天同/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('貪狼')) {
-        text = text.replace(/紫微貪狼\/紫微星/g, `紫微${starStr}`);
-        text = text.replace(/紫微貪狼/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('破軍') || !mainStars.includes('廉貞')) {
-        text = text.replace(/紫微破軍\/廉貞的能量/g, `紫微${starStr}的能量`);
-      }
-      if (!mainStars.includes('天府')) {
-        text = text.replace(/紫微天府/g, `紫微${starStr}`);
-      }
-      if (!mainStars.includes('天相')) {
-        if (!mainStars.includes('天梁')) {
-          text = text.replace(/紫微天相\/天梁/g, `紫微${starStr}`);
-        }
-        text = text.replace(/紫微天相/g, `紫微${starStr}`);
       }
     }
   }
@@ -918,7 +893,240 @@ function conclusion(core, support, results) {
   return c;
 }
 
-// ============ 劇本生成（v2） ============
+// ============ v3: 融合洞見系統 ============
+
+/** 產出交叉印證段落 — 找出不同系統指向同一件事的具體證據 */
+function crossValidation(categories, results) {
+  const { core } = categories;
+  if (core.length === 0) return '';
+  const hd = results.hd?.data;
+  const bz = results.bazi?.data;
+  const zw = results.ziwei?.data;
+  const astro = results.astro?.data;
+  const maya = results.maya?.data;
+
+  const evidences = [];
+
+  // 找核心主題中，最多系統支持的那個，列出具體證據
+  const top = core[0];
+  if (top) {
+    const parts = [];
+    for (const src of top.sources) {
+      // 從來源字串提取具體資訊
+      if (src.includes('八字') && bz) {
+        if (src.includes('日主')) parts.push(`八字日主「${bz.dayMaster}」屬${bz.dayMasterElem}`);
+        else parts.push(src);
+      } else if (src.includes('紫微') && zw) {
+        parts.push(src);
+      } else if (src.includes('占星') && astro) {
+        if (src.includes('太陽') && astro.sunSign) parts.push(`占星太陽${astro.sunSign.zh}`);
+        else if (src.includes('月亮') && astro.moonSign) parts.push(`占星月亮${astro.moonSign.zh}`);
+        else if (src.includes('上升') && astro.risingSign) parts.push(`占星上升${astro.risingSign.zh}`);
+        else parts.push(src);
+      } else if (src.includes('馬雅') && maya) {
+        if (src.includes('主印記') && maya.dreamspell?.seal) parts.push(`馬雅主印記${maya.dreamspell.seal.zh}`);
+        else parts.push(src);
+      } else if (src.includes('人類圖') && hd) {
+        if (src.includes(hd.typeInfo?.zh)) parts.push(`人類圖類型${hd.typeInfo.zh}`);
+        else parts.push(src);
+      } else {
+        parts.push(src);
+      }
+    }
+    if (parts.length >= 3) {
+      evidences.push(`<b>${top.icon} ${top.zh}</b>被 ${top.systemCount} 個系統同時印證：${parts.slice(0,5).join('、')}——五種不同的語言在說同一件事。`);
+    }
+  }
+
+  // 如果有第二個核心主題，看它跟第一個的關係
+  if (core.length >= 2) {
+    const t1 = core[0], t2 = core[1];
+    // 找共同來源系統
+    const shared = t1.systems.filter(s => t2.systems.includes(s));
+    if (shared.length >= 2) {
+      evidences.push(`「${t1.zh}」和「${t2.zh}」在 ${shared.join('、')} 中同時出現——這兩個特質不是分開的，它們在你身上是<b>同一股力量的兩個面向</b>。`);
+    }
+  }
+
+  if (evidences.length === 0) return '';
+  let html = `<div class="script-section" style="border-left-color:#7b6cf6;"><div class="script-title">🔗 交叉印證</div><div class="script-body">`;
+  html += `<div style="font-size:.85rem;color:var(--muted);margin-bottom:10px;">以下不是推論——是多個獨立系統同時指出的事實：</div>`;
+  for (const e of evidences) {
+    html += `<div class="script-lesson" style="border-left-color:#7b6cf6;">${e}</div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+/** 產出融合人生洞見 — 像朋友坐在對面跟你聊天 */
+function lifeInsight(categories, results) {
+  const { core, support } = categories;
+  const all = [...core, ...support];
+  const hd = results.hd?.data;
+  const bz = results.bazi?.data;
+  const zw = results.ziwei?.data;
+  const astro = results.astro?.data;
+  const maya = results.maya?.data;
+
+  // 收集具體命盤元素來組裝個人化段落
+  const hdType = hd?.typeInfo?.zh || '';
+  const hdStrategy = hd?.strategy?.desc?.split('。')[0] || '';
+  const hdAuthority = hd?.authority?.zh || '';
+  const hdProfile = hd?.profile?.profile || '';
+  const baziDM = bz ? `${bz.dayMaster}(${bz.dayMasterElem})` : '';
+  const baziGods = bz?.tenGods ? [...new Set(bz.tenGods.map(t => t.god))] : [];
+  const zwMingStars = [];
+  if (zw?.palaces) {
+    const ming = zw.palaces.find(p => p.pos === zw.mingPos);
+    if (ming?.main) {
+      for (const s of ming.main) {
+        const name = (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '');
+        if (name) zwMingStars.push(name);
+      }
+    }
+  }
+  const sunSign = astro?.sunSign?.zh || '';
+  const moonSign = astro?.moonSign?.zh || '';
+  const mayaSeal = maya?.dreamspell?.seal?.zh || '';
+
+  // 建構「人生模式」段落
+  const paragraphs = [];
+
+  // 段落1: 開場 — 你的五份命盤共同指向什麼
+  let opener = '如果我是一位看完你全部五份命盤的朋友，坐在你對面，我會先跟你說一件事：\n\n';
+
+  // 根據核心主題前兩名決定開場主旨
+  if (core.length >= 2) {
+    const k1 = core[0].key, k2 = core[1].key;
+    const pair = new Set([k1, k2]);
+
+    if (pair.has('action') && pair.has('resilience')) {
+      opener += `你的五份命盤雖然來自完全不同的系統，但都在講同一件事：<b>你不是來這裡安安靜靜過日子的</b>。你是來衝的、來撞的、來摔了再爬起來的。${hdType ? `人類圖說你是${hdType}，` : ''}${zwMingStars.length ? `紫微命宮坐${zwMingStars.join('、')}，` : ''}${baziGods.includes('七殺') ? '八字帶七殺，' : baziGods.includes('劫財') ? '八字帶劫財，' : ''}每一個系統都在強調你身上那股「打不死」的能量。`;
+    } else if (pair.has('intuition') && (pair.has('authenticity') || pair.has('independence'))) {
+      opener += `你的命盤一直在重複一句話：<b>你就是知道答案，而且你必須照著自己的答案走</b>。${hdType ? `人類圖說你是${hdType}，內在權威是${hdAuthority}——` : ''}別人給你的建議再好聽，都比不上你自己那個安靜但清楚的聲音。${sunSign ? `太陽${sunSign}` : ''}${moonSign ? `、月亮${moonSign}` : ''}${mayaSeal ? `、馬雅${mayaSeal}` : ''}——全部指向同一件事。`;
+    } else if (pair.has('wisdom') && (pair.has('patience') || pair.has('strategy'))) {
+      opener += `你的五份命盤都在講一件有點反直覺的事：<b>你的力量不在快，在深</b>。${hdType ? `人類圖說你是${hdType}，策略是「${hdStrategy}」——` : ''}${zwMingStars.length ? `紫微命宮${zwMingStars.join('、')}給你分析和佈局的能力，` : ''}你不是跑百米的選手，你是下棋的人。每一步都要有意義。`;
+    } else if (pair.has('leadership') && (pair.has('action') || pair.has('independence'))) {
+      opener += `你的盤裡有一個反覆出現的訊號：<b>你不是來跟著別人走的，你是來開路的</b>。${hdType ? `人類圖${hdType}的設計、` : ''}${zwMingStars.length ? `紫微命宮${zwMingStars.join('、')}、` : ''}${sunSign ? `太陽${sunSign}——` : ''}每個系統都給你「帶頭」的能量。你可能不覺得自己在「帶」，但回頭看——人一直在跟著你。`;
+    } else if (pair.has('creativity') && (pair.has('independence') || pair.has('authenticity'))) {
+      opener += `你的五份命盤有一個共同的基調：<b>你不適合走別人的路</b>。${mayaSeal ? `馬雅${mayaSeal}、` : ''}${hdType ? `人類圖${hdType}、` : ''}${zwMingStars.length ? `紫微${zwMingStars.join('、')}——` : ''}你的設計就是「創造自己的遊戲規則」。別人的框架對你來說永遠太小。`;
+    } else if (pair.has('wealth') && (pair.has('magnetism') || pair.has('action'))) {
+      opener += `你的命盤裡有一個明確的財富訊號：<b>你跟物質世界的關係是「吸引」型，不是「追逐」型</b>。${zwMingStars.length ? `紫微命宮${zwMingStars.join('、')}、` : ''}${baziGods.includes('正財') || baziGods.includes('偏財') ? `八字帶${baziGods.filter(g=>g.includes('財')).join('、')}、` : ''}${hd?.definedChannels?.find(c=>c.name==='金錢線') ? '人類圖定義了金錢線通道——' : ''}多個系統同時亮起跟財富有關的燈。`;
+    } else if (pair.has('caregiving') && (pair.has('emotional') || pair.has('family'))) {
+      opener += `你的命盤有一個溫暖但沉重的主題：<b>你是照顧者</b>。${zwMingStars.length ? `紫微命宮${zwMingStars.join('、')}、` : ''}${moonSign ? `月亮${moonSign}、` : ''}${mayaSeal ? `馬雅${mayaSeal}——` : ''}這些系統都看見你身上那股「想把身邊的人顧好」的能量。但今天我想跟你聊的不是「你有多會照顧人」——是「誰在照顧你」。`;
+    } else if (pair.has('transformation') && (pair.has('resilience') || pair.has('independence'))) {
+      opener += `你的五份命盤都寫著同一個字：<b>變</b>。${zwMingStars.includes('破軍') ? '紫微破軍、' : zwMingStars.length ? `紫微${zwMingStars.join('、')}、` : ''}${baziGods.includes('七殺') ? '八字七殺、' : ''}${mayaSeal === '藍風暴' ? '馬雅藍風暴——' : mayaSeal ? `馬雅${mayaSeal}——` : ''}你的人生劇本不是一條直線，是一連串的「死而復生」。每次你以為完了的時候，其實是新版本的安裝程序。`;
+    } else {
+      // 通用但仍然具體的開場
+      opener += `你的五份命盤雖然來自不同系統，但都在提醒同一件事：<b>你的人生有一個反覆出現的主旋律</b>——「${core[0].zh}」和「${core[1].zh}」。${hdType ? `人類圖${hdType}、` : ''}${zwMingStars.length ? `紫微${zwMingStars.join('、')}、` : ''}${sunSign ? `太陽${sunSign}、` : ''}${mayaSeal ? `馬雅${mayaSeal}` : ''}——不同的語言，同一個結論。`;
+    }
+  } else if (core.length === 1) {
+    opener += `你的五份命盤有一個壓倒性的共識：<b>${core[0].zh}</b>。${core[0].systemCount} 個獨立系統同時指向這件事——${hdType ? `人類圖${hdType}、` : ''}${zwMingStars.length ? `紫微${zwMingStars.join('、')}、` : ''}${sunSign ? `太陽${sunSign}` : ''}——它們用不同的角度描述同一個你。`;
+  } else {
+    opener += `你的命盤能量分佈多元，沒有單一主題壓倒性出現。這不代表你「沒有方向」——代表你的設計比較彈性，你有更多選擇的自由。${hdType ? `身為人類圖${hdType}，` : ''}你的人生課題不是「找到唯一的路」，而是「學會在每個當下選對的那條」。`;
+  }
+  paragraphs.push(opener);
+
+  // 段落2: 你最自在的活法
+  let lifestyle = '';
+  const elemAdvice = {
+    '木': '需要成長空間',
+    '火': '需要舞台和表達',
+    '土': '需要穩定的根基',
+    '金': '需要被磨練和淬煉',
+    '水': '需要流動和變化',
+  };
+
+  if (has(all, 'patience') && has(all, 'wisdom')) {
+    lifestyle = `你會過得最自在的方式，不是「努力做很多事」，而是<b>確保你做的每一件事都有深度和意義</b>。`;
+    if (hdType === '投射者' || hdType === '反映者') {
+      lifestyle += `你的人類圖是${hdType}——你的價值不在產出量，在品質和洞見。`;
+    }
+    if (bz?.dayMasterElem) lifestyle += `八字日主屬${bz.dayMasterElem}，${elemAdvice[bz.dayMasterElem] || ''}。結合起來：你${bz.dayMasterElem === '水' ? '需要在流動中找到深度——不是一直待在同一個地方，而是每到一個地方都要鑽到底' : bz.dayMasterElem === '金' ? '在壓力下反而越磨越亮——但前提是你選擇了值得的壓力' : bz.dayMasterElem === '木' ? '在有空間的環境裡才能紮根生長——被壓制你就枯了' : bz.dayMasterElem === '火' ? '需要被看見和肯定——但你的光是溫暖的不是燙的' : '先顧好自己的穩定再去照顧別人'}。`;
+  } else if (has(all, 'action') && has(all, 'independence')) {
+    lifestyle = `真正讓你痛苦的，往往不是工作量，而是<b>明明看見更好的做法卻沒有權限去執行</b>。`;
+    if (hdType) lifestyle += `身為${hdType}，你的能量適合${hdType === '顯示者' ? '自己發起、自己決定方向' : hdType === '顯示生產者' ? '回應正確的訊號然後全力衝刺' : hdType === '生產者' ? '等到真正點燃你薦骨的事再投入' : '被看見你的專業後再出手'}。`;
+    if (bz?.dayMasterElem) lifestyle += `日主${bz.dayMasterElem}——你${bz.dayMasterElem === '火' ? '需要一個能讓你發光的位置' : bz.dayMasterElem === '木' ? '需要一個不壓制你的環境' : bz.dayMasterElem === '金' ? '在挑戰中反而表現最好' : bz.dayMasterElem === '水' ? '需要自由流動不被框住' : '需要先有穩定的基礎再往外擴展'}。`;
+  } else if (has(all, 'creativity') || has(all, 'authenticity')) {
+    lifestyle = `你的命盤一直在暗示一件事：<b>你走別人走過的路會特別痛苦</b>。不是你不行，是你的設計就是用來開新路的。`;
+    if (mayaSeal) lifestyle += `馬雅${mayaSeal}的能量讓你天生對「複製別人」感到排斥——你需要自己的表達方式。`;
+    if (hdProfile) lifestyle += `人類圖 Profile ${hdProfile}${hdProfile.startsWith('3') || hdProfile.startsWith('6') ? '——你的智慧來自親身經歷，不是照本宣科' : hdProfile.includes('/5') ? '——別人對你有期待和投射，你要做的是交付「你的版本」而非模仿' : ''}。`;
+  } else if (has(all, 'wealth') && (has(all, 'strategy') || has(all, 'patience'))) {
+    lifestyle = `你的財富模式不是「衝業績」型——是<b>「等到看準了一次大的」</b>型。`;
+    if (baziGods.includes('正財')) lifestyle += `八字正財代表穩定累積的財運——你的錢是一塊一塊疊起來的，不是一夜暴富。`;
+    else if (baziGods.includes('偏財')) lifestyle += `八字偏財代表機會型財運——但你要等到真正「對」的機會，不是每個看起來能賺的都碰。`;
+    if (hdType === '投射者') lifestyle += `人類圖投射者的財富來自「被認出價值然後被邀請」——你越追錢越累，被找到的時候反而最賺。`;
+  } else if (has(all, 'caregiving') || has(all, 'service')) {
+    lifestyle = `你天生帶著「想讓別人好」的能量——但你的命盤同時也在提醒：<b>空了的杯子倒不出水</b>。`;
+    if (hdAuthority === '情緒權威') lifestyle += `你的人類圖是情緒權威——做任何重大決定（包括「要不要幫忙」）都需要等情緒清澈再說。衝動答應的代價通常是後悔。`;
+    if (bz?.dayMasterElem === '土') lifestyle += `八字屬土——大地滋養萬物，但大地也需要被灌溉。你的課題不是「怎麼照顧更多人」，是「怎麼在照顧中不把自己掏空」。`;
+  } else {
+    // 通用
+    lifestyle = `你會過得最自在的方式，是<b>把你命盤裡最強的那幾個特質放在對的位置上</b>。`;
+    if (hdType) lifestyle += `身為${hdType}，遵循你的策略（${hdStrategy}）是一切的基礎。`;
+    if (bz?.dayMasterElem) lifestyle += `日主屬${bz.dayMasterElem}，${elemAdvice[bz.dayMasterElem]}。`;
+  }
+  if (lifestyle) paragraphs.push(lifestyle);
+
+  // 段落3: 矛盾的意義
+  let tension = '';
+  if (core.length >= 2) {
+    const conflicts = CONFLICT_PAIRS.filter(p => has(all,p.a) && has(all,p.b));
+    if (conflicts.length > 0) {
+      const c = conflicts[0];
+      const nameA = THEME_DEFS[c.a]?.zh || c.a;
+      const nameB = THEME_DEFS[c.b]?.zh || c.b;
+      const verbMap = {
+        'independence': '追求自由', 'caregiving': '照顧身邊的人',
+        'action': '趕快行動', 'patience': '慢慢等',
+        'leadership': '帶頭衝', 'wisdom': '深入思考',
+        'creativity': '天馬行空', 'strategy': '有條有理',
+        'emotional': '感受一切', 'resilience': '硬撐到底',
+        'wealth': '賺錢', 'authenticity': '做真實的自己',
+        'magnetism': '跟人靠近', 'family': '守護家人',
+        'transformation': '打掉重練', 'service': '幫助別人',
+        'intuition': '跟著直覺走', 'communication': '表達出來',
+      };
+      const descA = verbMap[c.a] || nameA;
+      const descB = verbMap[c.b] || nameB;
+      tension = `你可能時常覺得自己很矛盾——一部分的你想${descA}，另一部分又想${descB}。但這不是bug。<b>你的設計就是帶著張力的</b>。這些拉扯不是要你「選一邊」，是要你學會在兩端之間找到只屬於你的平衡點。`;
+    }
+  }
+  if (tension) paragraphs.push(tension);
+
+  // 段落4: 最後的建議 — 具體、個人化
+  let advice = '';
+  if (core.length >= 1) {
+    advice = `如果最近感到迷惘，也不用急著尋找答案。`;
+    if (has(all, 'intuition') || has(all, 'patience')) {
+      advice += `你的命盤顯示，答案通常是在<b>行動之後才逐漸浮現</b>，而不是「想清楚才開始」。`;
+    } else if (has(all, 'action')) {
+      advice += `你的設計是<b>先動再修正</b>——你從行動中獲得的清晰度，比思考一百遍都多。`;
+    } else if (has(all, 'wisdom')) {
+      advice += `你需要的是<b>安靜下來、給自己時間消化</b>——答案已經在你心裡，只是被噪音蓋住了。`;
+    } else {
+      advice += `你的命盤顯示，你的方向會在<b>持續做自己的過程中</b>逐漸清晰。`;
+    }
+    advice += `\n\n請相信那些一直反覆出現在生命中的特質——`;
+    if (core.length >= 2) {
+      advice += `你的「${core[0].zh}」和「${core[1].zh}」不是偶然，它們是你最重要的線索。`;
+    } else {
+      advice += `你的「${core[0].zh}」不是偶然，那是你最重要的線索。`;
+    }
+    advice += `當你活在這些特質裡面的時候，一切都會比較順——不是沒有困難，是你在正確的頻率上面對困難。`;
+  }
+  if (advice) paragraphs.push(advice);
+
+  // 組裝
+  let html = `<div class="script-section" style="border-left-color:#4ecdc4;"><div class="script-title">💬 五大系統對你說的話</div><div class="script-body" style="line-height:2;font-size:.92rem;">`;
+  for (const p of paragraphs) {
+    html += `<div style="margin-bottom:18px;">${p.replace(/\n\n/g, '<br><br>')}</div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+// ============ 劇本生成（v3） ============
 
 function generateScript(categories, results) {
   const { core, support } = categories;
@@ -940,6 +1148,9 @@ function generateScript(categories, results) {
     script += `</div>你的人生會有更多彈性和選擇空間——好處是不容易被困住，挑戰是容易什麼都想要。`;
   }
   script += `</div></div>`;
+
+  // === 交叉印證（v3 新增） ===
+  script += crossValidation(categories, results);
 
   // === 天賦（v2: 用差異化文案） ===
   const giftKeys = ['creativity','intuition','communication','leadership','wisdom','magnetism','wealth','action','resilience','emotional'];
@@ -977,27 +1188,9 @@ function generateScript(categories, results) {
     script += `</div></div>`;
   }
 
-  // === 怎麼活 ===
-  script += `<div class="script-section"><div class="script-title">✨ 第五章：活出你的原廠設定</div><div class="script-body">`;
-  const hd = results.hd?.data;
-  const bz = results.bazi?.data;
-  if (hd) {
-    let s = `<div class="script-insight"><b>人類圖：</b>你是${hd.typeInfo?.zh||''}。`;
-    if (hd.strategy) s += `${hd.strategy.desc.split('。')[0]}。`;
-    if (hd.authority) s += `做決定用「${hd.authority.zh}」——${hd.authority.desc.split('。')[0]}。`;
-    script += s + `</div>`;
-  }
-  if (bz) {
-    const adv = {
-      '木':'給自己空間成長，不接受被壓制的環境。你枯萎的原因永遠是空間不夠——不管是物理空間還是心理空間。',
-      '火':'你需要表達和被看見。壓抑自己等於慢性自殺。找到你的舞台，哪怕只是一小塊——你需要發光。',
-      '土':'先穩住自己的根基再去養別人。你是大地，但大地也需要被滋養。過度消耗的土會龜裂。',
-      '金':'你是被磨出來的鑽石。每次痛苦的打磨都讓你更值錢。相信過程——你的價值跟你經歷的磨練成正比。',
-      '水':'你需要流動。一個地方待太久你就死了。流動不一定是搬家——也可以是換思路、換做法、換圈子。',
-    };
-    script += `<div class="script-insight"><b>八字：</b>日主「${bz.dayMaster}」屬${bz.dayMasterElem}。${adv[bz.dayMasterElem]||''}</div>`;
-  }
-  script += `<div class="script-conclusion">${conclusion(core,support,results)}</div></div></div>`;
+  // === 融合洞見（v3: 取代舊版第五章） ===
+  script += lifeInsight(categories, results);
+
   return script;
 }
 
