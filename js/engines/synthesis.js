@@ -141,11 +141,39 @@ function extractZiweiThemes(data) {
     }
   }
   
-  if (data.sihua) {
-    if (data.sihua.lu) themes.push({ theme: 'wealth', source: `紫微化祿(${data.sihua.lu})`, weight: 1 });
-    if (data.sihua.quan) themes.push({ theme: 'leadership', source: `紫微化權(${data.sihua.quan})`, weight: 1 });
-    if (data.sihua.ke) themes.push({ theme: 'wisdom', source: `紫微化科(${data.sihua.ke})`, weight: 1 });
-    if (data.sihua.ji) themes.push({ theme: 'transformation', source: `紫微化忌(${data.sihua.ji})`, weight: 1 });
+  if (data.sihua && data.palaces) {
+    // 四化只有落在命宮或福德宮才算個人特質
+    const mingPos = data.mingPos;
+    const fudePos = (mingPos + 10) % 12;  // 福德宮 = 命宮順數第11宮(index+10)
+    const personalPalaces = [mingPos, fudePos];
+    
+    // 找出四化星各落在哪個宮
+    function findStarPalace(starName) {
+      for (const p of data.palaces) {
+        if (p.main && p.main.some(s => (typeof s === 'string' ? s.replace(/[（(].+/,'').trim() : (s.name||'')) === starName)) return p.pos;
+        if (p.minor && p.minor.some(s => (typeof s === 'string' ? s : (s.name||s)) === starName)) return p.pos;
+      }
+      return -1;
+    }
+    
+    const luPos = findStarPalace(data.sihua.lu);
+    const quanPos = findStarPalace(data.sihua.quan);
+    const kePos = findStarPalace(data.sihua.ke);
+    const jiPos = findStarPalace(data.sihua.ji);
+    
+    // 只有落在命宮/福德宮的四化才算個人特質
+    if (data.sihua.lu && personalPalaces.includes(luPos)) {
+      themes.push({ theme: 'wealth', source: `紫微化祿(${data.sihua.lu})入命/福德`, weight: 1 });
+    }
+    if (data.sihua.quan && personalPalaces.includes(quanPos)) {
+      themes.push({ theme: 'leadership', source: `紫微化權(${data.sihua.quan})入命/福德`, weight: 1 });
+    }
+    if (data.sihua.ke && personalPalaces.includes(kePos)) {
+      themes.push({ theme: 'wisdom', source: `紫微化科(${data.sihua.ke})入命/福德`, weight: 1 });
+    }
+    if (data.sihua.ji && personalPalaces.includes(jiPos)) {
+      themes.push({ theme: 'transformation', source: `紫微化忌(${data.sihua.ji})入命/福德`, weight: 1 });
+    }
   }
   
   return themes;
