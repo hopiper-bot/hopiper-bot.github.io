@@ -11,6 +11,7 @@ import * as ziweiEngine from './engines/ziwei.js';
 import * as hdEngine from './engines/human-design.js';
 import * as synthesisEngine from './engines/synthesis.js';
 import * as transitEngine from './engines/transit.js';
+import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 
 /** 應用程式初始化 */
 function init() {
@@ -200,3 +201,54 @@ function restoreInput() {
 
 // 頁面載入後初始化
 document.addEventListener('DOMContentLoaded', init);
+
+// ============ 梅花易數 UI ============
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnTime = document.getElementById('meihua-time');
+  const btnNumber = document.getElementById('meihua-number');
+  const btnText = document.getElementById('meihua-text');
+  const btnGo = document.getElementById('meihua-go');
+  const timeHint = document.getElementById('meihua-time-hint');
+  const numInput = document.getElementById('meihua-number-input');
+  const txtInput = document.getElementById('meihua-text-input');
+  const resultDiv = document.getElementById('meihua-result');
+
+  if (!btnGo) return;
+
+  let mode = 'time';
+
+  function setMode(m) {
+    mode = m;
+    [btnTime, btnNumber, btnText].forEach(b => b?.classList.remove('active'));
+    if (m === 'time') { btnTime?.classList.add('active'); timeHint.style.display = ''; numInput.style.display = 'none'; txtInput.style.display = 'none'; }
+    if (m === 'number') { btnNumber?.classList.add('active'); timeHint.style.display = 'none'; numInput.style.display = ''; txtInput.style.display = 'none'; }
+    if (m === 'text') { btnText?.classList.add('active'); timeHint.style.display = 'none'; numInput.style.display = 'none'; txtInput.style.display = ''; }
+  }
+
+  btnTime?.addEventListener('click', () => setMode('time'));
+  btnNumber?.addEventListener('click', () => setMode('number'));
+  btnText?.addEventListener('click', () => setMode('text'));
+
+  btnGo.addEventListener('click', () => {
+    let gua;
+    if (mode === 'time') {
+      gua = timeGua();
+    } else if (mode === 'number') {
+      const val = document.getElementById('meihua-num')?.value?.trim();
+      if (!val) { gua = timeGua(); }
+      else {
+        const parts = val.split(/[,，\s]+/).map(Number).filter(n => !isNaN(n) && n > 0);
+        if (parts.length >= 2) gua = numberGua(parts[0], parts[1]);
+        else if (parts.length === 1) gua = numberGua(parts[0]);
+        else gua = timeGua();
+      }
+    } else {
+      const val = document.getElementById('meihua-txt')?.value?.trim();
+      if (!val) { gua = timeGua(); }
+      else { gua = textGua(val); }
+    }
+    resultDiv.innerHTML = renderMeihua(gua);
+    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});

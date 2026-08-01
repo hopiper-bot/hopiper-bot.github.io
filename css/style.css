@@ -157,6 +157,20 @@ input::placeholder {
   transform: translateY(0);
 }
 
+/* ===== Meihua Buttons ===== */
+.btn-meihua {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(198, 169, 105, 0.3);
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+  font-size: .82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-meihua:hover { border-color: var(--accent); color: var(--accent); }
+.btn-meihua.active { background: rgba(198,169,105,.15); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+
 /* ===== Tabs ===== */
 .tabs {
   display: flex;

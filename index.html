@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>人生劇本｜多系統命理合盤</title>
-  <link rel="stylesheet" href="css/style.css?v=20260801a">
+  <link rel="stylesheet" href="css/style.css?v=20260801b">
 </head>
 <body>
   <div class="wrap">
@@ -125,9 +125,35 @@
       <!-- Disclaimer -->
       <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。</p>
     </div>
+
+    <!-- Meihua Section (independent from birth data) -->
+    <div id="meihua-container" class="panel" style="margin-top:24px;">
+      <div class="sig" style="margin-bottom:12px;">
+        <div class="kin">即時占卦</div>
+        <div class="big" style="font-size:1.3rem;">梅花易數</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">一事一占，心念專注，問你現在最在意的那件事。</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button id="meihua-time" class="btn-meihua active" type="button">⏰ 時間起卦</button>
+        <button id="meihua-number" class="btn-meihua" type="button">🔢 報數起卦</button>
+        <button id="meihua-text" class="btn-meihua" type="button">✍️ 文字起卦</button>
+      </div>
+      <div id="meihua-input-area">
+        <div id="meihua-time-hint" style="font-size:.85rem;color:var(--muted);margin-bottom:10px;">心中想著你的問題，準備好就按下面的按鈕。</div>
+        <div id="meihua-number-input" style="display:none;margin-bottom:10px;">
+          <input type="text" id="meihua-num" placeholder="輸入任意數字（如 38 或 7,2）" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--text);font-size:.9rem;" aria-label="起卦數字">
+        </div>
+        <div id="meihua-text-input" style="display:none;margin-bottom:10px;">
+          <input type="text" id="meihua-txt" placeholder="輸入文字（如：今天適合出門嗎）" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:var(--text);font-size:.9rem;" maxlength="50" aria-label="起卦文字">
+        </div>
+      </div>
+      <button id="meihua-go" class="btn-primary" type="button" style="width:100%;">起卦 ✦</button>
+      <div id="meihua-result" style="margin-top:16px;"></div>
+    </div>
+
   </div>
 
-  <script type="module" src="js/main.js?v=20260725d"></script>
+  <script type="module" src="js/main.js?v=20260801b"></script>
   <script>
     // 人類圖通道 + 中心 + 資訊標籤點擊事件委派
     document.addEventListener('click', function(e) {
