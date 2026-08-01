@@ -23,10 +23,21 @@ export function resolveCity(name) {
     }
   }
 
-  // 部分匹配
+  // 部分匹配（雙向：資料庫包含輸入，或輸入包含資料庫）
   for (const city of CITIES) {
-    if (city.zh.includes(name) || city.en.toLowerCase().includes(normalized)) {
+    if (city.zh.includes(name) || name.includes(city.zh) ||
+        city.en.toLowerCase().includes(normalized) || normalized.includes(city.en.toLowerCase())) {
       return { lat: city.lat, lng: city.lng, utcOffset: city.tz };
+    }
+  }
+
+  // 去除常見後綴再試（市、縣、區、鎮、鄉）
+  const stripped = name.replace(/[市縣區鎮鄉]$/g, '');
+  if (stripped && stripped !== name) {
+    for (const city of CITIES) {
+      if (city.zh === stripped || city.zh.includes(stripped) || stripped.includes(city.zh)) {
+        return { lat: city.lat, lng: city.lng, utcOffset: city.tz };
+      }
     }
   }
 
