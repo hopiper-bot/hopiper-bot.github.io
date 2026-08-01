@@ -1243,7 +1243,7 @@ function renderSynthesis(categories, script) {
   html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">上面是規則引擎的分析。想要像「一位看完全部命盤的朋友跟你聊天」的解讀？</p>`;
   html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">`;
   html += `<button id="btn-ai-groq" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:700;font-size:.85rem;cursor:pointer;">✨ AI 即時解讀</button>`;
-  html += `<button id="btn-ai-copy" style="padding:8px 16px;background:rgba(255,255,255,.1);color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:.85rem;cursor:pointer;">📋 複製 Prompt（貼到 ChatGPT）</button>`;
+  html += `<button id="btn-ai-copy" style="padding:8px 16px;background:rgba(255,255,255,.1);color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:.85rem;cursor:pointer;">📋 複製 Prompt（貼到其他 AI 解讀）</button>`;
   html += `</div>`;
   html += `<div id="ai-result" style="display:none;"></div>`;
   html += `</div></div>`;
@@ -1311,8 +1311,8 @@ export function attachAIButtons(results) {
 
   btnCopy.addEventListener('click', () => {
     navigator.clipboard.writeText(fullPrompt).then(() => {
-      btnCopy.textContent = '✅ 已複製！貼到 ChatGPT / Claude 即可';
-      setTimeout(() => { btnCopy.textContent = '📋 複製 Prompt（貼到 ChatGPT）'; }, 3000);
+      btnCopy.textContent = '✅ 已複製！貼到任何 AI 即可';
+      setTimeout(() => { btnCopy.textContent = '📋 複製 Prompt（貼到其他 AI 解讀）'; }, 3000);
     });
   });
 
