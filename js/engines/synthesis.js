@@ -907,41 +907,37 @@ function crossValidation(categories, results) {
 
   const evidences = [];
 
-  // 找核心主題中，最多系統支持的那個，列出具體證據
+  // 取核心主題第一名，列出哪些系統指向它（只列系統名，不列內部 source tag）
   const top = core[0];
-  if (top) {
-    const parts = [];
-    for (const src of top.sources) {
-      // 從來源字串提取具體資訊
-      if (src.includes('八字') && bz) {
-        if (src.includes('日主')) parts.push(`八字日主「${bz.dayMaster}」屬${bz.dayMasterElem}`);
-        else parts.push(src);
-      } else if (src.includes('紫微') && zw) {
-        parts.push(src);
-      } else if (src.includes('占星') && astro) {
-        if (src.includes('太陽') && astro.sunSign) parts.push(`占星太陽${astro.sunSign.zh}`);
-        else if (src.includes('月亮') && astro.moonSign) parts.push(`占星月亮${astro.moonSign.zh}`);
-        else if (src.includes('上升') && astro.risingSign) parts.push(`占星上升${astro.risingSign.zh}`);
-        else parts.push(src);
-      } else if (src.includes('馬雅') && maya) {
-        if (src.includes('主印記') && maya.dreamspell?.seal) parts.push(`馬雅主印記${maya.dreamspell.seal.zh}`);
-        else parts.push(src);
-      } else if (src.includes('人類圖') && hd) {
-        if (src.includes(hd.typeInfo?.zh)) parts.push(`人類圖類型${hd.typeInfo.zh}`);
-        else parts.push(src);
-      } else {
-        parts.push(src);
-      }
+  if (top && top.systemCount >= 3) {
+    // 用真實命盤元素組裝描述（只取每個系統最代表性的一個元素）
+    const systemDescs = [];
+    if (top.systems.includes('八字') && bz) {
+      systemDescs.push(`八字日主「${bz.dayMaster}」(${bz.dayMasterElem})`);
     }
-    if (parts.length >= 3) {
-      evidences.push(`<b>${top.icon} ${top.zh}</b>被 ${top.systemCount} 個系統同時印證：${parts.slice(0,5).join('、')}——五種不同的語言在說同一件事。`);
+    if (top.systems.includes('紫微') && zw) {
+      const ming = zw.palaces?.find(p => p.pos === zw.mingPos);
+      const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean) || [];
+      if (stars.length) systemDescs.push(`紫微命宮${stars.join('、')}`);
+      else systemDescs.push('紫微斗數');
+    }
+    if (top.systems.includes('占星') && astro) {
+      if (astro.sunSign) systemDescs.push(`占星太陽${astro.sunSign.zh}`);
+    }
+    if (top.systems.includes('馬雅') && maya) {
+      if (maya.dreamspell?.seal) systemDescs.push(`馬雅${maya.dreamspell.seal.zh}`);
+    }
+    if (top.systems.includes('人類圖') && hd) {
+      if (hd.typeInfo) systemDescs.push(`人類圖${hd.typeInfo.zh}`);
+    }
+    if (systemDescs.length >= 3) {
+      evidences.push(`<b>${top.icon} ${top.zh}</b>被 ${top.systemCount} 個系統同時印證：${systemDescs.join('、')}——不同的語言在說同一件事。`);
     }
   }
 
   // 如果有第二個核心主題，看它跟第一個的關係
   if (core.length >= 2) {
     const t1 = core[0], t2 = core[1];
-    // 找共同來源系統
     const shared = t1.systems.filter(s => t2.systems.includes(s));
     if (shared.length >= 2) {
       evidences.push(`「${t1.zh}」和「${t2.zh}」在 ${shared.join('、')} 中同時出現——這兩個特質不是分開的，它們在你身上是<b>同一股力量的兩個面向</b>。`);
