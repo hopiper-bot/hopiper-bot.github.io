@@ -185,12 +185,12 @@ function placeMinorStars(yearStemIdx, yearBranchIdx, lunarMonth, hourBranch, min
   const wenquPos = (4 + hourBranch) % 12;
   add(wenquPos, "文曲");
 
-  // 左輔（由生月定）：月+3 從辰起
+  // 左輔（由生月定）：辰起正月順行
   const zuofuPos = (3 + lunarMonth) % 12;
   add(zuofuPos, "左輔");
 
-  // 右弼（由生月定）：10-月 從戌起
-  const youbiPos = (10 - lunarMonth + 12) % 12;
+  // 右弼（由生月定）：戌起正月逆行
+  const youbiPos = (10 - (lunarMonth - 1) + 12) % 12;
   add(youbiPos, "右弼");
 
   // 天魁（由年干定）
