@@ -171,6 +171,9 @@ async function calculate() {
 
     // 綁定 AI 解讀按鈕（DOM 渲染後）
     synthesisEngine.attachAIButtons(results);
+
+    // 綁定流年年份切換按鈕（DOM 渲染後）
+    transitEngine.attachYearSwitcher();
   } catch (err) {
     ui.hideLoading();
     console.error('計算錯誤:', err);

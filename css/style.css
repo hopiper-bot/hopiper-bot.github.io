@@ -542,3 +542,21 @@ h3 {
   text-align: center;
   opacity: 0.7;
 }
+
+/* ===== Transit Year Switcher ===== */
+.transit-year-btn {
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.transit-year-btn:hover:not(.active) {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: rgba(198, 169, 105, 0.08) !important;
+}
+
+.transit-year-btn.active {
+  background: var(--accent) !important;
+  color: #1a1200 !important;
+  border-color: var(--accent) !important;
+}
