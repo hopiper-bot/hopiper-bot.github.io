@@ -269,8 +269,7 @@ export function calculate(birthData) {
     });
 
     // 大運計算（男命陽年順排，男命陰年逆排）
-    // 暫時假設男命（TODO: 加性別輸入）
-    const isMale = true;
+    const isMale = birthData.gender !== 'female';
     const yearStemYY = STEM_YINYANG[pillars.year.stem];
     const isForward = (isMale && yearStemYY === '陽') || (!isMale && yearStemYY === '陰');
     const dayun = calculateDayun(mp.stemIdx, mp.branchIdx, isForward, dayMaster, year);

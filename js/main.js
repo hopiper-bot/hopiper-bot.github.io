@@ -199,6 +199,7 @@ function restoreInput() {
     if (data.hour >= 0) document.getElementById('birth-hour').value = data.hour;
     if (data.minute >= 0) document.getElementById('birth-minute').value = data.minute;
     if (data.location) document.getElementById('birth-location').value = data.location;
+    if (data.gender) document.getElementById('birth-gender').value = data.gender;
   } catch (e) { /* ignore */ }
 }
 

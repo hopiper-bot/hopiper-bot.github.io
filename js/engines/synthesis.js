@@ -185,7 +185,7 @@ function extractAstroThemes(data) {
   const themes = [];
   
   const signThemes = {
-    '白羊座': ['action', 'leadership', 'independence'],
+    '牡羊座': ['action', 'leadership', 'independence'],
     '金牛座': ['wealth', 'patience', 'resilience'],
     '雙子座': ['communication', 'wisdom', 'strategy'],
     '巨蟹座': ['caregiving', 'emotional', 'family'],
