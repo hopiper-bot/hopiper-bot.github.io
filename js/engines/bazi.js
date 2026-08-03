@@ -5,7 +5,7 @@
  */
 
 import { dateTimeToJD, dateToJDN } from '../lib/utils.js';
-import { getLiChunJD, getMonthByJD } from '../lib/solar-terms.js';
+import { getLiChunJD, getMonthByJD, getAllSolarTerms } from '../lib/solar-terms.js';
 import { julianDay } from '../lib/ephemeris.js';
 
 // === 天干地支資料 ===
@@ -134,10 +134,42 @@ function monthPillar(year, month, day, hour, minute, utcOffset, yearStemIdx) {
 
 // === 大運計算 ===
 
-function calculateDayun(monthStemIdx, monthBranchIdx, isForward, dayMaster, birthYear) {
+function calculateDayun(monthStemIdx, monthBranchIdx, isForward, dayMaster, birthYear, birthJD) {
   const steps = [];
-  // 起運年齡簡化：男命陽年約 2-3 歲起運（用固定值簡化，精確計算需要節氣距離）
-  let startAge = 2; // 簡化，實際應根據出生日到下一個節的天數/3
+
+  // 精確起運年齡：出生日到最近「節」的天數 ÷ 3（四捨五入）
+  // 順排 → 找下一個節；逆排 → 找前一個節
+  let startAge = 2; // fallback
+  try {
+    // 取出生年前後的節氣（只取「節」，即偶數 index）
+    const prevTerms = getAllSolarTerms(birthYear - 1);
+    const currTerms = getAllSolarTerms(birthYear);
+    const nextTerms = getAllSolarTerms(birthYear + 1);
+    const allJie = [...prevTerms, ...currTerms, ...nextTerms]
+      .filter(t => t.index % 2 === 0)
+      .sort((a, b) => a.jd - b.jd);
+
+    if (isForward) {
+      // 找出生後最近的「節」
+      const nextJie = allJie.find(t => t.jd > birthJD);
+      if (nextJie) {
+        const daysDiff = nextJie.jd - birthJD;
+        startAge = Math.round(daysDiff / 3);
+      }
+    } else {
+      // 找出生前最近的「節」
+      const prevJie = [...allJie].reverse().find(t => t.jd <= birthJD);
+      if (prevJie) {
+        const daysDiff = birthJD - prevJie.jd;
+        startAge = Math.round(daysDiff / 3);
+      }
+    }
+    // 確保合理範圍
+    if (startAge < 0) startAge = 0;
+    if (startAge > 10) startAge = 10;
+  } catch (e) {
+    startAge = 2; // 計算失敗時用預設值
+  }
 
   for (let i = 0; i < 8; i++) {
     let sIdx, bIdx;
@@ -272,7 +304,8 @@ export function calculate(birthData) {
     const isMale = birthData.gender !== 'female';
     const yearStemYY = STEM_YINYANG[pillars.year.stem];
     const isForward = (isMale && yearStemYY === '陽') || (!isMale && yearStemYY === '陰');
-    const dayun = calculateDayun(mp.stemIdx, mp.branchIdx, isForward, dayMaster, year);
+    const birthJD = julianDay(year, month, day, hour, minute, utcOffset);
+    const dayun = calculateDayun(mp.stemIdx, mp.branchIdx, isForward, dayMaster, year, birthJD);
 
     // 神煞計算
     const shensha = calculateShensha(pillars);

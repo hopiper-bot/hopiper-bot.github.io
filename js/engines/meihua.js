@@ -15,6 +15,7 @@
  */
 
 import { BAGUA, WUXING, GUA64, TIYONG_INTERP } from '../data/meihua-text.js';
+import { solarToLunar } from '../lib/lunar-calendar.js';
 
 // ============ 起卦核心 ============
 
@@ -118,26 +119,41 @@ function getTiyongRelation(tiElem, yongElem) {
 
 // ============ 三種起卦方式 ============
 
-/** 時間起卦：用當下年月日時 */
+/** 時間起卦：用當下年月日時（農曆） */
 export function timeGua(date = new Date()) {
-  // 農曆年地支數 + 月 + 日 = 上卦數
-  // 農曆年地支數 + 月 + 日 + 時辰 = 下卦數
-  // 總數 / 6 餘數 = 動爻
-  // 簡化：用西曆近似（精確農曆太複雜，梅花本就重「隨機取數」）
+  // 正統梅花易數：農曆年地支數 + 農曆月 + 農曆日 = 上卦數
+  //               農曆年地支數 + 農曆月 + 農曆日 + 時辰 = 下卦數
+  //               總數 / 6 餘數 = 動爻
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const hour = date.getHours();
-  // 時辰：0-1=子(1), 1-3=丑(2), ... 用 Math.floor((hour+1)/2) % 12 + 1
   const shichen = Math.floor((hour + 1) / 2) % 12 + 1;
 
-  const upperNum = year + month + day;
-  const lowerNum = year + month + day + shichen;
+  // 轉農曆
+  const lunar = solarToLunar(year, month, day);
+  let lYear, lMonth, lDay;
+  if (lunar) {
+    lYear = lunar.lunarYear;
+    lMonth = lunar.lunarMonth;
+    lDay = lunar.lunarDay;
+  } else {
+    // fallback：農曆轉換失敗時用西曆近似
+    lYear = year;
+    lMonth = month;
+    lDay = day;
+  }
+
+  // 年地支數（1~12）
+  const yearBranch = ((lYear - 4) % 12 + 12) % 12 + 1; // 子=1...亥=12
+
+  const upperNum = yearBranch + lMonth + lDay;
+  const lowerNum = yearBranch + lMonth + lDay + shichen;
   const yaoNum = lowerNum;
 
   const result = buildGua(upperNum, lowerNum, yaoNum);
   result.method = '時間起卦';
-  result.methodDetail = `${year}年${month}月${day}日 ${hour}時（${getShichenName(shichen)}時）`;
+  result.methodDetail = `農曆${lYear}年${lMonth}月${lDay}日 ${hour}時（${getShichenName(shichen)}時）`;
   return result;
 }
 

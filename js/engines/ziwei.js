@@ -95,11 +95,53 @@ function getWuxingJu(yearStemIdx, mingGongPos) {
 }
 
 // === 紫微星定位 ===
-// 三合派標準安星法：以局數為步長，從寅宮起順數
-// 初1~局數日 → 寅，(局數+1)~(2*局數)日 → 卯...以此類推
-// 等價公式：寅(2) + ceil(day/ju) - 1
+// 三合派標準安星演算法（參考 iztro 開源庫的口訣）
+//
+// 口訣：
+//   六五四三二，酉午亥辰丑，
+//   局數除日數，商數宮前走；
+//   若見數無餘，便要起虎口，
+//   日數小於局，還直宮中守。
+//
+// 演算法：
+// 1. offset 從 0 開始遞增，直到 (lunarDay + offset) % juNum === 0
+// 2. 商 = (lunarDay + offset) / juNum
+// 3. 基礎宮位 = 商 - 1（從寅宮=0 開始數）
+// 4. 若 offset 為偶數 → 基礎宮位 + offset（逆時針）
+//    若 offset 為奇數 → 基礎宮位 - offset（順時針）
+// 5. 結果 mod 12 歸一化
+//
+// 注意：此演算法的宮位索引是「寅=0」，最後轉換為我們的「子=0」系統
 function getZiweiPos(juNum, lunarDay) {
-  return (2 + Math.ceil(lunarDay / juNum) - 1) % 12;
+  let offset = 0;
+  let quotient;
+
+  // 找到第一個能整除的 offset
+  while ((lunarDay + offset) % juNum !== 0) {
+    offset++;
+    if (offset > 14) break; // 安全閥：最多循環 juNum-1 次
+  }
+
+  quotient = (lunarDay + offset) / juNum;
+
+  // 商 mod 12（環繞處理）
+  quotient = ((quotient - 1) % 12 + 12) % 12; // 0-indexed from 寅
+
+  // 根據 offset 奇偶決定方向
+  let ziweiIdx;
+  if (offset % 2 === 0) {
+    // 偶數：逆時針（宮位 index 增加方向 = 逆時針）
+    ziweiIdx = quotient + offset;
+  } else {
+    // 奇數：順時針（宮位 index 減少方向 = 順時針）
+    ziweiIdx = quotient - offset;
+  }
+
+  // 歸一化到 0-11（寅=0 的系統）
+  ziweiIdx = ((ziweiIdx % 12) + 12) % 12;
+
+  // 轉換為我們的系統（子=0, 丑=1, 寅=2...）
+  return (ziweiIdx + 2) % 12;
 }
 
 // === 天府位置 ===
