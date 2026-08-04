@@ -85,13 +85,17 @@ export async function shareNative() {
   }
 }
 
-/** 匯出 PDF（利用瀏覽器列印功能，隱藏非結果區域） */
+/** 匯出 PDF（利用瀏覽器列印功能，只印當前 tab） */
 export function exportPDF() {
-  // 加上列印專用 class
   document.body.classList.add('printing-result');
+
+  const cleanup = () => document.body.classList.remove('printing-result');
+  window.addEventListener('afterprint', cleanup, { once: true });
+
   window.print();
-  // 列印完成或取消後移除
-  setTimeout(() => document.body.classList.remove('printing-result'), 1000);
+
+  // fallback: 如果 afterprint 沒觸發（某些瀏覽器），3秒後清理
+  setTimeout(cleanup, 3000);
 }
 
 /** 渲染分享工具列 HTML（插入到結果容器頂部） */

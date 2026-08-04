@@ -672,8 +672,6 @@ h3 {
     font-size: 12px !important;
   }
 
-  body:not(.printing-result) * { /* normal print: show all */ }
-
   body.printing-result .wrap > *:not(#result-container) {
     display: none !important;
   }
@@ -690,27 +688,18 @@ h3 {
     display: none !important;
   }
 
+  /* 只印當前 active 的 tab，不要全部展開 */
   body.printing-result .view {
-    display: block !important;
-    page-break-inside: avoid;
-    margin-bottom: 20px;
+    display: none !important;
   }
 
-  body.printing-result .transit-section {
-    open: true;
-  }
-
-  body.printing-result .transit-section[open] .transit-content,
-  body.printing-result .transit-content {
+  body.printing-result .view.active {
     display: block !important;
   }
 
-  body.printing-result details {
+  /* 折疊的 details 在列印時全展開 */
+  body.printing-result details .transit-content {
     display: block !important;
-  }
-
-  body.printing-result details > summary {
-    display: list-item;
   }
 
   .share-toast { display: none !important; }
