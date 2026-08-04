@@ -7,7 +7,15 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>人生劇本｜多系統命理合盤</title>
-  <link rel="stylesheet" href="css/style.css?v=20260801b">
+  <meta name="description" content="整合馬雅曆、星座、八字、紫微斗數、人類圖五大命理系統，一次解讀你的生命藍圖。">
+  <meta property="og:title" content="人生劇本｜多系統命理合盤">
+  <meta property="og:description" content="馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀你的天賦與人生方向。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hopiper-bot.github.io">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="人生劇本｜多系統命理合盤">
+  <meta name="twitter:description" content="馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="wrap">
@@ -96,23 +104,23 @@
     <div id="result-container" class="panel result-container">
       <!-- Tabs -->
       <nav class="tabs" role="tablist" aria-label="命理系統切換">
-        <div class="tab active" data-view="maya" role="tab" aria-selected="true" tabindex="0">馬雅曆</div>
-        <div class="tab" data-view="astro" role="tab" aria-selected="false" tabindex="0">星座</div>
-        <div class="tab" data-view="bazi" role="tab" aria-selected="false" tabindex="0">八字</div>
-        <div class="tab" data-view="ziwei" role="tab" aria-selected="false" tabindex="0">紫微</div>
-        <div class="tab" data-view="hd" role="tab" aria-selected="false" tabindex="0">人類圖</div>
-        <div class="tab" data-view="transit" role="tab" aria-selected="false" tabindex="0">流年</div>
-        <div class="tab" data-view="synthesis" role="tab" aria-selected="false" tabindex="0">劇本大綱</div>
+        <div class="tab active" data-view="maya" role="tab" aria-selected="true" aria-controls="view-maya" id="tab-maya" tabindex="0">馬雅曆</div>
+        <div class="tab" data-view="astro" role="tab" aria-selected="false" aria-controls="view-astro" id="tab-astro" tabindex="0">星座</div>
+        <div class="tab" data-view="bazi" role="tab" aria-selected="false" aria-controls="view-bazi" id="tab-bazi" tabindex="0">八字</div>
+        <div class="tab" data-view="ziwei" role="tab" aria-selected="false" aria-controls="view-ziwei" id="tab-ziwei" tabindex="0">紫微</div>
+        <div class="tab" data-view="hd" role="tab" aria-selected="false" aria-controls="view-hd" id="tab-hd" tabindex="0">人類圖</div>
+        <div class="tab" data-view="transit" role="tab" aria-selected="false" aria-controls="view-transit" id="tab-transit" tabindex="0">流年</div>
+        <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
       </nav>
 
       <!-- Views -->
-      <div id="view-maya" class="view active" role="tabpanel" aria-label="馬雅曆結果"></div>
-      <div id="view-astro" class="view" role="tabpanel" aria-label="星座結果"></div>
-      <div id="view-bazi" class="view" role="tabpanel" aria-label="八字結果"></div>
-      <div id="view-ziwei" class="view" role="tabpanel" aria-label="紫微斗數結果"></div>
-      <div id="view-hd" class="view" role="tabpanel" aria-label="人類圖結果"></div>
-      <div id="view-transit" class="view" role="tabpanel" aria-label="流年分析結果"></div>
-      <div id="view-synthesis" class="view" role="tabpanel" aria-label="綜合分析結果"></div>
+      <div id="view-maya" class="view active" role="tabpanel" aria-labelledby="tab-maya"></div>
+      <div id="view-astro" class="view" role="tabpanel" aria-labelledby="tab-astro"></div>
+      <div id="view-bazi" class="view" role="tabpanel" aria-labelledby="tab-bazi"></div>
+      <div id="view-ziwei" class="view" role="tabpanel" aria-labelledby="tab-ziwei"></div>
+      <div id="view-hd" class="view" role="tabpanel" aria-labelledby="tab-hd"></div>
+      <div id="view-transit" class="view" role="tabpanel" aria-labelledby="tab-transit"></div>
+      <div id="view-synthesis" class="view" role="tabpanel" aria-labelledby="tab-synthesis"></div>
 
       <!-- IG Promotion -->
       <div class="promo-block">
@@ -153,7 +161,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=20260801b"></script>
+  <script type="module" src="js/main.js"></script>
   <script>
     // 人類圖通道 + 中心 + 資訊標籤點擊事件委派
     document.addEventListener('click', function(e) {

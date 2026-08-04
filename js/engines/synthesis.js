@@ -242,7 +242,7 @@ function extractMayaThemes(data) {
     '紅蛇': ['action', 'intuition', 'transformation'],
     '白世界橋': ['transformation', 'service', 'magnetism'],
     '藍手': ['creativity', 'action', 'service'],
-    '黃星星': ['creativity', 'wisdom', 'authenticity'],
+    '黃星': ['creativity', 'wisdom', 'authenticity'],
     '紅月': ['emotional', 'intuition', 'transformation'],
     '白狗': ['caregiving', 'family', 'magnetism'],
     '藍猴': ['creativity', 'independence', 'wisdom'],
