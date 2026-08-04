@@ -694,7 +694,10 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
       html += `<div style="font-size:.9rem;font-weight:600;">當前馬雅年（${maya.galacticYear || ''}）= <span style="color:var(--accent);">${yi.tone}的${yi.seal}</span>（KIN ${yi.kin}）</div>`;
       html += `<div style="font-size:.82rem;color:var(--muted);margin-top:6px;">集體共享的年度能量主題：今年整個世界都在「${yi.seal}」的頻率中運作。</div>`;
       if (yiSealData) {
-        html += `<div style="font-size:.82rem;margin-top:6px;line-height:1.5;"><b>「${yi.seal}」的頻率</b>：${yiSealData.text.split("。")[0]}。</div>`;
+        html += `<div style="font-size:.82rem;margin-top:6px;line-height:1.5;"><b>${yiSealData.glyph}「${yi.seal}」的頻率</b>：${yiSealData.text.split("。")[0]}。</div>`;
+      }
+      if (yiToneData) {
+        html += `<div style="font-size:.82rem;margin-top:4px;line-height:1.5;"><b>「${yi.tone}」的運作方式</b>（關鍵字：${yiToneData.kw}）：${yiToneData.text.split("。")[0]}。</div>`;
       }
       if (pi) {
         const piSealData = MAYA_SEALS.find(s => s.zh === pi.seal);
@@ -702,7 +705,7 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
         html += `<div style="margin-top:10px;font-size:.9rem;font-weight:600;">你今年生日的 KIN = <span style="color:var(--accent);">${pi.tone}的${pi.seal}</span>（KIN ${pi.kin}）</div>`;
         html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">你這一年的個人能量色彩：${pi.seal}的品質 + ${pi.tone}的行動方式。</div>`;
         if (piSealData) {
-          html += `<div style="font-size:.82rem;margin-top:4px;line-height:1.5;"><b>「${pi.seal}」的品質</b>（關鍵字：${piSealData.glyph}）：${piSealData.text.split("。")[0]}。</div>`;
+          html += `<div style="font-size:.82rem;margin-top:4px;line-height:1.5;"><b>${piSealData.glyph}「${pi.seal}」的品質</b>：${piSealData.text.split("。")[0]}。</div>`;
         }
         if (piToneData) {
           html += `<div style="font-size:.82rem;margin-top:4px;line-height:1.5;"><b>「${pi.tone}」的行動方式</b>（關鍵字：${piToneData.kw}）：${piToneData.text.split("。")[0]}。</div>`;
