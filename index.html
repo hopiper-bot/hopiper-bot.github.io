@@ -113,6 +113,9 @@
         <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
       </nav>
 
+      <!-- Share Toolbar -->
+      <div id="share-toolbar-slot"></div>
+
       <!-- Views -->
       <div id="view-maya" class="view active" role="tabpanel" aria-labelledby="tab-maya"></div>
       <div id="view-astro" class="view" role="tabpanel" aria-labelledby="tab-astro"></div>
@@ -162,138 +165,6 @@
   </div>
 
   <script type="module" src="js/main.js"></script>
-  <script>
-    // 人類圖通道 + 中心 + 資訊標籤點擊事件委派
-    document.addEventListener('click', function(e) {
-      // 資訊標籤點擊（策略/權威/角色/定義/非自己）
-      var info = e.target.closest ? e.target.closest('[data-hd-info]') : null;
-      if (info && window._hdInfoDesc) {
-        var key = info.getAttribute('data-hd-info');
-        var html = window._hdInfoDesc[key];
-        if (html) {
-          var el = document.getElementById('hd-detail');
-          if (el) { el.innerHTML = html; el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-        }
-        return;
-      }
-      // 通道點擊
-      var line = e.target.closest ? e.target.closest('[data-hd-channel]') : null;
-      if (line) {
-        var idx = parseInt(line.getAttribute('data-hd-channel'));
-        if (isNaN(idx) || !window._hdAllChannels) return;
-        var ch = window._hdAllChannels[idx];
-        if (!ch) return;
-        var g1 = ch.gates[0], g2 = ch.gates[1];
-        var html2 = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-        html2 += '<div style="font-size:1rem;font-weight:700;color:var(--accent);">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
-        html2 += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
-        html2 += '<div style="padding:10px;background:rgba(245,197,66,.08);border-radius:6px;white-space:pre-line;line-height:1.8;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
-        var el2 = document.getElementById('hd-detail');
-        if (el2) { el2.innerHTML = html2; el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-        return;
-      }
-      // 中心點擊
-      var center = e.target.closest ? e.target.closest('[data-hd-center]') : null;
-      if (center && window._hdData && window._hdCenterDesc) {
-        var cId = center.getAttribute('data-hd-center');
-        var html3 = window._hdCenterDesc(cId);
-        var el3 = document.getElementById('hd-detail');
-        if (el3) { el3.innerHTML = html3; el3.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      }
-    });
-  </script>
-  <script>
-    // 紫微宮格點擊 — 全域事件委派（完全獨立於 ES module）
-    document.addEventListener('click', function(e) {
-      var cell = e.target.closest ? e.target.closest('[data-zw-pos]') : null;
-      if (!cell) return;
-      var pos = parseInt(cell.getAttribute('data-zw-pos'));
-      if (isNaN(pos) || !window._zwData) return;
-
-      var d = window._zwData;
-      var p = d.posMap[pos];
-      if (!p) return;
-      var oppositePos = (pos + 6) % 12;
-      var oppP = d.posMap[oppositePos];
-
-      var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-
-      // 本宮
-      html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">\u{1F4CD} ' + p.name + '\uFF08' + p.branch + '\u5BAE\uFF09</div>';
-      html += '<div style="color:var(--muted);margin-bottom:4px;">' + (d.palaceInfo[p.name]||'') + '</div>';
-      // 宮位角色定位
-      if (d.palaceRole && d.palaceRole[p.name]) {
-        html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
-      }
-
-      if (p.main.length > 0) {
-        html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
-        p.main.forEach(function(s) {
-          var bColor = (s.brightness==='\u5EDF'||s.brightness==='\u65FA') ? 'var(--accent)' : s.brightness==='\u9677' ? 'var(--red)' : 'var(--muted)';
-          // 優先用「星×宮」解讀，沒有才用通用
-          var interpKey = s.name + '_' + p.name;
-          var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
-          html += '<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-          html += '<span style="font-size:.75rem;color:' + bColor + ';">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + interp + '</div>';
-        });
-        // 雙星組合
-        if (p.main.length >= 2) {
-          var key1 = p.main[0].name + '+' + p.main[1].name;
-          var key2 = p.main[1].name + '+' + p.main[0].name;
-          var combo = d.starCombos[key1] || d.starCombos[key2];
-          if (combo) {
-            html += '<div style="margin:8px 0;padding:8px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);"><b>\u26A1 \u7D44\u5408\u6548\u61C9\uFF1A</b>' + combo + '</div>';
-          }
-        }
-      } else {
-        html += '<div style="color:var(--muted);margin-bottom:8px;">\u6B64\u5BAE\u7121\u4E3B\u661F \u2014 \u501F\u5C0D\u5BAE\u661F\u529B\u3002\u4F60\u5728\u9019\u500B\u9762\u5411\u6BD4\u8F03\u300C\u770B\u60C5\u6CC1\u300D\uFF0C\u53D7\u74B0\u5883\u548C\u5C0D\u5BAE\u5F71\u97FF\u5927\u3002</div>';
-      }
-
-      if (p.minor.length > 0) {
-        html += '<div style="margin-top:8px;margin-bottom:4px;"><b>\u526F\u661F\uFF1A</b></div>';
-        p.minor.forEach(function(s) {
-          html += '<div style="margin-left:8px;font-size:.82rem;color:var(--muted);">' + s + '\uFF1A' + (d.starInfo[s]||'') + '</div>';
-        });
-      }
-
-      // 四化落此宮
-      var sihuaHere = d.sihuaPalaces[p.name];
-      if (sihuaHere) {
-        html += '<div style="margin-top:10px;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">';
-        html += '<b>\u{1F300} \u6B64\u5BAE\u6709\u56DB\u5316\uFF1A</b><br>';
-        sihuaHere.forEach(function(item) {
-          var type = item.charAt(0);
-          var interp = '';
-          if (type === '\u797F' && d.sihuaPalaceInterp['\u797F']) interp = d.sihuaPalaceInterp['\u797F'][p.name] || '';
-          if (type === '\u5FCC' && d.sihuaPalaceInterp['\u5FCC']) interp = d.sihuaPalaceInterp['\u5FCC'][p.name] || '';
-          var color = type==='\u797F'?'#4f4':type==='\u6B0A'?'#f84':type==='\u79D1'?'#8cf':type==='\u5FCC'?'#f55':'var(--text)';
-          html += '<span style="color:' + color + ';font-weight:700;">' + item + '</span>';
-          if (interp) html += '<br><span style="font-size:.8rem;color:var(--muted);margin-left:8px;">' + interp + '</span>';
-          html += '<br>';
-        });
-        html += '</div>';
-      }
-
-      // 對宮
-      html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
-      html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</div>';
-      html += '<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">\u5C0D\u5BAE\u7684\u661F\u6703\u300C\u7167\u5165\u300D\u672C\u5BAE\uFF0C\u5F71\u97FF\u529B\u7D04 60-70%\u3002\u672C\u5BAE\u7121\u4E3B\u661F\u6642\u5F71\u97FF\u66F4\u5927\u3002</div>';
-
-      if (oppP && oppP.main.length > 0) {
-        oppP.main.forEach(function(s) {
-          html += '<div style="margin-left:8px;font-size:.82rem;"><span style="color:var(--accent2);">' + s.name + '</span>\uFF08' + s.brightness + '\uFF09\u7167\u5165\uFF1A' + (d.starInfo[s.name]||'') + '</div>';
-        });
-      } else {
-        html += '<div style="font-size:.82rem;color:var(--muted);">\u5C0D\u5BAE\u4E5F\u7121\u4E3B\u661F\uFF08\u96D9\u7A7A\u5BAE\uFF09\uFF0C\u9019\u500B\u9762\u5411\u6BD4\u8F03\u81EA\u7531\u767C\u63EE\u3002</div>';
-      }
-      html += '</div></div>';
-
-      var detailEl = document.getElementById('zw-detail');
-      if (detailEl) {
-        detailEl.innerHTML = html;
-        detailEl.scrollIntoView({behavior:'smooth', block:'nearest'});
-      }
-    });
-  </script>
+  <script src="js/click-handlers.js"></script>
 </body>
 </html>

@@ -568,7 +568,9 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
 
   // 八字流年
   if (bazi) {
-    html += `<div class="divider"></div><h3>🀄 八字流年</h3>`;
+    html += `<div class="divider"></div>`;
+    html += `<details class="transit-section" open><summary class="transit-summary"><h3 style="display:inline;margin:0;border:none;padding:0;">🀄 八字流年</h3><span class="transit-arrow"></span></summary>`;
+    html += `<div class="transit-content">`;
     html += `<div style="display:flex;gap:12px;align-items:center;margin:8px 0;">`;
     html += `<div style="text-align:center;padding:8px 16px;background:rgba(123,108,246,.1);border-radius:8px;"><div style="font-size:1.2rem;font-weight:700;">${bazi.stem}${bazi.branch}</div><div style="font-size:.75rem;color:var(--muted);">${bazi.yearElem}年</div></div>`;
     html += `<div><div style="font-size:.9rem;font-weight:600;color:var(--accent);">流年十神：${bazi.god}</div>`;
@@ -576,11 +578,14 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
     if (bazi.dayunInfo) html += `<div style="font-size:.78rem;color:var(--muted);margin-top:2px;">目前${bazi.dayunInfo}</div>`;
     html += `</div></div>`;
     html += `<div class="meaning" style="line-height:1.9;">${bazi.godDesc}</div>`;
+    html += `</div></details>`;
   }
 
   // 占星流年
   if (astro) {
-    html += `<div class="divider"></div><h3>🪐 占星流年（行星過境）</h3>`;
+    html += `<div class="divider"></div>`;
+    html += `<details class="transit-section" open><summary class="transit-summary"><h3 style="display:inline;margin:0;border:none;padding:0;">🪐 占星流年（行星過境）</h3><span class="transit-arrow"></span></summary>`;
+    html += `<div class="transit-content">`;
     html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">慢行星今年的位置 vs 你的本命盤</div>`;
     // 木星（幸運）
     html += `<div class="script-gift"><b>♃ 木星過境 ${astro.jupHouse} 宮</b>（${HOUSE_TOPICS[astro.jupHouse]||''}）<br>${getJupiterHouseDesc(astro.jupHouse)}</div>`;
@@ -598,11 +603,14 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
         html += `</div>`;
       }
     }
+    html += `</div></details>`; // close astro details
   }
 
   // 人類圖流年
   if (hd) {
-    html += `<div class="divider"></div><h3>△ 人類圖流年（行星通道）</h3>`;
+    html += `<div class="divider"></div>`;
+    html += `<details class="transit-section"><summary class="transit-summary"><h3 style="display:inline;margin:0;border:none;padding:0;">△ 人類圖流年（行星通道）</h3><span class="transit-arrow"></span></summary>`;
+    html += `<div class="transit-content">`;
     html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">慢行星今年停留的閘門——這些能量整年都在背景運作</div>`;
     if (hd.transitGates.length > 0) {
       for (const tg of hd.transitGates) {
@@ -658,11 +666,14 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
     } else {
       html += `<div style="font-size:.82rem;color:var(--muted);margin-top:8px;">今年沒有慢行星為你臨時開通新通道。能量穩定運行，照著你本命的設計走就好。</div>`;
     }
+    html += `</div></details>`; // close hd details
   }
 
   // 紫微流年
   if (ziwei) {
-    html += `<div class="divider"></div><h3>🌟 紫微流年</h3>`;
+    html += `<div class="divider"></div>`;
+    html += `<details class="transit-section"><summary class="transit-summary"><h3 style="display:inline;margin:0;border:none;padding:0;">🌟 紫微流年</h3><span class="transit-arrow"></span></summary>`;
+    html += `<div class="transit-content">`;
     html += `<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">流年四化 = 今年的能量分配，化祿是順風、化忌是功課</div>`;
     html += `<div style="display:flex;gap:12px;align-items:center;margin:8px 0;">`;
     html += `<div style="text-align:center;padding:8px 16px;background:rgba(123,108,246,.1);border-radius:8px;"><div style="font-size:1rem;font-weight:700;">${ziwei.yearStem}${ziwei.yearBranch}年</div></div>`;
@@ -679,11 +690,14 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
         html += `<div style="font-size:.85rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);">${huaIcon[key]} <b>${ziwei.sihua[key]}</b>化${huaLabel[key]} → <b>${palaceName}</b><br><span style="font-size:.8rem;color:var(--muted);line-height:1.6;">${desc}</span></div>`;
       }
     }
+    html += `</div></details>`; // close ziwei details
   }
 
   // 馬雅流年
   if (maya) {
-    html += `<div class="divider"></div><h3>🌀 馬雅年度能量</h3>`;
+    html += `<div class="divider"></div>`;
+    html += `<details class="transit-section"><summary class="transit-summary"><h3 style="display:inline;margin:0;border:none;padding:0;">🌀 馬雅年度能量</h3><span class="transit-arrow"></span></summary>`;
+    html += `<div class="transit-content">`;
     if (maya.yearInfo) {
       const yi = maya.yearInfo;
       const pi = maya.personalInfo;
@@ -713,6 +727,7 @@ function renderTransit(year, bazi, hd, astro, ziwei, maya) {
       }
       html += `</div>`;
     }
+    html += `</div></details>`; // close maya details
   }
 
   // === 流年綜合交叉比對 ===

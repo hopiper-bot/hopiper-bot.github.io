@@ -12,6 +12,7 @@ import * as hdEngine from './engines/human-design.js';
 import * as synthesisEngine from './engines/synthesis.js';
 import * as transitEngine from './engines/transit.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
+import { renderShareToolbar, attachShareHandlers } from './share.js';
 
 /** 應用程式初始化 */
 function init() {
@@ -168,6 +169,11 @@ async function calculate() {
     results.synthesis = synthesisEngine.calculate(results);
 
     ui.render(results);
+
+    // 渲染分享工具列（插入到結果容器頂部）
+    const shareEl = document.getElementById('share-toolbar-slot');
+    if (shareEl) shareEl.innerHTML = renderShareToolbar();
+    attachShareHandlers();
 
     // 綁定 AI 解讀按鈕（DOM 渲染後）
     synthesisEngine.attachAIButtons(results);
