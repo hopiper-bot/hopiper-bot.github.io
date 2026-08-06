@@ -185,25 +185,29 @@ export function numberGua(num1, num2 = null) {
   return result;
 }
 
-/** 文字起卦：用字數起卦 */
+/** 文字起卦：用字的筆畫數（以 Unicode 碼值近似）起卦 */
 export function textGua(text) {
   const chars = [...text.replace(/\s/g, '')];
   const len = chars.length;
   if (len === 0) return timeGua(); // fallback
 
-  let upperNum, lowerNum;
+  let upperNum, lowerNum, yaoNum;
   if (len === 1) {
-    // 單字：用字的 charCode 拆
+    // 單字：用字的 charCode 作上下卦
     const code = text.charCodeAt(0);
     upperNum = code;
     lowerNum = code;
+    yaoNum = upperNum + lowerNum;
   } else {
-    // 多字：前半字數=上卦，後半字數=下卦
+    // 多字：前半各字 charCode 總和 = 上卦數，後半 = 下卦數
+    // 這樣不同文字即使字數相同也會得到不同卦象
     const mid = Math.ceil(len / 2);
-    upperNum = mid;
-    lowerNum = len - mid;
+    const upperChars = chars.slice(0, mid);
+    const lowerChars = chars.slice(mid);
+    upperNum = upperChars.reduce((sum, c) => sum + c.charCodeAt(0), 0);
+    lowerNum = lowerChars.reduce((sum, c) => sum + c.charCodeAt(0), 0);
+    yaoNum = upperNum + lowerNum;
   }
-  const yaoNum = upperNum + lowerNum;
 
   const result = buildGua(upperNum, lowerNum, yaoNum);
   result.method = '文字起卦';
