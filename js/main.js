@@ -179,6 +179,14 @@ async function calculate() {
     // 保存星座和馬雅結果供合盤使用
     if (astroResult.status === 'ok') {
       window.__lastAstroData = astroResult.data;
+      // 也存到 localStorage 讓合盤能用
+      try {
+        const astroSave = {};
+        if (astroResult.data.sunSign) astroSave.sunSign = astroResult.data.sunSign.zh || '';
+        if (astroResult.data.moonSign) astroSave.moonSign = astroResult.data.moonSign.zh || '';
+        if (astroResult.data.risingSign) astroSave.risingSign = astroResult.data.risingSign.zh || '';
+        localStorage.setItem('destiny_astro_signs', JSON.stringify(astroSave));
+      } catch(e) {}
     }
     if (mayaResult.status === 'ok') {
       window.__lastMayaData = mayaResult.data;
@@ -392,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 星座合盤（需要個人星座結果）
       let astroHtml = '';
-      const personAstro = window.__lastAstroData || null;
+      let personAstro = window.__lastAstroData || null;
       // 從 localStorage 取個人出生月日作為 fallback
       let personMonth = 0, personDay = 0;
       try {
@@ -400,6 +408,14 @@ document.addEventListener('DOMContentLoaded', () => {
         personMonth = saved.month || 0;
         personDay = saved.day || 0;
       } catch(e) {}
+      // 從 localStorage 取已存的星座（如果 window 變數沒存到）
+      let savedSigns = null;
+      try {
+        savedSigns = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null');
+      } catch(e) {}
+      if (!personAstro && savedSigns) {
+        personAstro = { sunSign: savedSigns.sunSign, moonSign: savedSigns.moonSign, risingSign: savedSigns.risingSign };
+      }
       const astroInput = { month, day, companyName, personMonth, personDay };
       try {
         const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
