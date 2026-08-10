@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 動態載入 engine（避免靜態 import 失敗炸掉整個 app）
     if (!companyCompatEngine) {
       try {
-        companyCompatEngine = await import('./engines/company-compat.js?v=2');
+        companyCompatEngine = await import('./engines/company-compat.js?v=3');
       } catch (e) {
         errorDiv.textContent = `引擎載入失敗：${e.message}`;
         console.error('company-compat load error:', e);
