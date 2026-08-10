@@ -323,6 +323,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 清除全部結果
+  const btnClear = document.getElementById('company-compat-clear');
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      document.getElementById('company-compat-result').innerHTML = '';
+    });
+  }
+
   btnGo.addEventListener('click', async () => {
     const errorDiv = document.getElementById('company-compat-error');
     const resultDiv = document.getElementById('company-compat-result');
@@ -373,8 +381,12 @@ document.addEventListener('DOMContentLoaded', () => {
         year, month, day, hour: 9,
         logoColor, industry, companyName,
       });
-      resultDiv.innerHTML = result.html;
-      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // 疊加顯示（新結果加在最前面），不清除舊的
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
+      wrapper.innerHTML = result.html;
+      resultDiv.prepend(wrapper);
+      wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       errorDiv.textContent = `計算錯誤：${err.message}`;
       console.error('公司合盤錯誤:', err);
