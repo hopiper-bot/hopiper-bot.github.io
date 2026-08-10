@@ -13,7 +13,9 @@ import * as synthesisEngine from './engines/synthesis.js';
 import * as transitEngine from './engines/transit.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
-import * as companyCompatEngine from './engines/company-compat.js';
+
+// company-compat 使用 dynamic import 避免載入失敗時影響主程式
+let companyCompatEngine = null;
 
 // 全域儲存最新的個人八字結果，供公司合盤使用
 let lastBaziData = null;
@@ -169,6 +171,9 @@ async function calculate() {
     // 保存八字結果供公司合盤使用
     if (baziResult.status === 'ok') {
       lastBaziData = baziResult.data;
+      // 顯示公司合盤區塊
+      const ccEl = document.getElementById('company-compat-container');
+      if (ccEl) ccEl.style.display = '';
     }
 
     // 流年分析（需要所有系統結果）
@@ -318,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnGo.addEventListener('click', () => {
+  btnGo.addEventListener('click', async () => {
     const errorDiv = document.getElementById('company-compat-error');
     const resultDiv = document.getElementById('company-compat-result');
     errorDiv.textContent = '';
@@ -328,6 +333,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!lastBaziData) {
       errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
       return;
+    }
+
+    // 動態載入 engine（避免靜態 import 失敗炸掉整個 app）
+    if (!companyCompatEngine) {
+      try {
+        companyCompatEngine = await import('./engines/company-compat.js');
+      } catch (e) {
+        errorDiv.textContent = `引擎載入失敗：${e.message}`;
+        console.error('company-compat load error:', e);
+        return;
+      }
     }
 
     // 取得公司資料
