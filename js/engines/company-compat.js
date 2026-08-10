@@ -594,19 +594,19 @@ function signDistance(sign1, sign2) {
 function zodiacCompat(sign1, sign2) {
   const dist = signDistance(sign1, sign2);
   // 合相（0）= 同星座
-  if (dist === 0) return { level: '合相（同星座）', score: 95, desc: '完全同頻！你們用一樣的方式看世界。' };
+  if (dist === 0) return { level: '合相（同星座）', score: 95, desc: '完全同頻！你跟這家公司的能量頻率一致，做事邏輯天然吻合。' };
   // 三合（4, 8）= 同元素
-  if (dist === 4 || dist === 8) return { level: '三合（同元素）', score: 88, desc: '同元素120°三合——最自然的和諧，互相理解不費力。' };
+  if (dist === 4 || dist === 8) return { level: '三合（同元素）', score: 88, desc: '同元素三合——你跟公司的節奏天生合拍，合作起來不費力。' };
   // 六合（2, 10）= 相鄰友善
-  if (dist === 2 || dist === 10) return { level: '六合（60°）', score: 78, desc: '60°六合——輕鬆愉快的互動，互相欣賞彼此不同的特質。' };
+  if (dist === 2 || dist === 10) return { level: '六合（60°）', score: 78, desc: '六合——公司的風格跟你互補，相處輕鬆能互相學到東西。' };
   // 對衝（6）= 180°
-  if (dist === 6) return { level: '對衝（180°）', score: 50, desc: '正對面——強烈的吸引力但也有拉扯。你們互補但需要磨合。' };
+  if (dist === 6) return { level: '對衝（180°）', score: 50, desc: '對衝——你跟公司恰好互補，有吸引力但也有拉扯，需要調適。' };
   // 刑（3, 9）= 90°
-  if (dist === 3 || dist === 9) return { level: '刑衝（90°）', score: 42, desc: '90°四分相——有摩擦、有壓力，但壓力也可以推動成長。' };
+  if (dist === 3 || dist === 9) return { level: '刑衝（90°）', score: 42, desc: '四分——跟公司文化有摩擦，但這種壓力也可能逼你成長。' };
   // 半六合（1, 11）= 30°
-  if (dist === 1 || dist === 11) return { level: '半合（30°）', score: 60, desc: '相鄰星座——性格差異不小，但能學到對方的優點。' };
+  if (dist === 1 || dist === 11) return { level: '半合（30°）', score: 60, desc: '半合——你跟公司的調性有落差，但能從中學到新東西。' };
   // 梅花（5, 7）= 150°
-  if (dist === 5 || dist === 7) return { level: '梅花相（150°）', score: 48, desc: '150°——最不容易理解對方的角度，需要刻意溝通。' };
+  if (dist === 5 || dist === 7) return { level: '梅花相（150°）', score: 48, desc: '梅花相——你跟公司的頻率不太對得上，需要刻意調整適應。' };
   return { level: '中性', score: 60, desc: '沒有明顯的相位連結。' };
 }
 
@@ -688,9 +688,9 @@ function renderAstroCompat(data) {
         </div>
         ${avgScore ? `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:${avgColor};">${avgScore}</div><div style="font-size:.7rem;color:var(--muted);">綜合</div></div>` : ''}
       </div>
-      ${compatBlock('☉ 太陽（核心自我）', personSunSign, sunCompat)}
-      ${compatBlock('☽ 月亮（情緒舒適）', personMoonSign, moonCompat)}
-      ${compatBlock('⬆ 上升（外在表現）', personRisingSign, risingCompat)}
+      ${compatBlock('☉ 你的太陽 vs 公司太陽', personSunSign, sunCompat)}
+      ${compatBlock('☽ 你的月亮 vs 公司太陽', personMoonSign, moonCompat)}
+      ${compatBlock('⬆ 你的上升 vs 公司太陽', personRisingSign, risingCompat)}
       ${!moonCompat && !risingCompat ? '<div style="font-size:.8rem;color:var(--muted);margin-top:8px;">💡 月亮和上升需要完整星盤才能分析（需準確出生時間和地點）</div>' : ''}
     </div>`;
 }
