@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============ 公司合盤 UI ============
 
 const COMPANY_PRESETS = {
-  inventec:  { name: '英業達', year: 1975, month: 8, day: 1, logo: '紅色', industry: '電子製造' },
+  inventec:  { name: '英業達', year: 1975, month: 6, day: 9, logo: '紅色', industry: '電子製造' },
   tsmc:      { name: '台積電', year: 1987, month: 2, day: 21, logo: '紅色', industry: '半導體' },
   foxconn:   { name: '鴻海', year: 1974, month: 2, day: 20, logo: '藍色', industry: '電子製造' },
   asus:      { name: '華碩', year: 1989, month: 4, day: 2, logo: '藍色', industry: '科技硬體' },
