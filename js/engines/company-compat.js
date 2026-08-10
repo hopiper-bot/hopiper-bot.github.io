@@ -598,8 +598,11 @@ export function calculateAstro(personAstroData, companyInput) {
   const companyElem = ZODIAC_ELEMENT[companySign];
   const companyModality = ZODIAC_MODALITY[companySign];
 
-  // 個人太陽星座
-  const personSign = personAstroData?.sunSign?.zh || '';
+  // 個人太陽星座（支援 object 或 null）
+  let personSign = '';
+  if (personAstroData && personAstroData.sunSign) {
+    personSign = typeof personAstroData.sunSign === 'string' ? personAstroData.sunSign : (personAstroData.sunSign.zh || '');
+  }
   const personElem = ZODIAC_ELEMENT[personSign] || '';
 
   const compat = personSign ? zodiacCompat(personSign, companySign) : null;

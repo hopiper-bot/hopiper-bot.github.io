@@ -393,10 +393,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // 星座合盤（需要個人星座結果）
       let astroHtml = '';
       const personAstro = window.__lastAstroData || null;
-      if (personAstro) {
-        const astroResult = companyCompatEngine.calculateAstro(personAstro, { month, day, companyName });
-        if (astroResult.status === 'ok') astroHtml = astroResult.html;
-      }
+      // 即使沒有完整星座結果，也嘗試用 fallback（只要有個人命盤就有 sunSign）
+      const astroInput = { month, day, companyName };
+      try {
+        const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
+        if (astroResult2.status === 'ok') astroHtml = astroResult2.html;
+      } catch(e) { console.warn('星座合盤錯誤:', e); }
 
       // 馬雅合盤（需要個人馬雅結果）
       let mayaHtml = '';
