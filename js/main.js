@@ -393,8 +393,14 @@ document.addEventListener('DOMContentLoaded', () => {
       // 星座合盤（需要個人星座結果）
       let astroHtml = '';
       const personAstro = window.__lastAstroData || null;
-      // 即使沒有完整星座結果，也嘗試用 fallback（只要有個人命盤就有 sunSign）
-      const astroInput = { month, day, companyName };
+      // 從 localStorage 取個人出生月日作為 fallback
+      let personMonth = 0, personDay = 0;
+      try {
+        const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
+        personMonth = saved.month || 0;
+        personDay = saved.day || 0;
+      } catch(e) {}
+      const astroInput = { month, day, companyName, personMonth, personDay };
       try {
         const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
         if (astroResult2.status === 'ok') astroHtml = astroResult2.html;

@@ -593,15 +593,18 @@ function zodiacCompat(sign1, sign2) {
 }
 
 export function calculateAstro(personAstroData, companyInput) {
-  const { month, day, companyName } = companyInput;
+  const { month, day, companyName, personMonth, personDay } = companyInput;
   const companySign = getZodiacSign(month, day);
   const companyElem = ZODIAC_ELEMENT[companySign];
   const companyModality = ZODIAC_MODALITY[companySign];
 
-  // 個人太陽星座（支援 object 或 null）
+  // 個人太陽星座：優先用 astro engine 結果，fallback 用出生日期直接算
   let personSign = '';
   if (personAstroData && personAstroData.sunSign) {
     personSign = typeof personAstroData.sunSign === 'string' ? personAstroData.sunSign : (personAstroData.sunSign.zh || '');
+  }
+  if (!personSign && personMonth && personDay) {
+    personSign = getZodiacSign(personMonth, personDay);
   }
   const personElem = ZODIAC_ELEMENT[personSign] || '';
 
