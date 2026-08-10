@@ -137,6 +137,121 @@
       <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。</p>
     </div>
 
+    <!-- Company Compatibility Section -->
+    <div id="company-compat-container" class="panel" style="margin-top:24px;">
+      <div class="sig" style="margin-bottom:12px;">
+        <div class="kin">職場能量</div>
+        <div class="big" style="font-size:1.3rem;">公司合盤</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">你跟公司的八字合不合？LOGO 色是不是你的幸運色？輸入公司資料來看看。</div>
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px;">⚠️ 需要先算完個人命盤才能做合盤分析</div>
+
+      <label>快速選擇（或自行輸入）</label>
+      <div class="form-row">
+        <div class="form-group wide">
+          <select id="company-preset" aria-label="預設公司">
+            <option value="">— 自行輸入 —</option>
+            <option value="inventec">英業達 Inventec</option>
+            <option value="tsmc">台積電 TSMC</option>
+            <option value="foxconn">鴻海 Foxconn</option>
+            <option value="asus">華碩 ASUS</option>
+            <option value="acer">宏碁 Acer</option>
+            <option value="mediatek">聯發科 MediaTek</option>
+            <option value="delta">台達電 Delta</option>
+            <option value="quanta">廣達 Quanta</option>
+            <option value="pegatron">和碩 Pegatron</option>
+            <option value="wistron">緯創 Wistron</option>
+            <option value="compal">仁寶 Compal</option>
+            <option value="google">Google</option>
+            <option value="apple">Apple</option>
+            <option value="microsoft">Microsoft</option>
+            <option value="nvidia">NVIDIA</option>
+            <option value="samsung">三星 Samsung</option>
+            <option value="sony">Sony</option>
+            <option value="amazon">Amazon</option>
+            <option value="meta">Meta (Facebook)</option>
+            <option value="tesla">Tesla</option>
+          </select>
+        </div>
+      </div>
+
+      <label>公司名稱（選填）</label>
+      <div class="form-row">
+        <div class="form-group wide">
+          <input type="text" id="company-name" placeholder="如：英業達" maxlength="30" aria-label="公司名稱">
+        </div>
+      </div>
+
+      <label>公司成立日期</label>
+      <div class="form-row">
+        <div class="form-group">
+          <input type="number" id="company-year" placeholder="年份" min="1800" max="2100" aria-label="成立年份">
+        </div>
+        <div class="form-group">
+          <select id="company-month" aria-label="成立月份">
+            <option value="">月</option>
+            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+            <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+            <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="number" id="company-day" placeholder="日" min="1" max="31" aria-label="成立日">
+        </div>
+      </div>
+
+      <label>LOGO 主色</label>
+      <div class="form-row">
+        <div class="form-group wide">
+          <select id="company-logo-color" aria-label="LOGO主色">
+            <option value="">（選填）</option>
+            <option value="紅色">🔴 紅色</option><option value="橘色">🟠 橘色</option>
+            <option value="黃色">🟡 黃色</option><option value="綠色">🟢 綠色</option>
+            <option value="藍色">🔵 藍色</option><option value="紫色">🟣 紫色</option>
+            <option value="白色">⚪ 白色</option><option value="黑色">⚫ 黑色</option>
+            <option value="金色">🥇 金色</option><option value="銀色">🥈 銀色</option>
+            <option value="粉紅">💗 粉紅</option><option value="咖啡">🟤 咖啡/棕</option>
+            <option value="灰色">🩶 灰色</option>
+          </select>
+        </div>
+      </div>
+
+      <label>產業類別</label>
+      <div class="form-row">
+        <div class="form-group wide">
+          <select id="company-industry" aria-label="產業類別">
+            <option value="">（選填）</option>
+            <option value="科技硬體">科技硬體/半導體</option>
+            <option value="電子製造">電子製造</option>
+            <option value="軟體網路">軟體/網路</option>
+            <option value="金融保險">金融/保險</option>
+            <option value="建築營造">建築/營造</option>
+            <option value="房地產">房地產</option>
+            <option value="餐飲">餐飲</option>
+            <option value="教育出版">教育/出版</option>
+            <option value="醫療">醫療</option>
+            <option value="生技醫藥">生技/醫藥</option>
+            <option value="文創設計">文創/設計</option>
+            <option value="貿易物流">貿易/物流</option>
+            <option value="能源電力">能源/電力</option>
+            <option value="廣告行銷">廣告/行銷</option>
+            <option value="娛樂表演">娛樂/表演</option>
+            <option value="法律">法律</option>
+            <option value="旅遊">旅遊</option>
+            <option value="服飾紡織">服飾/紡織</option>
+            <option value="食品加工">食品加工</option>
+            <option value="機械">機械</option>
+            <option value="汽車">汽車</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="company-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+      <div id="company-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+      <div id="company-compat-result" style="margin-top:16px;"></div>
+    </div>
+
     <!-- Meihua Section (independent from birth data) -->
     <div id="meihua-container" class="panel" style="margin-top:24px;">
       <div class="sig" style="margin-bottom:12px;">

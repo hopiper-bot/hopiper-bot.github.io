@@ -13,6 +13,10 @@ import * as synthesisEngine from './engines/synthesis.js';
 import * as transitEngine from './engines/transit.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
+import * as companyCompatEngine from './engines/company-compat.js';
+
+// 全域儲存最新的個人八字結果，供公司合盤使用
+let lastBaziData = null;
 
 /** 應用程式初始化 */
 function init() {
@@ -162,6 +166,11 @@ async function calculate() {
       hd: hdResult,
     };
 
+    // 保存八字結果供公司合盤使用
+    if (baziResult.status === 'ok') {
+      lastBaziData = baziResult.data;
+    }
+
     // 流年分析（需要所有系統結果）
     results.transit = transitEngine.calculate(results);
 
@@ -260,5 +269,99 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     resultDiv.innerHTML = renderMeihua(gua);
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+// ============ 公司合盤 UI ============
+
+const COMPANY_PRESETS = {
+  inventec:  { name: '英業達', year: 1975, month: 8, day: 1, logo: '紅色', industry: '電子製造' },
+  tsmc:      { name: '台積電', year: 1987, month: 2, day: 21, logo: '紅色', industry: '半導體' },
+  foxconn:   { name: '鴻海', year: 1974, month: 2, day: 20, logo: '藍色', industry: '電子製造' },
+  asus:      { name: '華碩', year: 1989, month: 4, day: 2, logo: '藍色', industry: '科技硬體' },
+  acer:      { name: '宏碁', year: 1976, month: 8, day: 1, logo: '綠色', industry: '科技硬體' },
+  mediatek:  { name: '聯發科', year: 1997, month: 5, day: 28, logo: '綠色', industry: '半導體' },
+  delta:     { name: '台達電', year: 1971, month: 4, day: 1, logo: '紅色', industry: '電子製造' },
+  quanta:    { name: '廣達', year: 1988, month: 5, day: 9, logo: '藍色', industry: '電子製造' },
+  pegatron:  { name: '和碩', year: 2008, month: 1, day: 1, logo: '藍色', industry: '電子製造' },
+  wistron:   { name: '緯創', year: 2001, month: 7, day: 1, logo: '藍色', industry: '電子製造' },
+  compal:    { name: '仁寶', year: 1984, month: 6, day: 1, logo: '藍色', industry: '電子製造' },
+  google:    { name: 'Google', year: 1998, month: 9, day: 4, logo: '紅色', industry: '軟體網路' },
+  apple:     { name: 'Apple', year: 1976, month: 4, day: 1, logo: '灰色', industry: '科技硬體' },
+  microsoft: { name: 'Microsoft', year: 1975, month: 4, day: 4, logo: '藍色', industry: '軟體網路' },
+  nvidia:    { name: 'NVIDIA', year: 1993, month: 1, day: 22, logo: '綠色', industry: '半導體' },
+  samsung:   { name: '三星', year: 1938, month: 3, day: 1, logo: '藍色', industry: '電子製造' },
+  sony:      { name: 'Sony', year: 1946, month: 5, day: 7, logo: '黑色', industry: '電子製造' },
+  amazon:    { name: 'Amazon', year: 1994, month: 7, day: 5, logo: '橘色', industry: '軟體網路' },
+  meta:      { name: 'Meta', year: 2004, month: 2, day: 4, logo: '藍色', industry: '軟體網路' },
+  tesla:     { name: 'Tesla', year: 2003, month: 7, day: 1, logo: '紅色', industry: '汽車' },
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnGo = document.getElementById('company-compat-go');
+  if (!btnGo) return;
+
+  // 預設公司選擇 → 自動帶入
+  const presetSelect = document.getElementById('company-preset');
+  if (presetSelect) {
+    presetSelect.addEventListener('change', () => {
+      const key = presetSelect.value;
+      if (!key) return;
+      const p = COMPANY_PRESETS[key];
+      if (!p) return;
+      document.getElementById('company-name').value = p.name;
+      document.getElementById('company-year').value = p.year;
+      document.getElementById('company-month').value = p.month;
+      document.getElementById('company-day').value = p.day;
+      document.getElementById('company-logo-color').value = p.logo;
+      document.getElementById('company-industry').value = p.industry;
+    });
+  }
+
+  btnGo.addEventListener('click', () => {
+    const errorDiv = document.getElementById('company-compat-error');
+    const resultDiv = document.getElementById('company-compat-result');
+    errorDiv.textContent = '';
+    resultDiv.innerHTML = '';
+
+    // 檢查個人命盤是否已算
+    if (!lastBaziData) {
+      errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
+      return;
+    }
+
+    // 取得公司資料
+    const year = parseInt(document.getElementById('company-year')?.value);
+    const month = parseInt(document.getElementById('company-month')?.value);
+    const day = parseInt(document.getElementById('company-day')?.value);
+    const companyName = document.getElementById('company-name')?.value?.trim() || '';
+    const logoColor = document.getElementById('company-logo-color')?.value || '';
+    const industry = document.getElementById('company-industry')?.value || '';
+
+    // 驗證
+    if (!year || year < 1800 || year > 2100) {
+      errorDiv.textContent = '請輸入公司成立年份';
+      return;
+    }
+    if (!month || month < 1 || month > 12) {
+      errorDiv.textContent = '請選擇成立月份';
+      return;
+    }
+    if (!day || day < 1 || day > 31) {
+      errorDiv.textContent = '請輸入成立日期';
+      return;
+    }
+
+    try {
+      const result = companyCompatEngine.calculate(lastBaziData, {
+        year, month, day, hour: 9,
+        logoColor, industry, companyName,
+      });
+      resultDiv.innerHTML = result.html;
+      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      errorDiv.textContent = `計算錯誤：${err.message}`;
+      console.error('公司合盤錯誤:', err);
+    }
   });
 });
