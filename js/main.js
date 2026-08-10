@@ -176,6 +176,14 @@ async function calculate() {
       if (ccEl) ccEl.style.display = '';
     }
 
+    // 保存星座和馬雅結果供合盤使用
+    if (astroResult.status === 'ok') {
+      window.__lastAstroData = astroResult.data;
+    }
+    if (mayaResult.status === 'ok') {
+      window.__lastMayaData = mayaResult.data;
+    }
+
     // 流年分析（需要所有系統結果）
     results.transit = transitEngine.calculate(results);
 
@@ -381,10 +389,27 @@ document.addEventListener('DOMContentLoaded', () => {
         year, month, day, hour: 9,
         logoColor, industry, companyName,
       });
+
+      // 星座合盤（需要個人星座結果）
+      let astroHtml = '';
+      const personAstro = window.__lastAstroData || null;
+      if (personAstro) {
+        const astroResult = companyCompatEngine.calculateAstro(personAstro, { month, day, companyName });
+        if (astroResult.status === 'ok') astroHtml = astroResult.html;
+      }
+
+      // 馬雅合盤（需要個人馬雅結果）
+      let mayaHtml = '';
+      const personMaya = window.__lastMayaData || null;
+      if (personMaya) {
+        const mayaResult = companyCompatEngine.calculateMaya(personMaya, { year, month, day, companyName });
+        if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
+      }
+
       // 疊加顯示（新結果加在最前面），不清除舊的
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
-      wrapper.innerHTML = result.html;
+      wrapper.innerHTML = result.html + astroHtml + mayaHtml;
       resultDiv.prepend(wrapper);
       wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {

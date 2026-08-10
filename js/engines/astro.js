@@ -95,12 +95,32 @@ export function calculate(birthData) {
       degreeStr: formatDegree(nnLon),
     };
 
+    // 南交點（北交 + 180°）
+    const snLon = normalizeDeg(nnLon + 180);
+    const snSignIdx = longitudeToSign(snLon);
+    const southNode = {
+      id: 'southNode', zh: '南交點', symbol: '☋',
+      longitude: snLon, signIdx: snSignIdx,
+      sign: SIGNS[snSignIdx], house: getHouse(snLon, ascLon),
+      degreeStr: formatDegree(snLon),
+    };
+
     // 上升點資料
     const ascData = {
       id: 'asc', zh: '上升', symbol: '⬆',
       longitude: ascLon, signIdx: ascSignIdx,
       sign: SIGNS[ascSignIdx], house: 1,
       degreeStr: formatDegree(ascLon),
+    };
+
+    // 下降點 DSC（ASC + 180°）
+    const dscLon = normalizeDeg(ascLon + 180);
+    const dscSignIdx = longitudeToSign(dscLon);
+    const dscData = {
+      id: 'dsc', zh: '下降', symbol: '⬇',
+      longitude: dscLon, signIdx: dscSignIdx,
+      sign: SIGNS[dscSignIdx], house: 7,
+      degreeStr: formatDegree(dscLon),
     };
 
     // 天頂 MC
@@ -113,14 +133,45 @@ export function calculate(birthData) {
       degreeStr: formatDegree(mcLon),
     };
 
+    // 天底 IC（MC + 180°）
+    const icLon = normalizeDeg(mcLon + 180);
+    const icSignIdx = longitudeToSign(icLon);
+    const icData = {
+      id: 'ic', zh: '天底IC', symbol: '⊥',
+      longitude: icLon, signIdx: icSignIdx,
+      sign: SIGNS[icSignIdx], house: 4,
+      degreeStr: formatDegree(icLon),
+    };
+
+    // 福點 Part of Fortune
+    // 日間盤（太陽在地平線上）：ASC + Moon - Sun
+    // 夜間盤（太陽在地平線下）：ASC + Sun - Moon
+    const sunLon = planets[0].longitude;
+    const moonLon = planets[1].longitude;
+    const isDaytime = getHouse(sunLon, ascLon) <= 6; // 1-6宮 = 地平線上
+    const fortuneLon = isDaytime
+      ? normalizeDeg(ascLon + moonLon - sunLon)
+      : normalizeDeg(ascLon + sunLon - moonLon);
+    const fortuneSignIdx = longitudeToSign(fortuneLon);
+    const fortune = {
+      id: 'fortune', zh: '福點', symbol: '⊗',
+      longitude: fortuneLon, signIdx: fortuneSignIdx,
+      sign: SIGNS[fortuneSignIdx], house: getHouse(fortuneLon, ascLon),
+      degreeStr: formatDegree(fortuneLon),
+    };
+
     // 計算主要相位（太陽/月亮 vs 其他 + 任何合相）
     const aspects = calculateAspects(planets, ascLon, mcLon);
 
     const data = {
       planets,
       northNode,
+      southNode,
       ascendant: ascData,
+      dsc: dscData,
       mc: mcData,
+      ic: icData,
+      fortune,
       aspects,
       sunSign: planets[0].sign,
       moonSign: planets[1].sign,
@@ -137,7 +188,7 @@ export function calculate(birthData) {
 // === 渲染 ===
 
 function renderAstro(data) {
-  const { planets, northNode, ascendant: asc, mc, aspects } = data;
+  const { planets, northNode, southNode, ascendant: asc, dsc, mc, ic, fortune, aspects } = data;
   const sun = planets[0];
   const moon = planets[1];
 
@@ -167,9 +218,13 @@ function renderAstro(data) {
         </thead>
         <tbody>
           ${renderPlanetRow(asc)}
+          ${renderPlanetRow(dsc)}
           ${renderPlanetRow(mc)}
+          ${renderPlanetRow(ic)}
           ${planets.map(p => renderPlanetRow(p)).join('')}
           ${renderPlanetRow(northNode)}
+          ${renderPlanetRow(southNode)}
+          ${renderPlanetRow(fortune)}
         </tbody>
       </table>
     </div>
@@ -219,7 +274,9 @@ function getPlanetInSign(planetId, sign) {
     sun: `你的核心生命力透過<b>${sign.zh}</b>的方式表達。${sign.sun.split("。").slice(0,2).join("。")}。`,
     moon: `你的情緒安全感需要<b>${sign.zh}</b>的方式來滿足。${sign.moon.split("。").slice(0,2).join("。")}。`,
     asc: `你面對世界的方式帶有<b>${sign.zh}</b>的色彩。${sign.rising.split("。").slice(0,2).join("。")}。`,
+    dsc: getDSCText(sign),
     mc: getMCText(sign),
+    ic: getICText(sign),
     mercury: getMercuryText(sign),
     venus: getVenusText(sign),
     mars: getMarsText(sign),
@@ -229,6 +286,8 @@ function getPlanetInSign(planetId, sign) {
     neptune: getNeptuneText(sign),
     pluto: getPlutoText(sign),
     northNode: getNorthNodeText(sign),
+    southNode: getSouthNodeText(sign),
+    fortune: getFortuneText(sign),
   };
   return meanings[planetId] || `${sign.zh}的${sign.element}象能量。`;
 }

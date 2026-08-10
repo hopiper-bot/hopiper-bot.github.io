@@ -538,3 +538,173 @@ function renderCompat(data) {
 
 // Export helpers for UI
 export { COLOR_ELEMENT, INDUSTRY_ELEMENT };
+
+// ============ 星座合盤 ============
+
+const ZODIAC_DATES = [
+  { sign: '摩羯座', start: [1,1], end: [1,19] },
+  { sign: '水瓶座', start: [1,20], end: [2,18] },
+  { sign: '雙魚座', start: [2,19], end: [3,20] },
+  { sign: '牡羊座', start: [3,21], end: [4,19] },
+  { sign: '金牛座', start: [4,20], end: [5,20] },
+  { sign: '雙子座', start: [5,21], end: [6,20] },
+  { sign: '巨蟹座', start: [6,21], end: [7,22] },
+  { sign: '獅子座', start: [7,23], end: [8,22] },
+  { sign: '處女座', start: [8,23], end: [9,22] },
+  { sign: '天秤座', start: [9,23], end: [10,22] },
+  { sign: '天蠍座', start: [10,23], end: [11,21] },
+  { sign: '射手座', start: [11,22], end: [12,21] },
+  { sign: '摩羯座', start: [12,22], end: [12,31] },
+];
+
+const ZODIAC_ELEMENT = {
+  '牡羊座':'火', '獅子座':'火', '射手座':'火',
+  '金牛座':'土', '處女座':'土', '摩羯座':'土',
+  '雙子座':'風', '天秤座':'風', '水瓶座':'風',
+  '巨蟹座':'水', '天蠍座':'水', '雙魚座':'水',
+};
+
+const ZODIAC_MODALITY = {
+  '牡羊座':'開創', '巨蟹座':'開創', '天秤座':'開創', '摩羯座':'開創',
+  '金牛座':'固定', '獅子座':'固定', '天蠍座':'固定', '水瓶座':'固定',
+  '雙子座':'變動', '處女座':'變動', '射手座':'變動', '雙魚座':'變動',
+};
+
+function getZodiacSign(month, day) {
+  for (const z of ZODIAC_DATES) {
+    const [sm, sd] = z.start;
+    const [em, ed] = z.end;
+    if (month === sm && day >= sd && month === em && day <= ed) return z.sign;
+    if (month === sm && day >= sd && sm !== em) return z.sign;
+    if (month === em && day <= ed && sm !== em) return z.sign;
+  }
+  return '摩羯座';
+}
+
+function zodiacCompat(sign1, sign2) {
+  const e1 = ZODIAC_ELEMENT[sign1];
+  const e2 = ZODIAC_ELEMENT[sign2];
+  if (e1 === e2) return { level: '極合', score: 95, desc: '同元素！你們是同一個頻道的存在，溝通零障礙。' };
+  const harmonious = { '火':'風', '風':'火', '水':'土', '土':'水' };
+  if (harmonious[e1] === e2) return { level: '相合', score: 80, desc: '互補元素，彼此激發對方的優勢。' };
+  if (e1 === '火' && e2 === '水' || e1 === '水' && e2 === '火') return { level: '有張力', score: 45, desc: '水火對沖——衝突也可以是成長的摩擦力。' };
+  if (e1 === '風' && e2 === '土' || e1 === '土' && e2 === '風') return { level: '需磨合', score: 50, desc: '風土差異大——一個飛一個穩，需要互相理解。' };
+  return { level: '中性', score: 60, desc: '不特別合也不特別衝，端看其他因素。' };
+}
+
+export function calculateAstro(personAstroData, companyInput) {
+  const { month, day, companyName } = companyInput;
+  const companySign = getZodiacSign(month, day);
+  const companyElem = ZODIAC_ELEMENT[companySign];
+  const companyModality = ZODIAC_MODALITY[companySign];
+
+  // 個人太陽星座
+  const personSign = personAstroData?.sunSign?.zh || '';
+  const personElem = ZODIAC_ELEMENT[personSign] || '';
+
+  const compat = personSign ? zodiacCompat(personSign, companySign) : null;
+
+  return {
+    status: 'ok',
+    html: renderAstroCompat({ companyName: companyName || '該公司', companySign, companyElem, companyModality, personSign, personElem, compat }),
+  };
+}
+
+function renderAstroCompat(data) {
+  const { companyName, companySign, companyElem, companyModality, personSign, personElem, compat } = data;
+  const signEmoji = { '牡羊座':'♈', '金牛座':'♉', '雙子座':'♊', '巨蟹座':'♋', '獅子座':'♌', '處女座':'♍', '天秤座':'♎', '天蠍座':'♏', '射手座':'♐', '摩羯座':'♑', '水瓶座':'♒', '雙魚座':'♓' };
+
+  let compatHtml = '';
+  if (compat) {
+    const color = compat.score >= 80 ? '#4ade80' : compat.score >= 60 ? '#fbbf24' : '#fb923c';
+    compatHtml = `
+      <div style="margin-top:12px;padding:12px;background:rgba(123,108,246,.06);border-radius:10px;">
+        <div style="font-size:.8rem;color:var(--muted);">星座相合度</div>
+        <div style="font-size:1.5rem;font-weight:700;color:${color};">${compat.score} — ${compat.level}</div>
+        <p style="font-size:.85rem;margin-top:6px;">${personSign}（${personElem}）× ${companySign}（${companyElem}）：${compat.desc}</p>
+      </div>`;
+  }
+
+  return `
+    <div style="margin-top:16px;padding:14px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--card-border);">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:4px;">🌟 星座合盤</div>
+      <div style="font-size:1.1rem;font-weight:600;">${signEmoji[companySign]||''} ${companyName}是${companySign}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">元素：${companyElem} ｜ 模式：${companyModality}</div>
+      ${compatHtml}
+    </div>`;
+}
+
+// ============ 馬雅合盤 ============
+
+const MAYA_SEALS = ['紅龍','白風','藍夜','黃種子','紅蛇','白世界橋','藍手','黃星','紅月','白狗','藍猴','黃人','紅天行者','白巫師','藍鷹','黃戰士','紅地球','白鏡','藍風暴','黃太陽'];
+const MAYA_COLORS = ['紅','白','藍','黃'];
+const MAYA_MONTH_OFF = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+function mayaKin(y, m, d) {
+  const yearVal = ((217 + 105 * (y - 2013)) % 260 + 260) % 260;
+  const kin = ((yearVal + MAYA_MONTH_OFF[m - 1] + d - 1) % 260 + 260) % 260 + 1;
+  return kin;
+}
+
+function kinToSealTone(kin) {
+  const sealIdx = (kin - 1) % 20;
+  const tone = ((kin - 1) % 13) + 1;
+  return { seal: MAYA_SEALS[sealIdx], sealIdx, tone, color: MAYA_COLORS[sealIdx % 4] };
+}
+
+// 馬雅合盤：看兩個 Kin 的關係
+function mayaRelation(seal1Idx, seal2Idx) {
+  const diff = ((seal2Idx - seal1Idx) % 20 + 20) % 20;
+  if (diff === 0) return { type: '相同印記', desc: '你們是同一個印記！頻率完全一致，幾乎是照鏡子。', score: 95 };
+  if (diff === 10) return { type: '挑戰擴展', desc: '互為挑戰——你們在一起會被推出舒適圈，但成長最快。', score: 55 };
+  if (diff === 2 || diff === 18) return { type: '類似支持', desc: '相似頻率，互相支持、容易理解彼此。', score: 85 };
+  if (diff === 6 || diff === 14) return { type: '神秘夥伴', desc: '說不出為什麼就是被吸引——神秘的共振頻率。', score: 75 };
+  if (diff === 4 || diff === 16) return { type: '引導關係', desc: '其中一方會引導另一方前進。', score: 80 };
+  if (diff === 8 || diff === 12) return { type: '互補關係', desc: '彼此互補，一個人的弱點是另一個的強項。', score: 70 };
+  // 同色系
+  if (seal1Idx % 4 === seal2Idx % 4) return { type: '同色家族', desc: '同屬一個色彩家族，底層動力相似。', score: 72 };
+  return { type: '各自獨立', desc: '沒有特定的馬雅連結，各跑各的軌道。', score: 60 };
+}
+
+export function calculateMaya(personMayaData, companyInput) {
+  const { year, month, day, companyName } = companyInput;
+  const companyKin = mayaKin(year, month, day);
+  const company = kinToSealTone(companyKin);
+
+  // 個人馬雅
+  const personSeal = personMayaData?.dreamspell?.seal?.zh || '';
+  const personSealIdx = MAYA_SEALS.indexOf(personSeal);
+  const personKin = personMayaData?.dreamspell?.kin || 0;
+  const personTone = personMayaData?.dreamspell?.tone?.num || 0;
+
+  const relation = personSealIdx >= 0 ? mayaRelation(personSealIdx, company.sealIdx) : null;
+
+  return {
+    status: 'ok',
+    html: renderMayaCompat({ companyName: companyName || '該公司', companyKin, company, personSeal, personKin, personTone, relation }),
+  };
+}
+
+function renderMayaCompat(data) {
+  const { companyName, companyKin, company, personSeal, personKin, personTone, relation } = data;
+  const colorEmoji = { '紅':'🔴', '白':'⚪', '藍':'🔵', '黃':'🟡' };
+
+  let relationHtml = '';
+  if (relation) {
+    const color = relation.score >= 80 ? '#4ade80' : relation.score >= 60 ? '#fbbf24' : '#fb923c';
+    relationHtml = `
+      <div style="margin-top:12px;padding:12px;background:rgba(123,108,246,.06);border-radius:10px;">
+        <div style="font-size:.8rem;color:var(--muted);">馬雅印記關係</div>
+        <div style="font-size:1.2rem;font-weight:700;color:${color};">${relation.type}</div>
+        <p style="font-size:.85rem;margin-top:6px;">${personSeal} × ${company.seal}：${relation.desc}</p>
+      </div>`;
+  }
+
+  return `
+    <div style="margin-top:16px;padding:14px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--card-border);">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:4px;">🌀 馬雅合盤</div>
+      <div style="font-size:1.1rem;font-weight:600;">${colorEmoji[company.color]||''} ${companyName}是 KIN ${companyKin}：${company.color}${company.seal}・調性 ${company.tone}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">你是 KIN ${personKin}：${personSeal}・調性 ${personTone}</div>
+      ${relationHtml}
+    </div>`;
+}
