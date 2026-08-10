@@ -581,15 +581,33 @@ function getZodiacSign(month, day) {
   return '摩羯座';
 }
 
+// 星座間距（幾個星座之差）
+function signDistance(sign1, sign2) {
+  const signs = ['牡羊座','金牛座','雙子座','巨蟹座','獅子座','處女座','天秤座','天蠍座','射手座','摩羯座','水瓶座','雙魚座'];
+  const i1 = signs.indexOf(sign1);
+  const i2 = signs.indexOf(sign2);
+  if (i1 < 0 || i2 < 0) return -1;
+  const diff = ((i2 - i1) % 12 + 12) % 12;
+  return diff;
+}
+
 function zodiacCompat(sign1, sign2) {
-  const e1 = ZODIAC_ELEMENT[sign1];
-  const e2 = ZODIAC_ELEMENT[sign2];
-  if (e1 === e2) return { level: '極合', score: 95, desc: '同元素！你們是同一個頻道的存在，溝通零障礙。' };
-  const harmonious = { '火':'風', '風':'火', '水':'土', '土':'水' };
-  if (harmonious[e1] === e2) return { level: '相合', score: 80, desc: '互補元素，彼此激發對方的優勢。' };
-  if (e1 === '火' && e2 === '水' || e1 === '水' && e2 === '火') return { level: '有張力', score: 45, desc: '水火對沖——衝突也可以是成長的摩擦力。' };
-  if (e1 === '風' && e2 === '土' || e1 === '土' && e2 === '風') return { level: '需磨合', score: 50, desc: '風土差異大——一個飛一個穩，需要互相理解。' };
-  return { level: '中性', score: 60, desc: '不特別合也不特別衝，端看其他因素。' };
+  const dist = signDistance(sign1, sign2);
+  // 合相（0）= 同星座
+  if (dist === 0) return { level: '合相（同星座）', score: 95, desc: '完全同頻！你們用一樣的方式看世界。' };
+  // 三合（4, 8）= 同元素
+  if (dist === 4 || dist === 8) return { level: '三合（同元素）', score: 88, desc: '同元素120°三合——最自然的和諧，互相理解不費力。' };
+  // 六合（2, 10）= 相鄰友善
+  if (dist === 2 || dist === 10) return { level: '六合（60°）', score: 78, desc: '60°六合——輕鬆愉快的互動，互相欣賞彼此不同的特質。' };
+  // 對衝（6）= 180°
+  if (dist === 6) return { level: '對衝（180°）', score: 50, desc: '正對面——強烈的吸引力但也有拉扯。你們互補但需要磨合。' };
+  // 刑（3, 9）= 90°
+  if (dist === 3 || dist === 9) return { level: '刑衝（90°）', score: 42, desc: '90°四分相——有摩擦、有壓力，但壓力也可以推動成長。' };
+  // 半六合（1, 11）= 30°
+  if (dist === 1 || dist === 11) return { level: '半合（30°）', score: 60, desc: '相鄰星座——性格差異不小，但能學到對方的優點。' };
+  // 梅花（5, 7）= 150°
+  if (dist === 5 || dist === 7) return { level: '梅花相（150°）', score: 48, desc: '150°——最不容易理解對方的角度，需要刻意溝通。' };
+  return { level: '中性', score: 60, desc: '沒有明顯的相位連結。' };
 }
 
 export function calculateAstro(personAstroData, companyInput) {
@@ -598,45 +616,82 @@ export function calculateAstro(personAstroData, companyInput) {
   const companyElem = ZODIAC_ELEMENT[companySign];
   const companyModality = ZODIAC_MODALITY[companySign];
 
-  // 個人太陽星座：優先用 astro engine 結果，fallback 用出生日期直接算
-  let personSign = '';
+  // 個人太陽星座
+  let personSunSign = '';
   if (personAstroData && personAstroData.sunSign) {
-    personSign = typeof personAstroData.sunSign === 'string' ? personAstroData.sunSign : (personAstroData.sunSign.zh || '');
+    personSunSign = typeof personAstroData.sunSign === 'string' ? personAstroData.sunSign : (personAstroData.sunSign.zh || '');
   }
-  if (!personSign && personMonth && personDay) {
-    personSign = getZodiacSign(personMonth, personDay);
+  if (!personSunSign && personMonth && personDay) {
+    personSunSign = getZodiacSign(personMonth, personDay);
   }
-  const personElem = ZODIAC_ELEMENT[personSign] || '';
 
-  const compat = personSign ? zodiacCompat(personSign, companySign) : null;
+  // 個人月亮星座
+  let personMoonSign = '';
+  if (personAstroData && personAstroData.moonSign) {
+    personMoonSign = typeof personAstroData.moonSign === 'string' ? personAstroData.moonSign : (personAstroData.moonSign.zh || '');
+  }
+
+  // 個人上升星座
+  let personRisingSign = '';
+  if (personAstroData && personAstroData.risingSign) {
+    personRisingSign = typeof personAstroData.risingSign === 'string' ? personAstroData.risingSign : (personAstroData.risingSign.zh || '');
+  }
+
+  // 計算各相位
+  const sunCompat = personSunSign ? zodiacCompat(personSunSign, companySign) : null;
+  const moonCompat = personMoonSign ? zodiacCompat(personMoonSign, companySign) : null;
+  const risingCompat = personRisingSign ? zodiacCompat(personRisingSign, companySign) : null;
 
   return {
     status: 'ok',
-    html: renderAstroCompat({ companyName: companyName || '該公司', companySign, companyElem, companyModality, personSign, personElem, compat }),
+    html: renderAstroCompat({
+      companyName: companyName || '該公司', companySign, companyElem, companyModality,
+      personSunSign, personMoonSign, personRisingSign,
+      sunCompat, moonCompat, risingCompat,
+    }),
   };
 }
 
 function renderAstroCompat(data) {
-  const { companyName, companySign, companyElem, companyModality, personSign, personElem, compat } = data;
+  const { companyName, companySign, companyElem, companyModality,
+          personSunSign, personMoonSign, personRisingSign,
+          sunCompat, moonCompat, risingCompat } = data;
   const signEmoji = { '牡羊座':'♈', '金牛座':'♉', '雙子座':'♊', '巨蟹座':'♋', '獅子座':'♌', '處女座':'♍', '天秤座':'♎', '天蠍座':'♏', '射手座':'♐', '摩羯座':'♑', '水瓶座':'♒', '雙魚座':'♓' };
 
-  let compatHtml = '';
-  if (compat) {
+  function compatBlock(label, personSign, compat) {
+    if (!compat) return '';
     const color = compat.score >= 80 ? '#4ade80' : compat.score >= 60 ? '#fbbf24' : '#fb923c';
-    compatHtml = `
-      <div style="margin-top:12px;padding:12px;background:rgba(123,108,246,.06);border-radius:10px;">
-        <div style="font-size:.8rem;color:var(--muted);">星座相合度</div>
-        <div style="font-size:1.5rem;font-weight:700;color:${color};">${compat.score} — ${compat.level}</div>
-        <p style="font-size:.85rem;margin-top:6px;">${personSign}（${personElem}）× ${companySign}（${companyElem}）：${compat.desc}</p>
-      </div>`;
+    return `<div style="margin:8px 0;padding:10px;background:rgba(123,108,246,.04);border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:.85rem;">${label}：${signEmoji[personSign]||''} ${personSign} × ${signEmoji[companySign]||''} ${companySign}</span>
+        <span style="font-weight:700;color:${color};">${compat.score}</span>
+      </div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">${compat.level} — ${compat.desc}</div>
+    </div>`;
   }
+
+  // 綜合分數（太陽 50% + 月亮 30% + 上升 20%）
+  let totalScore = 0;
+  let weights = 0;
+  if (sunCompat) { totalScore += sunCompat.score * 0.5; weights += 0.5; }
+  if (moonCompat) { totalScore += moonCompat.score * 0.3; weights += 0.3; }
+  if (risingCompat) { totalScore += risingCompat.score * 0.2; weights += 0.2; }
+  const avgScore = weights > 0 ? Math.round(totalScore / weights) : 0;
+  const avgColor = avgScore >= 80 ? '#4ade80' : avgScore >= 60 ? '#fbbf24' : '#fb923c';
 
   return `
     <div style="margin-top:16px;padding:14px;background:rgba(255,255,255,.02);border-radius:10px;border:1px solid var(--card-border);">
-      <div style="font-size:.8rem;color:var(--muted);margin-bottom:4px;">🌟 星座合盤</div>
-      <div style="font-size:1.1rem;font-weight:600;">${signEmoji[companySign]||''} ${companyName}是${companySign}</div>
-      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">元素：${companyElem} ｜ 模式：${companyModality}</div>
-      ${compatHtml}
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:.8rem;color:var(--muted);">🌟 星座合盤</div>
+          <div style="font-size:1.1rem;font-weight:600;margin-top:2px;">${signEmoji[companySign]||''} ${companyName}是${companySign}（${companyElem}・${companyModality}）</div>
+        </div>
+        ${avgScore ? `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:${avgColor};">${avgScore}</div><div style="font-size:.7rem;color:var(--muted);">綜合</div></div>` : ''}
+      </div>
+      ${compatBlock('☉ 太陽（核心自我）', personSunSign, sunCompat)}
+      ${compatBlock('☽ 月亮（情緒舒適）', personMoonSign, moonCompat)}
+      ${compatBlock('⬆ 上升（外在表現）', personRisingSign, risingCompat)}
+      ${!moonCompat && !risingCompat ? '<div style="font-size:.8rem;color:var(--muted);margin-top:8px;">💡 月亮和上升需要完整星盤才能分析（需準確出生時間和地點）</div>' : ''}
     </div>`;
 }
 
