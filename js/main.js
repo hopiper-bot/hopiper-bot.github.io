@@ -18,6 +18,7 @@ import * as synthesisEngine from './engines/synthesis.js';
 import * as transitEngine from './engines/transit.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
+import { calculateDaily, renderDaily } from './engines/daily-energy.js';
 
 // company-compat 使用 dynamic import 避免載入失敗時影響主程式
 let companyCompatEngine = null;
@@ -28,6 +29,8 @@ let lastBaziData = null;
 /** 應用程式初始化 */
 function init() {
   ui.initTabs();
+  initThemeToggle();
+  initDailyEnergy();
 
   // 綁定表單提交
   const form = document.getElementById('birth-form');
@@ -49,6 +52,49 @@ function init() {
     restoreInput();
     // 嘗試恢復上次計算結果（秒開）
     restoreCachedResults();
+  }
+}
+
+// ============ Theme Toggle ============
+
+function initThemeToggle() {
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+
+  // 恢復上次選擇
+  const saved = localStorage.getItem('destiny_theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    btn.textContent = '☀️';
+  }
+
+  btn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    if (current === 'light') {
+      document.documentElement.removeAttribute('data-theme');
+      btn.textContent = '🌙';
+      localStorage.setItem('destiny_theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      btn.textContent = '☀️';
+      localStorage.setItem('destiny_theme', 'light');
+    }
+  });
+}
+
+// ============ Daily Energy ============
+
+function initDailyEnergy() {
+  try {
+    const data = calculateDaily();
+    const dateEl = document.getElementById('daily-energy-date');
+    const contentEl = document.getElementById('daily-energy-content');
+    if (dateEl) dateEl.textContent = `${data.date}（${data.weekday}）`;
+    if (contentEl) contentEl.innerHTML = renderDaily(data);
+  } catch (e) {
+    console.warn('今日能量計算失敗:', e);
+    const contentEl = document.getElementById('daily-energy-content');
+    if (contentEl) contentEl.innerHTML = '<span style="color:var(--muted);font-size:.82rem;">今日能量暫時無法顯示</span>';
   }
 }
 
@@ -159,6 +205,8 @@ function restoreCachedResults() {
     // 恢復公司合盤顯示
     const ccEl = document.getElementById('company-compat-container');
     if (ccEl && cache.bazi?.status === 'ok') ccEl.style.display = '';
+    const pcEl = document.getElementById('person-compat-container');
+    if (pcEl && cache.bazi?.status === 'ok') pcEl.style.display = '';
   } catch (e) { /* ignore */ }
 }
 
@@ -323,6 +371,8 @@ async function calculate() {
     lastBaziData = results.bazi.data;
     const ccEl = document.getElementById('company-compat-container');
     if (ccEl) ccEl.style.display = '';
+    const pcEl = document.getElementById('person-compat-container');
+    if (pcEl) pcEl.style.display = '';
   }
 
   // 保存星座和馬雅結果供合盤使用
@@ -657,6 +707,72 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       errorDiv.textContent = `計算錯誤：${err.message}`;
       console.error('公司合盤錯誤:', err);
+    }
+  });
+});
+
+// ============ 雙人合盤 UI ============
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btnGo = document.getElementById('person-compat-go');
+  if (!btnGo) return;
+
+  btnGo.addEventListener('click', async () => {
+    const errorDiv = document.getElementById('person-compat-error');
+    const resultDiv = document.getElementById('person-compat-result');
+    errorDiv.textContent = '';
+    resultDiv.innerHTML = '';
+
+    // 取得個人資料（從 localStorage）
+    let person1;
+    try {
+      person1 = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+    } catch(e) {}
+    if (!person1 || !person1.year || !person1.month || !person1.day) {
+      errorDiv.textContent = '請先在上方計算個人命盤。';
+      return;
+    }
+
+    // 取得對方資料
+    const year = parseInt(document.getElementById('person2-year')?.value);
+    const month = parseInt(document.getElementById('person2-month')?.value);
+    const day = parseInt(document.getElementById('person2-day')?.value);
+    const hourVal = document.getElementById('person2-hour')?.value;
+    const hour = (hourVal !== '' && hourVal != null) ? parseInt(hourVal) : 12;
+    const minuteVal = document.getElementById('person2-minute')?.value;
+    const minute = (minuteVal !== '' && minuteVal != null) ? parseInt(minuteVal) : 0;
+    const gender = document.getElementById('person2-gender')?.value || 'male';
+    const relation = document.getElementById('person2-relation')?.value || 'friend';
+
+    // 驗證
+    if (!year || year < 1900 || year > 2100) {
+      errorDiv.textContent = '請輸入對方出生年份';
+      return;
+    }
+    if (!month || month < 1 || month > 12) {
+      errorDiv.textContent = '請選擇對方出生月份';
+      return;
+    }
+    if (!day || day < 1 || day > 31) {
+      errorDiv.textContent = '請輸入對方出生日期';
+      return;
+    }
+
+    // 動態載入引擎
+    try {
+      const personCompatEngine = await import('./engines/person-compat.js');
+      const person2 = { year, month, day, hour, minute, gender };
+      const result = personCompatEngine.calculate(person1, person2, relation);
+
+      if (result.status === 'ok') {
+        resultDiv.innerHTML = result.html;
+        resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        errorDiv.textContent = result.error || '計算失敗';
+      }
+    } catch (err) {
+      errorDiv.textContent = `計算錯誤：${err.message}`;
+      console.error('雙人合盤錯誤:', err);
     }
   });
 });

@@ -3,7 +3,7 @@
  * 策略：Cache First（靜態資源），Network First（頁面）
  */
 
-const CACHE_NAME = 'destiny-v4';
+const CACHE_NAME = 'destiny-v5';
 
 // 必要靜態資源（離線一定能用）
 const PRECACHE = [
@@ -23,6 +23,8 @@ const PRECACHE = [
   './js/engines/transit.js',
   './js/engines/meihua.js',
   './js/engines/company-compat.js',
+  './js/engines/daily-energy.js',
+  './js/engines/person-compat.js',
   './js/lib/ephemeris.js',
   './js/lib/planets.js',
   './js/lib/utils.js',

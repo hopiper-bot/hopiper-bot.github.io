@@ -23,6 +23,128 @@
   --gold-text-gradient: linear-gradient(135deg, #F9E7B0 0%, #E6CA65 35%, #D4AF37 70%, #B8860B 100%);
 }
 
+/* ===== Light Theme ===== */
+[data-theme="light"] {
+  --bg: #F5F2EB;
+  --bg-gradient: radial-gradient(circle at 20% 10%, #FDFCF8 0%, #F5F2EB 55%);
+  --card: #FFFFFF;
+  --card-border: rgba(180, 155, 90, 0.25);
+  --accent: #8B6914;
+  --accent2: #3A7A74;
+  --text: #2C2C2C;
+  --muted: #6B7B72;
+  --red: #C62828;
+  --white: #FFFFFF;
+  --blue: #3A7A74;
+  --yellow: #A68B1B;
+  --input-bg: #F0ECE3;
+  --gold-gradient: linear-gradient(135deg, #C9A832 0%, #8B6914 40%, #6B5010 100%);
+  --gold-text-gradient: linear-gradient(135deg, #A68B1B 0%, #8B6914 35%, #6B5010 70%, #4A3800 100%);
+}
+
+/* ===== Theme Toggle Button ===== */
+.theme-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text);
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  transform: rotate(15deg);
+}
+
+/* ===== Daily Energy Widget ===== */
+.daily-energy-panel {
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.daily-energy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.daily-energy-title {
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--accent);
+}
+
+.daily-energy-date {
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.daily-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.daily-card {
+  background: rgba(198, 169, 105, 0.06);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.daily-card-label {
+  font-size: .72rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.daily-card-main {
+  font-size: .9rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.daily-card-advice {
+  font-size: .78rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.daily-kin {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.daily-summary-text {
+  font-size: .82rem;
+  color: var(--text);
+  padding: 10px 12px;
+  background: rgba(92, 141, 137, 0.08);
+  border-radius: 8px;
+  line-height: 1.6;
+}
+
+@media (max-width: 480px) {
+  .daily-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -48,6 +170,7 @@ body {
 header {
   text-align: center;
   margin-bottom: 28px;
+  position: relative;
 }
 
 header h1 {

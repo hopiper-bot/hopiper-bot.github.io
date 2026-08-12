@@ -27,11 +27,23 @@
   <div class="wrap">
     <!-- Header -->
     <header>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
       <div class="logo-icon">✦</div>
       <h1>人生劇本</h1>
       <p>整合五大命理系統，打造專屬的好運體質。凡事本無吉凶，端看自己如何詮釋。</p>
       <p style="font-size:.82rem;color:var(--muted);margin-top:4px;">馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀</p>
     </header>
+
+    <!-- Daily Energy Widget -->
+    <div id="daily-energy" class="panel daily-energy-panel">
+      <div class="daily-energy-header">
+        <span class="daily-energy-title">✦ 今日能量</span>
+        <span id="daily-energy-date" class="daily-energy-date"></span>
+      </div>
+      <div id="daily-energy-content" class="daily-energy-content">
+        <div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>
+      </div>
+    </div>
 
     <!-- Input Form -->
     <div class="panel">
@@ -260,6 +272,71 @@
       <div id="company-compat-result" style="margin-top:16px;"></div>
     </div>
 
+    <!-- Person-to-Person Compatibility (hidden until personal chart is calculated) -->
+    <div id="person-compat-container" class="panel" style="margin-top:24px;display:none;">
+      <div class="sig" style="margin-bottom:12px;">
+        <div class="kin">人際能量</div>
+        <div class="big" style="font-size:1.3rem;">雙人合盤</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">和另一個人的命盤做比對 — 情侶、朋友、同事都可以。</div>
+      </div>
+
+      <label>對方出生日期</label>
+      <div class="form-row">
+        <div class="form-group">
+          <input type="number" id="person2-year" placeholder="年份" min="1900" max="2100" aria-label="對方出生年份">
+        </div>
+        <div class="form-group">
+          <select id="person2-month" aria-label="對方出生月份">
+            <option value="">月</option>
+            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+            <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+            <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+            <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="number" id="person2-day" placeholder="日" min="1" max="31" aria-label="對方出生日">
+        </div>
+      </div>
+
+      <label>對方出生時間（選填，有助更精準分析）</label>
+      <div class="form-row">
+        <div class="form-group">
+          <input type="number" id="person2-hour" placeholder="時（0-23）" min="0" max="23" aria-label="對方出生小時">
+        </div>
+        <div class="form-group">
+          <input type="number" id="person2-minute" placeholder="分（0-59）" min="0" max="59" aria-label="對方出生分鐘">
+        </div>
+      </div>
+
+      <label>對方性別</label>
+      <div class="form-row">
+        <div class="form-group">
+          <select id="person2-gender" aria-label="對方性別">
+            <option value="male">男</option>
+            <option value="female">女</option>
+          </select>
+        </div>
+      </div>
+
+      <label>關係類型</label>
+      <div class="form-row">
+        <div class="form-group wide">
+          <select id="person2-relation" aria-label="關係類型">
+            <option value="partner">情侶/伴侶</option>
+            <option value="friend">朋友</option>
+            <option value="colleague">同事</option>
+            <option value="family">家人</option>
+            <option value="boss">主管/老闆</option>
+          </select>
+        </div>
+      </div>
+
+      <button id="person-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+      <div id="person-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+      <div id="person-compat-result" style="margin-top:16px;"></div>
+    </div>
+
     <!-- Meihua Section (independent from birth data) -->
     <div id="meihua-container" class="panel" style="margin-top:24px;">
       <div class="sig" style="margin-bottom:12px;">
@@ -287,7 +364,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=4"></script>
+  <script type="module" src="js/main.js?v=5"></script>
   <script src="js/click-handlers.js"></script>
   <script>
     // Service Worker 註冊
