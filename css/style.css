@@ -25,21 +25,21 @@
 
 /* ===== Light Theme ===== */
 [data-theme="light"] {
-  --bg: #F5EDCE;
-  --bg-gradient: radial-gradient(circle at 20% 10%, #FBF6E4 0%, #F5EDCE 55%);
-  --card: #FFFDF3;
-  --card-border: rgba(160, 130, 60, 0.2);
-  --accent: #7A5C1F;
-  --accent2: #3A7A74;
-  --text: #3B3426;
-  --muted: #7A7062;
-  --red: #9B2C2C;
-  --white: #FFFDF3;
-  --blue: #3A7A74;
-  --yellow: #8B6914;
-  --input-bg: #EDE5C5;
-  --gold-gradient: linear-gradient(135deg, #C9A832 0%, #8B6914 40%, #7A5C1F 100%);
-  --gold-text-gradient: linear-gradient(135deg, #8B6914 0%, #7A5C1F 35%, #5C4010 70%, #3D2A00 100%);
+  --bg: #F0E4B0;
+  --bg-gradient: radial-gradient(circle at 20% 10%, #F5ECC5 0%, #F0E4B0 55%);
+  --card: #FBF5DA;
+  --card-border: rgba(140, 110, 40, 0.25);
+  --accent: #6B4C12;
+  --accent2: #2E6B65;
+  --text: #33291A;
+  --muted: #6B5F4A;
+  --red: #8B2020;
+  --white: #FBF5DA;
+  --blue: #2E6B65;
+  --yellow: #7A5810;
+  --input-bg: #E8DCA0;
+  --gold-gradient: linear-gradient(135deg, #B89520 0%, #7A5810 40%, #6B4C12 100%);
+  --gold-text-gradient: linear-gradient(135deg, #7A5810 0%, #6B4C12 35%, #4A3508 70%, #332400 100%);
 }
 
 /* ===== Theme Toggle Button ===== */
