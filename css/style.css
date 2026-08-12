@@ -25,21 +25,21 @@
 
 /* ===== Light Theme ===== */
 [data-theme="light"] {
-  --bg: #F5F2EB;
-  --bg-gradient: radial-gradient(circle at 20% 10%, #FDFCF8 0%, #F5F2EB 55%);
-  --card: #FFFFFF;
-  --card-border: rgba(180, 155, 90, 0.25);
-  --accent: #8B6914;
+  --bg: #F7F3E9;
+  --bg-gradient: radial-gradient(circle at 20% 10%, #FBF8F0 0%, #F7F3E9 55%);
+  --card: #FFFDF7;
+  --card-border: rgba(160, 130, 60, 0.2);
+  --accent: #7A5C1F;
   --accent2: #3A7A74;
-  --text: #2C2C2C;
-  --muted: #6B7B72;
-  --red: #C62828;
-  --white: #FFFFFF;
+  --text: #3B3426;
+  --muted: #7A7062;
+  --red: #9B2C2C;
+  --white: #FFFDF7;
   --blue: #3A7A74;
-  --yellow: #A68B1B;
-  --input-bg: #F0ECE3;
-  --gold-gradient: linear-gradient(135deg, #C9A832 0%, #8B6914 40%, #6B5010 100%);
-  --gold-text-gradient: linear-gradient(135deg, #A68B1B 0%, #8B6914 35%, #6B5010 70%, #4A3800 100%);
+  --yellow: #8B6914;
+  --input-bg: #F0EBD8;
+  --gold-gradient: linear-gradient(135deg, #C9A832 0%, #8B6914 40%, #7A5C1F 100%);
+  --gold-text-gradient: linear-gradient(135deg, #8B6914 0%, #7A5C1F 35%, #5C4010 70%, #3D2A00 100%);
 }
 
 /* ===== Theme Toggle Button ===== */
