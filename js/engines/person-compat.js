@@ -295,7 +295,7 @@ function renderResult(data) {
   html += `<div style="text-align:center;font-size:1.4rem;padding-top:4px;">⟷</div>`;
   html += `<div style="text-align:center;"><span style="font-size:1.4rem;font-weight:700;">${dp2.stem}${dp2.branch}</span><br><span style="font-size:.78rem;color:var(--muted);">對方（${ELEMENT_ZH[STEM_ELEMENT[dp2.stem]]}）</span></div>`;
   html += `</div>`;
-  html += `<div style="padding:10px;background:rgba(198,169,105,.08);border-radius:8px;margin-bottom:8px;">`;
+  html += `<div style="padding:10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;margin-bottom:8px;">`;
   html += `<b>你看對方 →</b> <span class="kw">${tenGod}</span>：${baziResult.desc}`;
   html += `</div>`;
   html += `<div style="padding:10px;background:rgba(92,141,137,.08);border-radius:8px;">`;
@@ -324,7 +324,7 @@ function renderResult(data) {
   html += `<div style="text-align:center;"><span style="font-size:1.1rem;font-weight:700;">KIN ${kin2}</span><br><span style="font-size:.78rem;color:var(--muted);">對方</span></div>`;
   html += `</div>`;
   mayaResults.forEach(r => {
-    html += `<div style="padding:8px;background:rgba(198,169,105,.06);border-radius:6px;margin-bottom:6px;">`;
+    html += `<div style="padding:8px;background:rgba(var(--accent-rgb),.06);border-radius:6px;margin-bottom:6px;">`;
     html += `<span class="kw">${r.type}</span>（${r.score}分）：${r.desc}`;
     html += `</div>`;
   });
@@ -338,7 +338,7 @@ function renderResult(data) {
   html += `<div style="text-align:center;font-size:1.2rem;padding-top:4px;">×</div>`;
   html += `<div style="text-align:center;"><span style="font-size:1.1rem;font-weight:700;">${zodiac.sign2.name}座</span><br><span style="font-size:.78rem;color:var(--muted);">對方（${zodiac.sign2.elem}象）</span></div>`;
   html += `</div>`;
-  html += `<div style="padding:10px;background:rgba(198,169,105,.08);border-radius:8px;">`;
+  html += `<div style="padding:10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;">`;
   html += `<span class="kw">${zodiac.score}分</span> — ${zodiac.desc}`;
   html += `</div>`;
   html += `</div>`;

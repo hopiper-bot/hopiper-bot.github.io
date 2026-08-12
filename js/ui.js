@@ -2,7 +2,7 @@
  * ui.js — DOM 操作、Tab 切換、Loading 動畫、Result 渲染框架
  */
 
-const TABS = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+const TABS = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis', 'company-compat', 'person-compat'];
 
 /** 初始化 Tab 切換事件 */
 export function initTabs() {

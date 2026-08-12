@@ -202,11 +202,12 @@ function restoreCachedResults() {
     }
     attachShareHandlers();
 
-    // 恢復公司合盤顯示
-    const ccEl = document.getElementById('company-compat-container');
-    if (ccEl && cache.bazi?.status === 'ok') ccEl.style.display = '';
-    const pcEl = document.getElementById('person-compat-container');
-    if (pcEl && cache.bazi?.status === 'ok') pcEl.style.display = '';
+    // 恢復公司合盤和雙人合盤表單
+    if (cache.bazi?.status === 'ok') {
+      // 需要 lastBaziData — 從 cache 無法完整恢復，但先渲染表單
+      renderCompanyCompatForm();
+      renderPersonCompatForm();
+    }
   } catch (e) { /* ignore */ }
 }
 
@@ -336,6 +337,9 @@ async function calculate() {
   // 各 tab 先放 loading placeholder
   const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
   engineTabs.forEach(k => ui.setViewContent(k, '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>'));
+  // 合盤 tab 先放提示
+  ui.setViewContent('company-compat', '<div class="placeholder">請先計算個人命盤⋯</div>');
+  ui.setViewContent('person-compat', '<div class="placeholder">請先計算個人命盤⋯</div>');
 
   // === Progressive Rendering: 每個引擎獨立 try/catch ===
   const results = {};
@@ -369,10 +373,9 @@ async function calculate() {
   // 保存八字結果供公司合盤使用
   if (results.bazi?.status === 'ok' && results.bazi.data) {
     lastBaziData = results.bazi.data;
-    const ccEl = document.getElementById('company-compat-container');
-    if (ccEl) ccEl.style.display = '';
-    const pcEl = document.getElementById('person-compat-container');
-    if (pcEl) pcEl.style.display = '';
+    // 渲染公司合盤和雙人合盤的表單到 tab view 裡
+    renderCompanyCompatForm();
+    renderPersonCompatForm();
   }
 
   // 保存星座和馬雅結果供合盤使用
@@ -586,11 +589,129 @@ const COMPANY_PRESETS = {
   tesla:     { name: 'Tesla', year: 2003, month: 7, day: 1, logo: '紅色', industry: '汽車' },
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  const btnGo = document.getElementById('company-compat-go');
-  if (!btnGo) return;
+/** 渲染公司合盤表單到 tab view 裡 */
+function renderCompanyCompatForm() {
+  const html = `
+    <div class="sig" style="margin-bottom:12px;">
+      <div class="kin">職場能量</div>
+      <div class="big" style="font-size:1.3rem;">公司合盤</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">你跟公司的八字合不合？LOGO 色是不是你的幸運色？選一家公司來看看。</div>
+    </div>
 
-  // 預設公司選擇 → 自動帶入
+    <label>快速選擇（或自行輸入）</label>
+    <div class="form-row">
+      <div class="form-group wide">
+        <select id="company-preset" aria-label="預設公司">
+          <option value="">— 自行輸入 —</option>
+          <option value="inventec">英業達 Inventec</option>
+          <option value="tsmc">台積電 TSMC</option>
+          <option value="foxconn">鴻海 Foxconn</option>
+          <option value="asus">華碩 ASUS</option>
+          <option value="acer">宏碁 Acer</option>
+          <option value="mediatek">聯發科 MediaTek</option>
+          <option value="delta">台達電 Delta</option>
+          <option value="quanta">廣達 Quanta</option>
+          <option value="pegatron">和碩 Pegatron</option>
+          <option value="wistron">緯創 Wistron</option>
+          <option value="compal">仁寶 Compal</option>
+          <option value="google">Google</option>
+          <option value="apple">Apple</option>
+          <option value="microsoft">Microsoft</option>
+          <option value="nvidia">NVIDIA</option>
+          <option value="samsung">三星 Samsung</option>
+          <option value="sony">Sony</option>
+          <option value="amazon">Amazon</option>
+          <option value="meta">Meta (Facebook)</option>
+          <option value="tesla">Tesla</option>
+        </select>
+      </div>
+    </div>
+
+    <label>公司名稱（選填）</label>
+    <div class="form-row">
+      <div class="form-group wide">
+        <input type="text" id="company-name" placeholder="如：英業達" maxlength="30" aria-label="公司名稱">
+      </div>
+    </div>
+
+    <label>公司成立日期</label>
+    <div class="form-row">
+      <div class="form-group">
+        <input type="number" id="company-year" placeholder="年份" min="1800" max="2100" aria-label="成立年份">
+      </div>
+      <div class="form-group">
+        <select id="company-month" aria-label="成立月份">
+          <option value="">月</option>
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input type="number" id="company-day" placeholder="日" min="1" max="31" aria-label="成立日">
+      </div>
+    </div>
+
+    <label>LOGO 主色</label>
+    <div class="form-row">
+      <div class="form-group wide">
+        <select id="company-logo-color" aria-label="LOGO主色">
+          <option value="">（選填）</option>
+          <option value="紅色">🔴 紅色</option><option value="橘色">🟠 橘色</option>
+          <option value="黃色">🟡 黃色</option><option value="綠色">🟢 綠色</option>
+          <option value="藍色">🔵 藍色</option><option value="紫色">🟣 紫色</option>
+          <option value="白色">⚪ 白色</option><option value="黑色">⚫ 黑色</option>
+          <option value="金色">🥇 金色</option><option value="銀色">🥈 銀色</option>
+          <option value="粉紅">💗 粉紅</option><option value="咖啡">🟤 咖啡/棕</option>
+          <option value="灰色">🩶 灰色</option>
+        </select>
+      </div>
+    </div>
+
+    <label>產業類別</label>
+    <div class="form-row">
+      <div class="form-group wide">
+        <select id="company-industry" aria-label="產業類別">
+          <option value="">（選填）</option>
+          <option value="半導體">半導體</option>
+          <option value="科技硬體">科技硬體</option>
+          <option value="電子製造">電子製造</option>
+          <option value="軟體網路">軟體/網路</option>
+          <option value="金融保險">金融/保險</option>
+          <option value="建築營造">建築/營造</option>
+          <option value="房地產">房地產</option>
+          <option value="餐飲">餐飲</option>
+          <option value="教育出版">教育/出版</option>
+          <option value="醫療">醫療</option>
+          <option value="生技醫藥">生技/醫藥</option>
+          <option value="文創設計">文創/設計</option>
+          <option value="貿易物流">貿易/物流</option>
+          <option value="能源電力">能源/電力</option>
+          <option value="廣告行銷">廣告/行銷</option>
+          <option value="娛樂表演">娛樂/表演</option>
+          <option value="法律">法律</option>
+          <option value="旅遊">旅遊</option>
+          <option value="服飾紡織">服飾/紡織</option>
+          <option value="食品加工">食品加工</option>
+          <option value="機械">機械</option>
+          <option value="汽車">汽車</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="company-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+    <button id="company-compat-clear" type="button" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--muted);font-size:.82rem;cursor:pointer;">清除全部結果</button>
+    <div id="company-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+    <div id="company-compat-result" style="margin-top:16px;"></div>
+  `;
+  ui.setViewContent('company-compat', html);
+  // 綁定事件
+  bindCompanyCompatEvents();
+}
+
+/** 綁定公司合盤事件 */
+function bindCompanyCompatEvents() {
   const presetSelect = document.getElementById('company-preset');
   if (presetSelect) {
     presetSelect.addEventListener('change', () => {
@@ -607,7 +728,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 清除全部結果
   const btnClear = document.getElementById('company-compat-clear');
   if (btnClear) {
     btnClear.addEventListener('click', () => {
@@ -615,105 +735,158 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnGo.addEventListener('click', async () => {
-    const errorDiv = document.getElementById('company-compat-error');
-    const resultDiv = document.getElementById('company-compat-result');
-    errorDiv.textContent = '';
-    resultDiv.innerHTML = '';
+  const btnGo = document.getElementById('company-compat-go');
+  if (btnGo) {
+    btnGo.addEventListener('click', async () => {
+      const errorDiv = document.getElementById('company-compat-error');
+      const resultDiv = document.getElementById('company-compat-result');
+      errorDiv.textContent = '';
+      resultDiv.innerHTML = '';
 
-    // 檢查個人命盤是否已算
-    if (!lastBaziData) {
-      errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
-      return;
-    }
-
-    // 動態載入 engine（避免靜態 import 失敗炸掉整個 app）
-    if (!companyCompatEngine) {
-      try {
-        companyCompatEngine = await import('./engines/company-compat.js?v=3');
-      } catch (e) {
-        errorDiv.textContent = `引擎載入失敗：${e.message}`;
-        console.error('company-compat load error:', e);
+      if (!lastBaziData) {
+        errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
         return;
       }
-    }
 
-    // 取得公司資料
-    const year = parseInt(document.getElementById('company-year')?.value);
-    const month = parseInt(document.getElementById('company-month')?.value);
-    const day = parseInt(document.getElementById('company-day')?.value);
-    const companyName = document.getElementById('company-name')?.value?.trim() || '';
-    const logoColor = document.getElementById('company-logo-color')?.value || '';
-    const industry = document.getElementById('company-industry')?.value || '';
-
-    // 驗證
-    if (!year || year < 1800 || year > 2100) {
-      errorDiv.textContent = '請輸入公司成立年份';
-      return;
-    }
-    if (!month || month < 1 || month > 12) {
-      errorDiv.textContent = '請選擇成立月份';
-      return;
-    }
-    if (!day || day < 1 || day > 31) {
-      errorDiv.textContent = '請輸入成立日期';
-      return;
-    }
-
-    try {
-      const result = companyCompatEngine.calculate(lastBaziData, {
-        year, month, day, hour: 9,
-        logoColor, industry, companyName,
-      });
-
-      // 星座合盤（需要個人星座結果）
-      let astroHtml = '';
-      let personAstro = window.__lastAstroData || null;
-      // 從 localStorage 取個人出生月日作為 fallback
-      let personMonth = 0, personDay = 0;
-      try {
-        const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
-        personMonth = saved.month || 0;
-        personDay = saved.day || 0;
-      } catch(e) {}
-      // 從 localStorage 取已存的星座（如果 window 變數沒存到）
-      let savedSigns = null;
-      try {
-        savedSigns = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null');
-      } catch(e) {}
-      if (!personAstro && savedSigns) {
-        personAstro = { sunSign: savedSigns.sunSign, moonSign: savedSigns.moonSign, risingSign: savedSigns.risingSign };
-      }
-      const astroInput = { month, day, companyName, personMonth, personDay };
-      try {
-        const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
-        if (astroResult2.status === 'ok') astroHtml = astroResult2.html;
-      } catch(e) { console.warn('星座合盤錯誤:', e); }
-
-      // 馬雅合盤（需要個人馬雅結果）
-      let mayaHtml = '';
-      const personMaya = window.__lastMayaData || null;
-      if (personMaya) {
-        const mayaResult = companyCompatEngine.calculateMaya(personMaya, { year, month, day, companyName });
-        if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
+      if (!companyCompatEngine) {
+        try {
+          companyCompatEngine = await import('./engines/company-compat.js?v=3');
+        } catch (e) {
+          errorDiv.textContent = `引擎載入失敗：${e.message}`;
+          console.error('company-compat load error:', e);
+          return;
+        }
       }
 
-      // 疊加顯示（新結果加在最前面），不清除舊的
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
-      wrapper.innerHTML = result.html + astroHtml + mayaHtml;
-      resultDiv.prepend(wrapper);
-      wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch (err) {
-      errorDiv.textContent = `計算錯誤：${err.message}`;
-      console.error('公司合盤錯誤:', err);
-    }
-  });
-});
+      const year = parseInt(document.getElementById('company-year')?.value);
+      const month = parseInt(document.getElementById('company-month')?.value);
+      const day = parseInt(document.getElementById('company-day')?.value);
+      const companyName = document.getElementById('company-name')?.value?.trim() || '';
+      const logoColor = document.getElementById('company-logo-color')?.value || '';
+      const industry = document.getElementById('company-industry')?.value || '';
+
+      if (!year || year < 1800 || year > 2100) { errorDiv.textContent = '請輸入公司成立年份'; return; }
+      if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇成立月份'; return; }
+      if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入成立日期'; return; }
+
+      try {
+        const result = companyCompatEngine.calculate(lastBaziData, {
+          year, month, day, hour: 9,
+          logoColor, industry, companyName,
+        });
+
+        let astroHtml = '';
+        let personAstro = window.__lastAstroData || null;
+        let personMonth = 0, personDay = 0;
+        try {
+          const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
+          personMonth = saved.month || 0;
+          personDay = saved.day || 0;
+        } catch(e) {}
+        let savedSigns = null;
+        try { savedSigns = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null'); } catch(e) {}
+        if (!personAstro && savedSigns) {
+          personAstro = { sunSign: savedSigns.sunSign, moonSign: savedSigns.moonSign, risingSign: savedSigns.risingSign };
+        }
+        const astroInput = { month, day, companyName, personMonth, personDay };
+        try {
+          const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
+          if (astroResult2.status === 'ok') astroHtml = astroResult2.html;
+        } catch(e) { console.warn('星座合盤錯誤:', e); }
+
+        let mayaHtml = '';
+        const personMaya = window.__lastMayaData || null;
+        if (personMaya) {
+          const mayaResult = companyCompatEngine.calculateMaya(personMaya, { year, month, day, companyName });
+          if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
+        wrapper.innerHTML = result.html + astroHtml + mayaHtml;
+        resultDiv.prepend(wrapper);
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        errorDiv.textContent = `計算錯誤：${err.message}`;
+        console.error('公司合盤錯誤:', err);
+      }
+    });
+  }
+}
 
 // ============ 雙人合盤 UI ============
 
-document.addEventListener('DOMContentLoaded', () => {
+/** 渲染雙人合盤表單到 tab view 裡 */
+function renderPersonCompatForm() {
+  const html = `
+    <div class="sig" style="margin-bottom:12px;">
+      <div class="kin">人際能量</div>
+      <div class="big" style="font-size:1.3rem;">雙人合盤</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">和另一個人的命盤做比對 — 情侶、朋友、同事都可以。</div>
+    </div>
+
+    <label>對方出生日期</label>
+    <div class="form-row">
+      <div class="form-group">
+        <input type="number" id="person2-year" placeholder="年份" min="1900" max="2100" aria-label="對方出生年份">
+      </div>
+      <div class="form-group">
+        <select id="person2-month" aria-label="對方出生月份">
+          <option value="">月</option>
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input type="number" id="person2-day" placeholder="日" min="1" max="31" aria-label="對方出生日">
+      </div>
+    </div>
+
+    <label>對方出生時間（選填，有助更精準分析）</label>
+    <div class="form-row">
+      <div class="form-group">
+        <input type="number" id="person2-hour" placeholder="時（0-23）" min="0" max="23" aria-label="對方出生小時">
+      </div>
+      <div class="form-group">
+        <input type="number" id="person2-minute" placeholder="分（0-59）" min="0" max="59" aria-label="對方出生分鐘">
+      </div>
+    </div>
+
+    <label>對方性別</label>
+    <div class="form-row">
+      <div class="form-group">
+        <select id="person2-gender" aria-label="對方性別">
+          <option value="male">男</option>
+          <option value="female">女</option>
+        </select>
+      </div>
+    </div>
+
+    <label>關係類型</label>
+    <div class="form-row">
+      <div class="form-group wide">
+        <select id="person2-relation" aria-label="關係類型">
+          <option value="partner">情侶/伴侶</option>
+          <option value="friend">朋友</option>
+          <option value="colleague">同事</option>
+          <option value="family">家人</option>
+          <option value="boss">主管/老闆</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="person-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+    <div id="person-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+    <div id="person-compat-result" style="margin-top:16px;"></div>
+  `;
+  ui.setViewContent('person-compat', html);
+  bindPersonCompatEvents();
+}
+
+/** 綁定雙人合盤事件 */
+function bindPersonCompatEvents() {
   const btnGo = document.getElementById('person-compat-go');
   if (!btnGo) return;
 
@@ -723,7 +896,6 @@ document.addEventListener('DOMContentLoaded', () => {
     errorDiv.textContent = '';
     resultDiv.innerHTML = '';
 
-    // 取得個人資料（從 localStorage）
     let person1;
     try {
       person1 = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
@@ -733,7 +905,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 取得對方資料
     const year = parseInt(document.getElementById('person2-year')?.value);
     const month = parseInt(document.getElementById('person2-month')?.value);
     const day = parseInt(document.getElementById('person2-day')?.value);
@@ -744,21 +915,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const gender = document.getElementById('person2-gender')?.value || 'male';
     const relation = document.getElementById('person2-relation')?.value || 'friend';
 
-    // 驗證
-    if (!year || year < 1900 || year > 2100) {
-      errorDiv.textContent = '請輸入對方出生年份';
-      return;
-    }
-    if (!month || month < 1 || month > 12) {
-      errorDiv.textContent = '請選擇對方出生月份';
-      return;
-    }
-    if (!day || day < 1 || day > 31) {
-      errorDiv.textContent = '請輸入對方出生日期';
-      return;
-    }
+    if (!year || year < 1900 || year > 2100) { errorDiv.textContent = '請輸入對方出生年份'; return; }
+    if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇對方出生月份'; return; }
+    if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入對方出生日期'; return; }
 
-    // 動態載入引擎
     try {
       const personCompatEngine = await import('./engines/person-compat.js');
       const person2 = { year, month, day, hour, minute, gender };
@@ -775,4 +935,4 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('雙人合盤錯誤:', err);
     }
   });
-});
+}

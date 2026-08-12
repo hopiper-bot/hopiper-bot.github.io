@@ -17,29 +17,41 @@
   --radius-lg: 18px;
   --transition: 0.3s ease;
 
+  /* accent 的 RGB 分量 — 供半透明疊色使用 */
+  --accent-rgb: 198, 169, 105;
+  --accent2-rgb: 92, 141, 137;
+  /* 淡色底（chip / 次要按鈕） */
+  --chip-bg: rgba(255, 255, 255, 0.04);
+  /* 主按鈕文字色 */
+  --btn-text: #1a1200;
+
   /* 霧金漸層 — 按鈕/裝飾用 */
   --gold-gradient: linear-gradient(135deg, #F2D06B 0%, #D4AF37 40%, #C6A969 100%);
   /* 金色文字 — 4段模擬金屬反光 */
   --gold-text-gradient: linear-gradient(135deg, #F9E7B0 0%, #E6CA65 35%, #D4AF37 70%, #B8860B 100%);
 }
 
-/* ===== Light Theme ===== */
+/* ===== Light Theme (淡綠 × 森林綠) ===== */
 [data-theme="light"] {
-  --bg: #F0E4B0;
-  --bg-gradient: radial-gradient(circle at 20% 10%, #F5ECC5 0%, #F0E4B0 55%);
-  --card: #FBF5DA;
-  --card-border: rgba(140, 110, 40, 0.25);
-  --accent: #6B4C12;
-  --accent2: #2E6B65;
-  --text: #33291A;
-  --muted: #6B5F4A;
+  --bg: #E7F2EA;
+  --bg-gradient: radial-gradient(circle at 20% 10%, #F4FBF5 0%, #E1EFE5 55%);
+  --card: #F8FCF9;
+  --card-border: rgba(45, 106, 79, 0.20);
+  --accent: #2D6A4F;
+  --accent2: #74A98C;
+  --text: #1D3A2B;
+  --muted: #5B7C68;
   --red: #8B2020;
-  --white: #FBF5DA;
+  --white: #F8FCF9;
   --blue: #2E6B65;
-  --yellow: #7A5810;
-  --input-bg: #E8DCA0;
-  --gold-gradient: linear-gradient(135deg, #B89520 0%, #7A5810 40%, #6B4C12 100%);
-  --gold-text-gradient: linear-gradient(135deg, #7A5810 0%, #6B4C12 35%, #4A3508 70%, #332400 100%);
+  --yellow: #3E7D5A;
+  --input-bg: #DDEDE2;
+  --accent-rgb: 45, 106, 79;
+  --accent2-rgb: 82, 150, 118;
+  --chip-bg: rgba(45, 106, 79, 0.05);
+  --btn-text: #F4FBF5;
+  --gold-gradient: linear-gradient(135deg, #52B788 0%, #40916C 45%, #2D6A4F 100%);
+  --gold-text-gradient: linear-gradient(135deg, #40916C 0%, #2D6A4F 35%, #1B4332 70%, #123227 100%);
 }
 
 /* ===== Theme Toggle Button ===== */
@@ -98,7 +110,7 @@
 }
 
 .daily-card {
-  background: rgba(198, 169, 105, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
   border: 1px solid var(--card-border);
   border-radius: 10px;
   padding: 12px;
@@ -134,7 +146,7 @@
   font-size: .82rem;
   color: var(--text);
   padding: 10px 12px;
-  background: rgba(92, 141, 137, 0.08);
+  background: rgba(var(--accent2-rgb), 0.08);
   border-radius: 8px;
   line-height: 1.6;
 }
@@ -259,7 +271,7 @@ input::placeholder {
 /* ===== Button ===== */
 .btn-primary {
   background: var(--gold-gradient);
-  color: #1a1200;
+  color: var(--btn-text);
   border: none;
   border-radius: 12px;
   padding: 12px 28px;
@@ -273,7 +285,7 @@ input::placeholder {
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(198, 169, 105, 0.35);
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.35);
 }
 
 .btn-primary:active {
@@ -284,15 +296,15 @@ input::placeholder {
 .btn-meihua {
   padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(198, 169, 105, 0.3);
-  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  background: var(--chip-bg);
   color: var(--muted);
   font-size: .82rem;
   cursor: pointer;
   transition: all 0.15s;
 }
 .btn-meihua:hover { border-color: var(--accent); color: var(--accent); }
-.btn-meihua.active { background: rgba(198,169,105,.15); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.btn-meihua.active { background: rgba(var(--accent-rgb), .15); color: var(--accent); border-color: var(--accent); font-weight: 700; }
 
 /* ===== Tabs ===== */
 .tabs {
@@ -335,7 +347,7 @@ input::placeholder {
 .tab.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(198, 169, 105, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 
 /* ===== Result Views ===== */
@@ -416,7 +428,7 @@ h3 {
 /* ===== Divider ===== */
 .divider {
   height: 1px;
-  background: rgba(198, 169, 105, 0.12);
+  background: rgba(var(--accent-rgb), 0.12);
   margin: 24px 0;
 }
 
@@ -430,9 +442,9 @@ h3 {
 }
 
 .tag-red { background: var(--red); color: #fff; }
-.tag-white { background: var(--white); color: #333; }
+.tag-white { background: var(--white); color: #333; border: 1px solid var(--card-border); }
 .tag-blue { background: var(--blue); color: #fff; }
-.tag-yellow { background: var(--gold-gradient); color: #1a1200; }
+.tag-yellow { background: var(--gold-gradient); color: var(--btn-text); }
 
 /* ===== Error Messages ===== */
 .error-msg {
@@ -452,8 +464,8 @@ h3 {
   padding: 18px;
   border-radius: var(--radius);
   margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(92, 141, 137, 0.2), rgba(198, 169, 105, 0.12));
-  border: 1px solid rgba(198, 169, 105, 0.3);
+  background: linear-gradient(135deg, rgba(var(--accent2-rgb), 0.2), rgba(var(--accent-rgb), 0.12));
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
 }
 
 .sig .kin {
@@ -512,7 +524,7 @@ h3 {
 .script-section {
   margin: 16px 0;
   padding: 16px;
-  background: rgba(123, 108, 246, 0.04);
+  background: rgba(var(--accent-rgb), 0.05);
   border-radius: 10px;
   border-left: 3px solid var(--accent);
 }
@@ -533,15 +545,15 @@ h3 {
 .script-gift, .script-lesson, .script-insight {
   padding: 10px 12px;
   margin: 8px 0;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--chip-bg);
   border-radius: 8px;
-  border-left: 2px solid rgba(123, 108, 246, 0.3);
+  border-left: 2px solid rgba(var(--accent2-rgb), 0.35);
 }
 
 .script-conclusion {
   margin-top: 12px;
   padding: 12px;
-  background: rgba(245, 197, 66, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
   border-radius: 8px;
   font-weight: 500;
 }
@@ -563,9 +575,9 @@ h3 {
 }
 
 .theme-badge.core {
-  background: rgba(123, 108, 246, 0.15);
+  background: rgba(var(--accent-rgb), 0.15);
   color: var(--accent);
-  border: 1px solid rgba(123, 108, 246, 0.3);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
 }
 
 .theme-badge small {
@@ -678,12 +690,12 @@ h3 {
 .transit-year-btn:hover:not(.active) {
   border-color: var(--accent) !important;
   color: var(--accent) !important;
-  background: rgba(198, 169, 105, 0.08) !important;
+  background: rgba(var(--accent-rgb), 0.08) !important;
 }
 
 .transit-year-btn.active {
   background: var(--accent) !important;
-  color: #1a1200 !important;
+  color: var(--btn-text) !important;
   border-color: var(--accent) !important;
 }
 
@@ -744,8 +756,8 @@ h3 {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 10px;
-  border: 1px solid rgba(198, 169, 105, 0.3);
-  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  background: var(--chip-bg);
   color: var(--text);
   font-size: .82rem;
   font-family: inherit;
@@ -758,7 +770,7 @@ h3 {
 .share-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgba(198, 169, 105, 0.08);
+  background: rgba(var(--accent-rgb), 0.08);
 }
 
 .share-btn:active {
@@ -772,7 +784,7 @@ h3 {
   color: var(--muted);
   padding: 6px 12px;
   margin-top: 8px;
-  background: rgba(198, 169, 105, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
   border-radius: 8px;
   opacity: 0.8;
 }
@@ -804,7 +816,7 @@ h3 {
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: var(--accent);
-  color: #1a1200;
+  color: var(--btn-text);
   padding: 10px 20px;
   border-radius: 10px;
   font-size: .85rem;
