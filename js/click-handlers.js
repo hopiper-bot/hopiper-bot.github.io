@@ -135,3 +135,202 @@ document.addEventListener('click', function(e) {
     detailEl.scrollIntoView({behavior:'smooth', block:'nearest'});
   }
 });
+
+
+// ========== 公司合盤 + 雙人合盤 ==========
+
+var COMPANY_PRESETS = {
+  inventec:  { name: '英業達', year: 1975, month: 6, day: 9, logo: '紅色', industry: '電子製造' },
+  tsmc:      { name: '台積電', year: 1987, month: 2, day: 21, logo: '紅色', industry: '半導體' },
+  foxconn:   { name: '鴻海', year: 1974, month: 2, day: 20, logo: '藍色', industry: '電子製造' },
+  asus:      { name: '華碩', year: 1989, month: 4, day: 2, logo: '藍色', industry: '科技硬體' },
+  acer:      { name: '宏碁', year: 1976, month: 8, day: 1, logo: '綠色', industry: '科技硬體' },
+  mediatek:  { name: '聯發科', year: 1997, month: 5, day: 28, logo: '綠色', industry: '半導體' },
+  delta:     { name: '台達電', year: 1971, month: 4, day: 4, logo: '紅色', industry: '電子製造' },
+  quanta:    { name: '廣達', year: 1988, month: 5, day: 9, logo: '藍色', industry: '電子製造' },
+  pegatron:  { name: '和碩', year: 2008, month: 1, day: 1, logo: '藍色', industry: '電子製造' },
+  wistron:   { name: '緯創', year: 2001, month: 7, day: 1, logo: '藍色', industry: '電子製造' },
+  compal:    { name: '仁寶', year: 1984, month: 6, day: 1, logo: '藍色', industry: '電子製造' },
+  google:    { name: 'Google', year: 1998, month: 9, day: 4, logo: '紅色', industry: '軟體網路' },
+  apple:     { name: 'Apple', year: 1976, month: 4, day: 1, logo: '灰色', industry: '科技硬體' },
+  microsoft: { name: 'Microsoft', year: 1975, month: 4, day: 4, logo: '藍色', industry: '軟體網路' },
+  nvidia:    { name: 'NVIDIA', year: 1993, month: 1, day: 22, logo: '綠色', industry: '半導體' },
+  samsung:   { name: '三星', year: 1969, month: 1, day: 13, logo: '藍色', industry: '電子製造' },
+  sony:      { name: 'Sony', year: 1946, month: 5, day: 7, logo: '黑色', industry: '電子製造' },
+  amazon:    { name: 'Amazon', year: 1994, month: 7, day: 5, logo: '橘色', industry: '軟體網路' },
+  meta:      { name: 'Meta', year: 2004, month: 2, day: 4, logo: '藍色', industry: '軟體網路' },
+  tesla:     { name: 'Tesla', year: 2003, month: 7, day: 1, logo: '紅色', industry: '汽車' },
+};
+
+// 公司合盤：preset 選擇自動帶入
+document.addEventListener('change', function(e) {
+  if (e.target.id !== 'company-preset') return;
+  var key = e.target.value;
+  if (!key || !COMPANY_PRESETS[key]) return;
+  var p = COMPANY_PRESETS[key];
+  document.getElementById('company-name').value = p.name;
+  document.getElementById('company-year').value = p.year;
+  document.getElementById('company-month').value = p.month;
+  document.getElementById('company-day').value = p.day;
+  document.getElementById('company-logo-color').value = p.logo;
+  document.getElementById('company-industry').value = p.industry;
+});
+
+// 公司合盤 + 雙人合盤：按鈕點擊
+document.addEventListener('click', function(e) {
+  var target = e.target.closest ? e.target.closest('button') : e.target;
+  if (!target) return;
+  var id = target.id;
+
+  // 清除結果
+  if (id === 'company-compat-clear') {
+    var r = document.getElementById('company-compat-result');
+    if (r) r.innerHTML = '';
+    return;
+  }
+
+  // 公司合盤 — 開始
+  if (id === 'company-compat-go') {
+    doCompanyCompat();
+    return;
+  }
+
+  // 雙人合盤 — 開始
+  if (id === 'person-compat-go') {
+    doPersonCompat();
+    return;
+  }
+});
+
+async function doCompanyCompat() {
+  alert('公司合盤 clicked!');
+  var errorDiv = document.getElementById('company-compat-error');
+  var resultDiv = document.getElementById('company-compat-result');
+  if (!errorDiv || !resultDiv) { alert('找不到 error/result div'); return; }
+  errorDiv.textContent = '計算中...';
+  resultDiv.innerHTML = '';
+
+  // 取得 lastBaziData
+  var lastBaziData = window.__getLastBaziData ? window.__getLastBaziData() : null;
+
+  if (!lastBaziData) {
+    // 嘗試從 localStorage 重算
+    try {
+      var saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+      if (saved && saved.year && saved.month && saved.day) {
+        var baziMod = await import('./engines/bazi.js');
+        var baziResult = baziMod.calculate({
+          year: saved.year, month: saved.month, day: saved.day,
+          hour: saved.hour || 12, minute: saved.minute || 0,
+          gender: saved.gender || 'female',
+        });
+        if (baziResult && baziResult.status === 'ok' && baziResult.data) {
+          lastBaziData = baziResult.data;
+          if (window.__setLastBaziData) window.__setLastBaziData(lastBaziData);
+        }
+      }
+    } catch(ex) { console.warn('重算八字失敗:', ex); }
+  }
+
+  if (!lastBaziData) {
+    errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
+    return;
+  }
+
+  var year = parseInt(document.getElementById('company-year').value);
+  var month = parseInt(document.getElementById('company-month').value);
+  var day = parseInt(document.getElementById('company-day').value);
+  var companyName = (document.getElementById('company-name').value || '').trim();
+  var logoColor = document.getElementById('company-logo-color').value || '';
+  var industry = document.getElementById('company-industry').value || '';
+
+  if (!year || year < 1800 || year > 2100) { errorDiv.textContent = '請輸入公司成立年份'; return; }
+  if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇成立月份'; return; }
+  if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入成立日期'; return; }
+
+  try {
+    var engine = await import('./engines/company-compat.js');
+    var result = engine.calculate(lastBaziData, {
+      year: year, month: month, day: day, hour: 9,
+      logoColor: logoColor, industry: industry, companyName: companyName,
+    });
+
+    var astroHtml = '';
+    var personAstro = window.__lastAstroData || null;
+    var personMonth = 0, personDay = 0;
+    try {
+      var s = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
+      personMonth = s.month || 0;
+      personDay = s.day || 0;
+    } catch(ex2) {}
+    if (!personAstro) {
+      try { var ss = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null'); if(ss) personAstro = ss; } catch(ex3) {}
+    }
+    try {
+      var astroResult = engine.calculateAstro(personAstro, { month: month, day: day, companyName: companyName, personMonth: personMonth, personDay: personDay });
+      if (astroResult.status === 'ok') astroHtml = astroResult.html;
+    } catch(ex4) {}
+
+    var mayaHtml = '';
+    if (window.__lastMayaData) {
+      try {
+        var mayaResult = engine.calculateMaya(window.__lastMayaData, { year: year, month: month, day: day, companyName: companyName });
+        if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
+      } catch(ex5) {}
+    }
+
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
+    wrapper.innerHTML = result.html + astroHtml + mayaHtml;
+    resultDiv.prepend(wrapper);
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    errorDiv.textContent = '計算錯誤：' + err.message;
+    console.error('公司合盤錯誤:', err);
+  }
+}
+
+async function doPersonCompat() {
+  var errorDiv = document.getElementById('person-compat-error');
+  var resultDiv = document.getElementById('person-compat-result');
+  if (!errorDiv || !resultDiv) return;
+  errorDiv.textContent = '';
+  resultDiv.innerHTML = '';
+
+  var person1;
+  try { person1 = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null'); } catch(ex) {}
+  if (!person1 || !person1.year || !person1.month || !person1.day) {
+    errorDiv.textContent = '請先在上方計算個人命盤。';
+    return;
+  }
+
+  var year = parseInt(document.getElementById('person2-year').value);
+  var month = parseInt(document.getElementById('person2-month').value);
+  var day = parseInt(document.getElementById('person2-day').value);
+  var hourVal = document.getElementById('person2-hour').value;
+  var hour = (hourVal !== '' && hourVal != null) ? parseInt(hourVal) : 12;
+  var minuteVal = document.getElementById('person2-minute').value;
+  var minute = (minuteVal !== '' && minuteVal != null) ? parseInt(minuteVal) : 0;
+  var gender = document.getElementById('person2-gender').value || 'male';
+  var relation = document.getElementById('person2-relation').value || 'friend';
+
+  if (!year || year < 1900 || year > 2100) { errorDiv.textContent = '請輸入對方出生年份'; return; }
+  if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇對方出生月份'; return; }
+  if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入對方出生日期'; return; }
+
+  try {
+    var engine = await import('./engines/person-compat.js');
+    var person2 = { year: year, month: month, day: day, hour: hour, minute: minute, gender: gender };
+    var result = engine.calculate(person1, person2, relation);
+
+    if (result.status === 'ok') {
+      resultDiv.innerHTML = result.html;
+      resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      errorDiv.textContent = result.error || '計算失敗';
+    }
+  } catch (err) {
+    errorDiv.textContent = '計算錯誤：' + err.message;
+    console.error('雙人合盤錯誤:', err);
+  }
+}

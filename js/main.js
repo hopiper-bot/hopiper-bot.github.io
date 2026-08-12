@@ -201,13 +201,6 @@ function restoreCachedResults() {
         '<div class="cache-hint">📌 顯示上次的計算結果。重新輸入可更新。</div>';
     }
     attachShareHandlers();
-
-    // 恢復公司合盤和雙人合盤表單
-    if (cache.bazi?.status === 'ok') {
-      // 需要 lastBaziData — 從 cache 無法完整恢復，但先渲染表單
-      renderCompanyCompatForm();
-      renderPersonCompatForm();
-    }
   } catch (e) { /* ignore */ }
 }
 
@@ -337,9 +330,7 @@ async function calculate() {
   // 各 tab 先放 loading placeholder
   const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
   engineTabs.forEach(k => ui.setViewContent(k, '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>'));
-  // 合盤 tab 先放提示
-  ui.setViewContent('company-compat', '<div class="placeholder">請先計算個人命盤⋯</div>');
-  ui.setViewContent('person-compat', '<div class="placeholder">請先計算個人命盤⋯</div>');
+  // 合盤 tab 保留現有表單（不覆蓋）
 
   // === Progressive Rendering: 每個引擎獨立 try/catch ===
   const results = {};
@@ -373,9 +364,6 @@ async function calculate() {
   // 保存八字結果供公司合盤使用
   if (results.bazi?.status === 'ok' && results.bazi.data) {
     lastBaziData = results.bazi.data;
-    // 渲染公司合盤和雙人合盤的表單到 tab view 裡
-    renderCompanyCompatForm();
-    renderPersonCompatForm();
   }
 
   // 保存星座和馬雅結果供合盤使用
@@ -700,22 +688,23 @@ function renderCompanyCompatForm() {
       </div>
     </div>
 
-    <button id="company-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
-    <button id="company-compat-clear" type="button" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:var(--muted);font-size:.82rem;cursor:pointer;">清除全部結果</button>
-    <div id="company-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+    <button id="company-compat-go" class="btn-primary" type="button" onclick="window._companyCompatGo()" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+    <button id="company-compat-clear" type="button" onclick="window._companyCompatClear()" style="width:100%;margin-top:8px;padding:8px;background:transparent;border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-size:.82rem;cursor:pointer;opacity:.7;">清除全部結果</button>
+    <div id="company-compat-error" style="color:#e74c3c;font-size:.85rem;margin-top:8px;min-height:1.2em;" role="alert"></div>
     <div id="company-compat-result" style="margin-top:16px;"></div>
   `;
   ui.setViewContent('company-compat', html);
-  // 綁定事件
+  // 綁定全域函式
   bindCompanyCompatEvents();
 }
 
-/** 綁定公司合盤事件 */
+/** 綁定公司合盤事件（掛到 window 上供 onclick 呼叫） */
 function bindCompanyCompatEvents() {
-  const presetSelect = document.getElementById('company-preset');
-  if (presetSelect) {
-    presetSelect.addEventListener('change', () => {
-      const key = presetSelect.value;
+  // preset change（用傳統 onchange）
+  const presetEl = document.getElementById('company-preset');
+  if (presetEl) {
+    presetEl.onchange = () => {
+      const key = presetEl.value;
       if (!key) return;
       const p = COMPANY_PRESETS[key];
       if (!p) return;
@@ -725,93 +714,107 @@ function bindCompanyCompatEvents() {
       document.getElementById('company-day').value = p.day;
       document.getElementById('company-logo-color').value = p.logo;
       document.getElementById('company-industry').value = p.industry;
-    });
+    };
   }
 
-  const btnClear = document.getElementById('company-compat-clear');
-  if (btnClear) {
-    btnClear.addEventListener('click', () => {
-      document.getElementById('company-compat-result').innerHTML = '';
-    });
-  }
+  window._companyCompatClear = () => {
+    const resultDiv = document.getElementById('company-compat-result');
+    if (resultDiv) resultDiv.innerHTML = '';
+  };
 
-  const btnGo = document.getElementById('company-compat-go');
-  if (btnGo) {
-    btnGo.addEventListener('click', async () => {
-      const errorDiv = document.getElementById('company-compat-error');
-      const resultDiv = document.getElementById('company-compat-result');
-      errorDiv.textContent = '';
-      resultDiv.innerHTML = '';
+  window._companyCompatGo = async () => {
+    const errorDiv = document.getElementById('company-compat-error');
+    const resultDiv = document.getElementById('company-compat-result');
+    if (!errorDiv || !resultDiv) return;
+    errorDiv.textContent = '';
+    resultDiv.innerHTML = '';
 
-      if (!lastBaziData) {
-        errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
+    if (!lastBaziData) {
+      // 嘗試從 localStorage 重新計算八字
+      try {
+        const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+        if (saved && saved.year && saved.month && saved.day) {
+          const baziMod = await import('./engines/bazi.js');
+          const baziResult = baziMod.calculate({
+            year: saved.year, month: saved.month, day: saved.day,
+            hour: saved.hour || 12, minute: saved.minute || 0,
+            gender: saved.gender || 'female',
+          });
+          if (baziResult?.status === 'ok' && baziResult.data) {
+            lastBaziData = baziResult.data;
+          }
+        }
+      } catch(ex) { console.warn('重算八字失敗:', ex); }
+    }
+
+    if (!lastBaziData) {
+      errorDiv.textContent = '請先在上方計算個人命盤，才能做合盤分析。';
+      return;
+    }
+
+    if (!companyCompatEngine) {
+      try {
+        companyCompatEngine = await import('./engines/company-compat.js');
+      } catch (e2) {
+        errorDiv.textContent = '引擎載入失敗：' + e2.message;
+        console.error('company-compat load error:', e2);
         return;
       }
+    }
 
-      if (!companyCompatEngine) {
-        try {
-          companyCompatEngine = await import('./engines/company-compat.js?v=3');
-        } catch (e) {
-          errorDiv.textContent = `引擎載入失敗：${e.message}`;
-          console.error('company-compat load error:', e);
-          return;
-        }
-      }
+    const year = parseInt(document.getElementById('company-year')?.value);
+    const month = parseInt(document.getElementById('company-month')?.value);
+    const day = parseInt(document.getElementById('company-day')?.value);
+    const companyName = document.getElementById('company-name')?.value?.trim() || '';
+    const logoColor = document.getElementById('company-logo-color')?.value || '';
+    const industry = document.getElementById('company-industry')?.value || '';
 
-      const year = parseInt(document.getElementById('company-year')?.value);
-      const month = parseInt(document.getElementById('company-month')?.value);
-      const day = parseInt(document.getElementById('company-day')?.value);
-      const companyName = document.getElementById('company-name')?.value?.trim() || '';
-      const logoColor = document.getElementById('company-logo-color')?.value || '';
-      const industry = document.getElementById('company-industry')?.value || '';
+    if (!year || year < 1800 || year > 2100) { errorDiv.textContent = '請輸入公司成立年份'; return; }
+    if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇成立月份'; return; }
+    if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入成立日期'; return; }
 
-      if (!year || year < 1800 || year > 2100) { errorDiv.textContent = '請輸入公司成立年份'; return; }
-      if (!month || month < 1 || month > 12) { errorDiv.textContent = '請選擇成立月份'; return; }
-      if (!day || day < 1 || day > 31) { errorDiv.textContent = '請輸入成立日期'; return; }
+    try {
+      const result = companyCompatEngine.calculate(lastBaziData, {
+        year, month, day, hour: 9,
+        logoColor, industry, companyName,
+      });
 
+      let astroHtml = '';
+      let personAstro = window.__lastAstroData || null;
+      let personMonth = 0, personDay = 0;
       try {
-        const result = companyCompatEngine.calculate(lastBaziData, {
-          year, month, day, hour: 9,
-          logoColor, industry, companyName,
-        });
-
-        let astroHtml = '';
-        let personAstro = window.__lastAstroData || null;
-        let personMonth = 0, personDay = 0;
-        try {
-          const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
-          personMonth = saved.month || 0;
-          personDay = saved.day || 0;
-        } catch(e) {}
-        let savedSigns = null;
-        try { savedSigns = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null'); } catch(e) {}
-        if (!personAstro && savedSigns) {
-          personAstro = { sunSign: savedSigns.sunSign, moonSign: savedSigns.moonSign, risingSign: savedSigns.risingSign };
-        }
-        const astroInput = { month, day, companyName, personMonth, personDay };
-        try {
-          const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
-          if (astroResult2.status === 'ok') astroHtml = astroResult2.html;
-        } catch(e) { console.warn('星座合盤錯誤:', e); }
-
-        let mayaHtml = '';
-        const personMaya = window.__lastMayaData || null;
-        if (personMaya) {
-          const mayaResult = companyCompatEngine.calculateMaya(personMaya, { year, month, day, companyName });
-          if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
-        wrapper.innerHTML = result.html + astroHtml + mayaHtml;
-        resultDiv.prepend(wrapper);
-        wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (err) {
-        errorDiv.textContent = `計算錯誤：${err.message}`;
-        console.error('公司合盤錯誤:', err);
+        const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || '{}');
+        personMonth = saved.month || 0;
+        personDay = saved.day || 0;
+      } catch(ex) {}
+      let savedSigns = null;
+      try { savedSigns = JSON.parse(localStorage.getItem('destiny_astro_signs') || 'null'); } catch(ex) {}
+      if (!personAstro && savedSigns) {
+        personAstro = { sunSign: savedSigns.sunSign, moonSign: savedSigns.moonSign, risingSign: savedSigns.risingSign };
       }
-    });
-  }
+      const astroInput = { month, day, companyName, personMonth, personDay };
+      try {
+        const astroResult2 = companyCompatEngine.calculateAstro(personAstro, astroInput);
+        if (astroResult2.status === 'ok') astroHtml = astroResult2.html;
+      } catch(ex) { console.warn('星座合盤錯誤:', ex); }
+
+      let mayaHtml = '';
+      const personMaya = window.__lastMayaData || null;
+      if (personMaya) {
+        const mayaResult = companyCompatEngine.calculateMaya(personMaya, { year, month, day, companyName });
+        if (mayaResult.status === 'ok') mayaHtml = mayaResult.html;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'border-bottom:1px solid var(--card-border);padding-bottom:20px;margin-bottom:20px;';
+      wrapper.innerHTML = result.html + astroHtml + mayaHtml;
+      resultDiv.prepend(wrapper);
+      wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      errorDiv.textContent = '計算錯誤：' + err.message;
+      console.error('公司合盤錯誤:', err);
+    }
+  };
 }
 
 // ============ 雙人合盤 UI ============
@@ -877,29 +880,27 @@ function renderPersonCompatForm() {
       </div>
     </div>
 
-    <button id="person-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
-    <div id="person-compat-error" class="error-msg" role="alert" style="margin-top:8px;"></div>
+    <button id="person-compat-go" class="btn-primary" type="button" onclick="window._personCompatGo()" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+    <div id="person-compat-error" style="color:#e74c3c;font-size:.85rem;margin-top:8px;min-height:1.2em;" role="alert"></div>
     <div id="person-compat-result" style="margin-top:16px;"></div>
   `;
   ui.setViewContent('person-compat', html);
   bindPersonCompatEvents();
 }
 
-/** 綁定雙人合盤事件 */
+/** 綁定雙人合盤事件（掛到 window 上供 onclick 呼叫） */
 function bindPersonCompatEvents() {
-  const btnGo = document.getElementById('person-compat-go');
-  if (!btnGo) return;
-
-  btnGo.addEventListener('click', async () => {
+  window._personCompatGo = async () => {
     const errorDiv = document.getElementById('person-compat-error');
     const resultDiv = document.getElementById('person-compat-result');
+    if (!errorDiv || !resultDiv) return;
     errorDiv.textContent = '';
     resultDiv.innerHTML = '';
 
     let person1;
     try {
       person1 = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
-    } catch(e) {}
+    } catch(ex) {}
     if (!person1 || !person1.year || !person1.month || !person1.day) {
       errorDiv.textContent = '請先在上方計算個人命盤。';
       return;
@@ -931,8 +932,13 @@ function bindPersonCompatEvents() {
         errorDiv.textContent = result.error || '計算失敗';
       }
     } catch (err) {
-      errorDiv.textContent = `計算錯誤：${err.message}`;
+      errorDiv.textContent = '計算錯誤：' + err.message;
       console.error('雙人合盤錯誤:', err);
     }
-  });
+  };
 }
+
+// ============ 合盤支援 ============
+// 暴露 lastBaziData 給 click-handlers.js（非 module script）使用
+window.__getLastBaziData = () => lastBaziData;
+window.__setLastBaziData = (d) => { lastBaziData = d; };
