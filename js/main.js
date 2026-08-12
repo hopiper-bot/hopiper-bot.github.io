@@ -192,6 +192,21 @@ function restoreCachedResults() {
         ui.setViewContent(k, ui.renderError(cache[k].error));
       }
     });
+
+    // 重新計算紫微以設定 window._zwData（cache 只存 HTML，不含互動 runtime data）
+    try {
+      const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+      if (saved && saved.year && saved.month && saved.day) {
+        const birthData = {
+          year: saved.year, month: saved.month, day: saved.day,
+          hour: saved.hour || 12, minute: saved.minute || 0,
+          gender: saved.gender || 'female',
+        };
+        // 紫微 — 重跑 calculate 設定 window._zwData，讓點擊解說可以運作
+        try { ziweiEngine.calculate(birthData); } catch(e) { console.warn('[cache-restore] ziwei re-calc failed:', e); }
+      }
+    } catch(e) { console.warn('[cache-restore] re-calc failed:', e); }
+
     ui.switchTab('maya');
 
     // 顯示 cached 提示

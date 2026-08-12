@@ -203,7 +203,6 @@ document.addEventListener('click', function(e) {
 });
 
 async function doCompanyCompat() {
-  alert('公司合盤 clicked!');
   var errorDiv = document.getElementById('company-compat-error');
   var resultDiv = document.getElementById('company-compat-result');
   if (!errorDiv || !resultDiv) { alert('找不到 error/result div'); return; }
