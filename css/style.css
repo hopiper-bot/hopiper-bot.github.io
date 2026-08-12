@@ -639,6 +639,39 @@ h3 {
   transform: scale(0.96);
 }
 
+/* ===== Cache Hint ===== */
+.cache-hint {
+  text-align: center;
+  font-size: .78rem;
+  color: var(--muted);
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: rgba(198, 169, 105, 0.06);
+  border-radius: 8px;
+  opacity: 0.8;
+}
+
+/* ===== View Loading (per-tab placeholder) ===== */
+.view-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
+.view-loading .loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--accent2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0;
+}
+
 .share-toast {
   position: fixed;
   bottom: 24px;

@@ -144,13 +144,13 @@ export function render(results) {
 }
 
 /** 設定特定 view 的 HTML 內容 */
-function setViewContent(viewId, html) {
+export function setViewContent(viewId, html) {
   const el = document.getElementById(`view-${viewId}`);
   if (el) el.innerHTML = html;
 }
 
 /** 渲染錯誤訊息區塊 */
-function renderError(message) {
+export function renderError(message) {
   return `<div class="placeholder">⚠️ ${message || '計算失敗，請確認輸入資料'}</div>`;
 }
 

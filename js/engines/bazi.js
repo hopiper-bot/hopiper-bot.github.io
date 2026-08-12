@@ -249,6 +249,59 @@ function calculateShensha(pillars) {
     results.push({ name: "天德貴人", desc: "你命帶天德 — 一生有福氣護持，逢凶化吉的能力比別人強。即使遇到困難也不會太慘，總是有轉圜餘地。心態保持善良，福氣會更強。" });
   }
 
+  // ===== 凶煞 =====
+
+  // 劫煞（年支查）
+  const jieshaGroup = { "寅":"亥","午":"亥","戌":"亥", "申":"巳","子":"巳","辰":"巳", "巳":"寅","酉":"寅","丑":"寅", "亥":"申","卯":"申","未":"申" };
+  const myJiesha = jieshaGroup[yearBranch];
+  if (myJiesha && allBranches.includes(myJiesha)) {
+    results.push({ name: "劫煞", type: "凶", desc: "你命帶劫煞 — 代表容易遇到突發狀況或破財風險。但換個角度看，這也讓你比一般人更有危機意識和應變能力。理財上保守一點、避免衝動消費或投機，就能把劫煞的殺傷力降到最低。" });
+  }
+
+  // 亡神（年支查）
+  const wangshenGroup = { "寅":"巳","午":"巳","戌":"巳", "申":"亥","子":"亥","辰":"亥", "巳":"申","酉":"申","丑":"申", "亥":"寅","卯":"寅","未":"寅" };
+  const myWangshen = wangshenGroup[yearBranch];
+  if (myWangshen && allBranches.includes(myWangshen)) {
+    results.push({ name: "亡神", type: "凶", desc: "你命帶亡神 — 精神容易耗損，也較容易招惹小人。好處是你的直覺很強、觀察力敏銳，能看到別人看不到的細節。學會保護自己的能量，少跟消耗你的人糾纏。" });
+  }
+
+  // 孤辰（年支查）
+  const guchenGroup = { "寅":"巳","卯":"巳","辰":"巳", "巳":"申","午":"申","未":"申", "申":"亥","酉":"亥","戌":"亥", "亥":"寅","子":"寅","丑":"寅" };
+  const myGuchen = guchenGroup[yearBranch];
+  if (myGuchen && allBranches.includes(myGuchen)) {
+    results.push({ name: "孤辰", type: "凶", desc: "你命帶孤辰 — 內心有一種不容易被理解的孤獨感，人群中也能感到疏離。但這份獨立性也是你的資產：你不依賴他人、自主性強。找到能理解你的少數人就夠了，不需要討好所有人。" });
+  }
+
+  // 寡宿（年支查）
+  const guasuGroup = { "寅":"丑","卯":"丑","辰":"丑", "巳":"辰","午":"辰","未":"辰", "申":"未","酉":"未","戌":"未", "亥":"戌","子":"戌","丑":"戌" };
+  const myGuasu = guasuGroup[yearBranch];
+  if (myGuasu && allBranches.includes(myGuasu)) {
+    results.push({ name: "寡宿", type: "凶", desc: "你命帶寡宿 — 感情路上可能比較波折，或是晚婚傾向。但這不代表注定孤單，而是你對伴侶的要求比較高、不願意將就。寧缺勿濫反而能遇到對的人。" });
+  }
+
+  // 空亡（日柱查，以日干支所在旬來定）
+  const stems = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+  const branches = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+  const dayStemIdx = stems.indexOf(pillars.day.stem);
+  const dayBranchIdx = branches.indexOf(pillars.day.branch);
+  // 甲子旬序 = (dayStemIdx - dayBranchIdx + 12) % 12 ... 用六十甲子算
+  // 簡易算法：該旬起始地支 index = (dayBranchIdx - dayStemIdx + 12) % 12
+  const xunStartBranchIdx = (dayBranchIdx - dayStemIdx + 12) % 12;
+  // 空亡 = 該旬缺的兩個地支（index 10 和 11 相對於旬首）
+  const kongwang1 = branches[(xunStartBranchIdx + 10) % 12];
+  const kongwang2 = branches[(xunStartBranchIdx + 11) % 12];
+  if (allBranches.includes(kongwang1) || allBranches.includes(kongwang2)) {
+    results.push({ name: "空亡", type: "凶", desc: "你命帶空亡 — 有時候會覺得努力像打到空氣，事情做了卻沒結果。但空亡也代表超脫世俗的能力：你比較不執著、想得開，適合哲學、宗教、藝術等需要跳脫框架的領域。" });
+  }
+
+  // 陰差陽錯（特定日柱）
+  const yinchaList = ["丙子","丁丑","戊寅","辛卯","壬辰","癸巳","丙午","丁未","戊申","辛酉","壬戌","癸亥"];
+  const dayPillarStr = pillars.day.stem + pillars.day.branch;
+  if (yinchaList.includes(dayPillarStr)) {
+    results.push({ name: "陰差陽錯", type: "凶", desc: "你命帶陰差陽錯 — 感情或婚姻容易有波折、誤會、陰錯陽差的狀況。溝通上要特別用心，不要讓小誤解變成大裂痕。感情中多一點耐心和坦誠，就能化解這顆星的影響。" });
+  }
+
+  // === 結果判斷 ===
   if (results.length === 0) {
     results.push({ name: "（無明顯神煞）", desc: "你的命盤中沒有特別突出的神煞，代表你的命運更多由四柱本身和大運決定。" });
   }
@@ -650,12 +703,30 @@ function renderDayun(dayun, birthYear) {
 
 /** 渲染神煞 */
 function renderShensha(shensha) {
-  return shensha.map(s => {
-    return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+  const jiList = shensha.filter(s => s.type !== '凶');
+  const xiongList = shensha.filter(s => s.type === '凶');
+  let html = '';
+  if (jiList.length > 0) {
+    html += `<div style="margin-bottom:8px;font-size:.8rem;color:var(--muted);opacity:.7;">✨ 吉神</div>`;
+    html += jiList.map(s => `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
       <span style="color:var(--accent);font-weight:700;font-size:1rem;">${s.name}</span>
       <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">${s.desc}</div>
+    </div>`).join('');
+  }
+  if (xiongList.length > 0) {
+    html += `<div style="margin-top:16px;margin-bottom:8px;font-size:.8rem;color:var(--muted);opacity:.7;">⚠️ 凶煞（提醒，非定論）</div>`;
+    html += xiongList.map(s => `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+      <span style="color:#e8a87c;font-weight:700;font-size:1rem;">${s.name}</span>
+      <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">${s.desc}</div>
+    </div>`).join('');
+  }
+  if (jiList.length === 0 && xiongList.length === 0) {
+    html += `<div style="padding:10px 0;">
+      <span style="color:var(--accent);font-weight:700;font-size:1rem;">（無明顯神煞）</span>
+      <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">你的命盤中沒有特別突出的神煞，代表你的命運更多由四柱本身和大運決定。</div>
     </div>`;
-  }).join('');
+  }
+  return html;
 }
 
 /** 十神在特定柱位的解讀 */

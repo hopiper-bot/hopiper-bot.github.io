@@ -36,7 +36,12 @@ function extractTextSummary() {
   let text = activeView.innerText || activeView.textContent || '';
   text = text.replace(/\n{3,}/g, '\n\n').trim();
 
-  return `【人生劇本 — ${tabLabel}】\n\n${text}\n\n🔗 https://hopiper-bot.github.io`;
+  // 使用當前 URL（含 query params）作為分享連結
+  const shareUrl = window.location.href.split('?')[0];
+  const params = new URLSearchParams(window.location.search);
+  const fullUrl = params.toString() ? `${shareUrl}?${params.toString()}` : 'https://hopiper-bot.github.io';
+
+  return `【人生劇本 — ${tabLabel}】\n\n${text}\n\n🔗 ${fullUrl}`;
 }
 
 /** 複製文字到剪貼簿 */
@@ -99,10 +104,13 @@ export function exportPDF() {
 }
 
 /** 渲染分享工具列 HTML（插入到結果容器頂部） */
-export function renderShareToolbar() {
+export function renderShareToolbar(shareUrl) {
   const hasShare = !!navigator.share;
   let html = `<div class="share-toolbar">`;
   html += `<button class="share-btn" data-share="copy" type="button" aria-label="複製分析結果">📋 複製文字</button>`;
+  if (shareUrl) {
+    html += `<button class="share-btn" data-share="link" type="button" aria-label="複製分享連結" data-url="${shareUrl.replace(/"/g, '&quot;')}">🔗 複製連結</button>`;
+  }
   if (hasShare) {
     html += `<button class="share-btn" data-share="native" type="button" aria-label="分享分析結果">📤 分享</button>`;
   }
@@ -111,12 +119,31 @@ export function renderShareToolbar() {
   return html;
 }
 
+/** 複製分享連結 */
+async function copyLink(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('✓ 連結已複製！傳給朋友就能直接看結果');
+  } catch (err) {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ 連結已複製！');
+  }
+}
+
 /** 綁定分享按鈕事件（在結果渲染後呼叫） */
 export function attachShareHandlers() {
   document.querySelectorAll('[data-share]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const action = e.currentTarget.dataset.share;
       if (action === 'copy') copyText();
+      else if (action === 'link') copyLink(e.currentTarget.dataset.url || window.location.href);
       else if (action === 'native') shareNative();
       else if (action === 'pdf') exportPDF();
     });

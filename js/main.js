@@ -1,6 +1,11 @@
 /**
  * main.js — Orchestrator
- * 輸入驗證、引擎調度（並行）、結果收集→Synthesis→UI 渲染
+ * 輸入驗證、引擎調度（Progressive Rendering）、結果收集→Synthesis→UI 渲染
+ * 
+ * v4 改進：
+ * - Progressive rendering：每個引擎獨立計算、獨立渲染，壞一個不影響其他
+ * - URL query 帶入：支援 ?y=1990&m=5&d=15&h=14&min=30&loc=台北&g=female 直接計算
+ * - Result cache：上次結果存 localStorage，重開頁面秒顯示
  */
 
 import * as ui from './ui.js';
@@ -33,8 +38,128 @@ function init() {
     });
   }
 
-  // 從 localStorage 恢復上次輸入
-  restoreInput();
+  // 優先檢查 URL query 帶入
+  const urlData = parseURLQuery();
+  if (urlData) {
+    fillForm(urlData);
+    // 延遲一小段時間讓 DOM 穩定後自動計算
+    setTimeout(() => calculate(), 100);
+  } else {
+    // 從 localStorage 恢復上次輸入
+    restoreInput();
+    // 嘗試恢復上次計算結果（秒開）
+    restoreCachedResults();
+  }
+}
+
+// ============ URL Query 支援 ============
+
+/**
+ * 解析 URL query parameters
+ * 支援格式：?y=1990&m=5&d=15&h=14&min=30&loc=台北&g=female
+ */
+function parseURLQuery() {
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('y')) return null; // 至少要有年份才視為有效
+
+  const data = {
+    year: parseInt(params.get('y')) || 0,
+    month: parseInt(params.get('m')) || 0,
+    day: parseInt(params.get('d')) || 0,
+    hour: params.has('h') ? parseInt(params.get('h')) : -1,
+    minute: parseInt(params.get('min')) || 0,
+    location: params.get('loc') || '',
+    gender: params.get('g') || 'male',
+  };
+
+  // 至少日期完整才算有效
+  if (data.year && data.month && data.day) return data;
+  return null;
+}
+
+/**
+ * 將資料填入表單欄位
+ */
+function fillForm(data) {
+  if (data.year) document.getElementById('birth-year').value = data.year;
+  if (data.month) document.getElementById('birth-month').value = data.month;
+  if (data.day) document.getElementById('birth-day').value = data.day;
+  if (data.hour >= 0) document.getElementById('birth-hour').value = data.hour;
+  if (data.minute >= 0) document.getElementById('birth-minute').value = data.minute;
+  if (data.location) document.getElementById('birth-location').value = data.location;
+  if (data.gender) document.getElementById('birth-gender').value = data.gender;
+}
+
+/**
+ * 產生分享用 URL（含 query parameters）
+ */
+function generateShareURL(formData) {
+  const base = window.location.origin + window.location.pathname;
+  const params = new URLSearchParams();
+  if (formData.year) params.set('y', formData.year);
+  if (formData.month) params.set('m', formData.month);
+  if (formData.day) params.set('d', formData.day);
+  if (formData.hour >= 0) params.set('h', formData.hour);
+  if (formData.minute > 0) params.set('min', formData.minute);
+  if (formData.location) params.set('loc', formData.location);
+  if (formData.gender && formData.gender !== 'male') params.set('g', formData.gender);
+  return `${base}?${params.toString()}`;
+}
+
+// ============ Result Cache ============
+
+/** 儲存計算結果到 localStorage（HTML cache） */
+function cacheResults(results) {
+  try {
+    const cache = {};
+    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+    keys.forEach(k => {
+      if (results[k]) {
+        cache[k] = { status: results[k].status, html: results[k].html || '', error: results[k].error || '' };
+      }
+    });
+    cache._ts = Date.now();
+    localStorage.setItem('destiny_result_cache', JSON.stringify(cache));
+  } catch (e) { /* quota exceeded or other */ }
+}
+
+/** 從 localStorage 恢復上次計算結果 */
+function restoreCachedResults() {
+  try {
+    const raw = localStorage.getItem('destiny_result_cache');
+    if (!raw) return;
+    const cache = JSON.parse(raw);
+    // 超過 7 天的 cache 不用
+    if (cache._ts && (Date.now() - cache._ts > 7 * 24 * 3600 * 1000)) return;
+
+    // 至少要有一個有效結果
+    const hasAny = ['maya', 'astro', 'bazi', 'ziwei', 'hd'].some(k => cache[k]?.status === 'ok');
+    if (!hasAny) return;
+
+    // 渲染 cached results
+    ui.showResults();
+    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+    keys.forEach(k => {
+      if (cache[k]?.status === 'ok' && cache[k].html) {
+        ui.setViewContent(k, cache[k].html);
+      } else if (cache[k]?.status === 'error') {
+        ui.setViewContent(k, ui.renderError(cache[k].error));
+      }
+    });
+    ui.switchTab('maya');
+
+    // 顯示 cached 提示
+    const shareEl = document.getElementById('share-toolbar-slot');
+    if (shareEl) {
+      shareEl.innerHTML = renderShareToolbar() +
+        '<div class="cache-hint">📌 顯示上次的計算結果。重新輸入可更新。</div>';
+    }
+    attachShareHandlers();
+
+    // 恢復公司合盤顯示
+    const ccEl = document.getElementById('company-compat-container');
+    if (ccEl && cache.bazi?.status === 'ok') ccEl.style.display = '';
+  } catch (e) { /* ignore */ }
 }
 
 /** 從表單取得輸入值 */
@@ -112,7 +237,7 @@ async function resolveLocation(locationStr) {
   return resolveCity(locationStr);
 }
 
-/** 主計算流程 */
+/** 主計算流程（Progressive Rendering） */
 async function calculate() {
   ui.clearErrors();
   ui.hideResults();
@@ -148,72 +273,127 @@ async function calculate() {
   // 儲存到 localStorage
   saveInput(formData);
 
-  // 顯示 loading
+  // 顯示 loading，同時先顯示結果容器（用 placeholder）
   ui.showLoading();
+  ui.showResults();
 
-  try {
-    // 計算各系統
-    const mayaResult = mayaEngine.calculate(birthData);
-    const astroResult = astroEngine.calculate(birthData);
-    const baziResult = baziEngine.calculate(birthData);
-    const ziweiResult = ziweiEngine.calculate(birthData);
-
-    const hdResult = hdEngine.calculate(birthData);
-
-    const results = {
-      maya: mayaResult,
-      astro: astroResult,
-      bazi: baziResult,
-      ziwei: ziweiResult,
-      hd: hdResult,
-    };
-
-    // 保存八字結果供公司合盤使用
-    if (baziResult.status === 'ok') {
-      lastBaziData = baziResult.data;
-      // 顯示公司合盤區塊
-      const ccEl = document.getElementById('company-compat-container');
-      if (ccEl) ccEl.style.display = '';
-    }
-
-    // 保存星座和馬雅結果供合盤使用
-    if (astroResult.status === 'ok') {
-      window.__lastAstroData = astroResult.data;
-      // 也存到 localStorage 讓合盤能用
-      try {
-        const astroSave = {};
-        if (astroResult.data.sunSign) astroSave.sunSign = astroResult.data.sunSign.zh || '';
-        if (astroResult.data.moonSign) astroSave.moonSign = astroResult.data.moonSign.zh || '';
-        if (astroResult.data.risingSign) astroSave.risingSign = astroResult.data.risingSign.zh || '';
-        localStorage.setItem('destiny_astro_signs', JSON.stringify(astroSave));
-      } catch(e) {}
-    }
-    if (mayaResult.status === 'ok') {
-      window.__lastMayaData = mayaResult.data;
-    }
-
-    // 流年分析（需要所有系統結果）
-    results.transit = transitEngine.calculate(results);
-
-    // 綜合分析（需要所有系統結果）
-    results.synthesis = synthesisEngine.calculate(results);
-
-    ui.render(results);
-
-    // 渲染分享工具列（插入到結果容器頂部）
-    const shareEl = document.getElementById('share-toolbar-slot');
-    if (shareEl) shareEl.innerHTML = renderShareToolbar();
-    attachShareHandlers();
-
-    // 綁定 AI 解讀按鈕（DOM 渲染後）
-    synthesisEngine.attachAIButtons(results);
-
-    // 綁定流年年份切換按鈕（DOM 渲染後）
-    transitEngine.attachYearSwitcher();
-  } catch (err) {
-    ui.hideLoading();
-    console.error('計算錯誤:', err);
+  // 渲染分享工具列 + 分享連結
+  const shareUrl = generateShareURL(formData);
+  const shareEl = document.getElementById('share-toolbar-slot');
+  if (shareEl) {
+    shareEl.innerHTML = renderShareToolbar(shareUrl);
   }
+  attachShareHandlers();
+
+  // 各 tab 先放 loading placeholder
+  const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+  engineTabs.forEach(k => ui.setViewContent(k, '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>'));
+
+  // === Progressive Rendering: 每個引擎獨立 try/catch ===
+  const results = {};
+
+  // Phase 1: 五大核心引擎（獨立計算，逐個渲染）
+  const coreEngines = [
+    { key: 'maya', engine: mayaEngine, label: '馬雅曆' },
+    { key: 'astro', engine: astroEngine, label: '星座' },
+    { key: 'bazi', engine: baziEngine, label: '八字' },
+    { key: 'ziwei', engine: ziweiEngine, label: '紫微' },
+    { key: 'hd', engine: hdEngine, label: '人類圖' },
+  ];
+
+  for (const { key, engine, label } of coreEngines) {
+    try {
+      results[key] = engine.calculate(birthData);
+      if (results[key]?.status === 'ok') {
+        ui.setViewContent(key, results[key].html);
+      } else if (results[key]?.status === 'error') {
+        ui.setViewContent(key, ui.renderError(results[key].error));
+      }
+    } catch (err) {
+      console.error(`${label}計算錯誤:`, err);
+      results[key] = { status: 'error', error: `${label}計算時發生錯誤：${err.message}` };
+      ui.setViewContent(key, ui.renderError(results[key].error));
+    }
+    // 讓 UI 有機會更新（不阻塞渲染）
+    await microYield();
+  }
+
+  // 保存八字結果供公司合盤使用
+  if (results.bazi?.status === 'ok' && results.bazi.data) {
+    lastBaziData = results.bazi.data;
+    const ccEl = document.getElementById('company-compat-container');
+    if (ccEl) ccEl.style.display = '';
+  }
+
+  // 保存星座和馬雅結果供合盤使用
+  if (results.astro?.status === 'ok' && results.astro.data) {
+    window.__lastAstroData = results.astro.data;
+    try {
+      const astroSave = {};
+      if (results.astro.data.sunSign) astroSave.sunSign = results.astro.data.sunSign.zh || '';
+      if (results.astro.data.moonSign) astroSave.moonSign = results.astro.data.moonSign.zh || '';
+      if (results.astro.data.risingSign) astroSave.risingSign = results.astro.data.risingSign.zh || '';
+      localStorage.setItem('destiny_astro_signs', JSON.stringify(astroSave));
+    } catch(e) {}
+  }
+  if (results.maya?.status === 'ok' && results.maya.data) {
+    window.__lastMayaData = results.maya.data;
+  }
+
+  // Phase 2: 流年分析（需要所有系統結果）
+  try {
+    results.transit = transitEngine.calculate(results);
+    if (results.transit?.status === 'ok') {
+      ui.setViewContent('transit', results.transit.html);
+    } else if (results.transit?.status === 'error') {
+      ui.setViewContent('transit', ui.renderError(results.transit.error));
+    }
+  } catch (err) {
+    console.error('流年計算錯誤:', err);
+    results.transit = { status: 'error', error: `流年計算時發生錯誤：${err.message}` };
+    ui.setViewContent('transit', ui.renderError(results.transit.error));
+  }
+
+  // Phase 3: 綜合分析（需要所有系統結果）
+  try {
+    results.synthesis = synthesisEngine.calculate(results);
+    if (results.synthesis?.status === 'ok') {
+      ui.setViewContent('synthesis', results.synthesis.html);
+    } else if (results.synthesis?.status === 'error') {
+      ui.setViewContent('synthesis', ui.renderError(results.synthesis.error));
+    }
+  } catch (err) {
+    console.error('劇本大綱計算錯誤:', err);
+    results.synthesis = { status: 'error', error: `劇本大綱計算時發生錯誤：${err.message}` };
+    ui.setViewContent('synthesis', ui.renderError(results.synthesis.error));
+  }
+
+  // 隱藏 loading
+  ui.hideLoading();
+
+  // 預設切換到第一個成功的 tab
+  const firstOk = engineTabs.find(k => results[k]?.status === 'ok');
+  if (firstOk) ui.switchTab(firstOk);
+
+  // 綁定 AI 解讀按鈕（DOM 渲染後）
+  try { synthesisEngine.attachAIButtons(results); } catch(e) {}
+
+  // 綁定流年年份切換按鈕（DOM 渲染後）
+  try { transitEngine.attachYearSwitcher(); } catch(e) {}
+
+  // Cache results for next visit
+  cacheResults(results);
+
+  // 更新 URL（不重新載入頁面）
+  try {
+    const newUrl = generateShareURL(formData);
+    window.history.replaceState(null, '', newUrl);
+  } catch(e) {}
+}
+
+/** 讓出控制權給瀏覽器渲染 */
+function microYield() {
+  return new Promise(resolve => setTimeout(resolve, 0));
 }
 
 /** 儲存輸入到 localStorage */
@@ -229,13 +409,7 @@ function restoreInput() {
     const saved = localStorage.getItem('destiny_birth_data');
     if (!saved) return;
     const data = JSON.parse(saved);
-    if (data.year) document.getElementById('birth-year').value = data.year;
-    if (data.month) document.getElementById('birth-month').value = data.month;
-    if (data.day) document.getElementById('birth-day').value = data.day;
-    if (data.hour >= 0) document.getElementById('birth-hour').value = data.hour;
-    if (data.minute >= 0) document.getElementById('birth-minute').value = data.minute;
-    if (data.location) document.getElementById('birth-location').value = data.location;
-    if (data.gender) document.getElementById('birth-gender').value = data.gender;
+    fillForm(data);
   } catch (e) { /* ignore */ }
 }
 
