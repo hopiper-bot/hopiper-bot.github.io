@@ -176,13 +176,18 @@ input::placeholder {
   display: flex;
   gap: 6px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  padding-bottom: 4px;
 }
 
+.tabs::-webkit-scrollbar { display: none; }
+
 .tab {
-  flex: 1;
+  flex: 0 0 auto;
   text-align: center;
-  padding: 10px 8px;
+  padding: 10px 14px;
   border-radius: 10px;
   cursor: pointer;
   background: var(--input-bg);
@@ -196,6 +201,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -470,8 +476,8 @@ h3 {
   }
 
   .tab {
-    padding: 8px 4px;
-    font-size: 0.75rem;
+    padding: 8px 10px;
+    font-size: 0.78rem;
     min-width: 44px;
   }
 
@@ -491,12 +497,9 @@ h3 {
 }
 
 @media (max-width: 375px) {
-  .tabs {
-    flex-wrap: wrap;
-  }
-
   .tab {
-    flex: 0 0 calc(33.33% - 4px);
+    padding: 8px 8px;
+    font-size: 0.75rem;
   }
 }
 

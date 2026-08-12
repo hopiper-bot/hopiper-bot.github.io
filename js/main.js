@@ -416,6 +416,50 @@ function restoreInput() {
 // 頁面載入後初始化
 document.addEventListener('DOMContentLoaded', init);
 
+// ============ 地點 Autocomplete ============
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const input = document.getElementById('birth-location');
+  const datalist = document.getElementById('city-list');
+  if (!input || !datalist) return;
+
+  // 動態載入城市資料
+  let cities = null;
+  try {
+    const mod = await import('./data/cities.js');
+    cities = mod.CITIES;
+  } catch (e) { return; }
+
+  // 預填常用城市
+  const popular = ['台北', '新北', '桃園', '台中', '台南', '高雄', '新竹', '北京', '上海', '東京', '香港'];
+  popular.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    datalist.appendChild(opt);
+  });
+
+  // 輸入時動態過濾
+  input.addEventListener('input', () => {
+    const val = input.value.trim().toLowerCase();
+    if (!val || val.length < 1) return;
+
+    // 清除舊選項
+    datalist.innerHTML = '';
+
+    // 匹配城市（最多顯示 10 個）
+    const matches = cities.filter(c =>
+      c.zh.includes(val) || c.en.toLowerCase().includes(val)
+    ).slice(0, 10);
+
+    matches.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.zh;
+      opt.label = `${c.zh} (${c.en})`;
+      datalist.appendChild(opt);
+    });
+  });
+});
+
 // ============ 梅花易數 UI ============
 
 document.addEventListener('DOMContentLoaded', () => {

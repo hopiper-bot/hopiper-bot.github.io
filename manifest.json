@@ -1,0 +1,17 @@
+{
+  "name": "人生劇本｜多系統命理合盤",
+  "short_name": "人生劇本",
+  "description": "馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0F2E2A",
+  "theme_color": "#0F2E2A",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

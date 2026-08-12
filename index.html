@@ -15,6 +15,12 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="人生劇本｜多系統命理合盤">
   <meta name="twitter:description" content="馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀">
+  <meta name="theme-color" content="#0F2E2A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -72,7 +78,8 @@
         <label>出生地點</label>
         <div class="form-row">
           <div class="form-group wide">
-            <input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度（如：25.03, 121.56）" aria-label="出生地點" maxlength="100">
+            <input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度（如：25.03, 121.56）" aria-label="出生地點" maxlength="100" list="city-list" autocomplete="off">
+            <datalist id="city-list"></datalist>
           </div>
         </div>
         <div id="error-location" class="error-msg" role="alert"></div>
@@ -282,5 +289,11 @@
 
   <script type="module" src="js/main.js?v=4"></script>
   <script src="js/click-handlers.js"></script>
+  <script>
+    // Service Worker 註冊
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
 </body>
 </html>
