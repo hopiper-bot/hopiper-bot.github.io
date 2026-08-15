@@ -1306,7 +1306,7 @@ export function calculate(results) {
     const categories = categorizeThemes(sorted);
     const script = generateScript(categories, results);
     const html = renderSynthesis(categories, script);
-    return { status: 'ok', html, error: null };
+    return { status: 'ok', html, error: null, categories, allThemes };
   } catch (err) {
     return { status: 'error', html: `<div class="placeholder">綜合分析錯誤：${err.message}</div>`, error: err.message };
   }

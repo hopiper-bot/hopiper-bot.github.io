@@ -894,3 +894,131 @@ h3 {
     border: 1px solid #ddd !important;
   }
 }
+
+/* ===== Core Summary Card ===== */
+.core-summary {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent2-rgb), 0.08));
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: var(--radius);
+  animation: fadeIn 0.5s ease;
+}
+
+.cs-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.cs-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: transparent;
+  background: var(--gold-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.cs-subtitle {
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.cs-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cs-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.cs-line:hover {
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.cs-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.cs-text {
+  flex: 1;
+  font-size: .85rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.cs-text b {
+  color: var(--accent);
+}
+
+.cs-badge-count {
+  flex-shrink: 0;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.cs-badge-count.support {
+  background: rgba(var(--accent2-rgb), 0.15);
+  color: var(--accent2);
+}
+
+/* ===== Resonance Badge Bar ===== */
+.resonance-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb), 0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.25);
+  animation: fadeIn 0.4s ease;
+}
+
+.resonance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: .75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.2), rgba(245, 197, 66, 0.15));
+  color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .core-summary {
+    padding: 16px;
+  }
+
+  .cs-line {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .cs-text {
+    font-size: .82rem;
+  }
+
+  .resonance-bar {
+    padding: 8px 10px;
+  }
+}

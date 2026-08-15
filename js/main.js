@@ -314,6 +314,13 @@ async function calculate() {
     return;
   }
 
+  // 計算年齡
+  const now = new Date();
+  const age = now.getFullYear() - formData.year - (
+    (now.getMonth() + 1 < formData.month ||
+      (now.getMonth() + 1 === formData.month && now.getDate() < formData.day)) ? 1 : 0
+  );
+
   // 構建驗證後的 birthData
   const birthData = {
     year: formData.year,
@@ -325,6 +332,7 @@ async function calculate() {
     lng: geo.lng,
     utcOffset: geo.utcOffset,
     gender: formData.gender,
+    age,
   };
 
   // 儲存到 localStorage
@@ -427,6 +435,14 @@ async function calculate() {
   // 隱藏 loading
   ui.hideLoading();
 
+  // === 核心摘要卡片 + 跨系統共振 badge ===
+  try {
+    if (results.synthesis?.status === 'ok' && results.synthesis.categories) {
+      renderCoreSummary(results.synthesis.categories);
+      injectResonanceBadges(results.synthesis.categories, results.synthesis.allThemes);
+    }
+  } catch(e) { console.error('核心摘要/共振badge渲染錯誤:', e); }
+
   // 預設切換到第一個成功的 tab
   const firstOk = engineTabs.find(k => results[k]?.status === 'ok');
   if (firstOk) ui.switchTab(firstOk);
@@ -450,6 +466,79 @@ async function calculate() {
 /** 讓出控制權給瀏覽器渲染 */
 function microYield() {
   return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+// ============ 核心摘要卡片 ============
+
+/**
+ * 在 tabs 上方渲染一張摘要卡片，顯示 3~5 句「你這個人最核心的特質」
+ */
+function renderCoreSummary(categories) {
+  const el = document.getElementById('core-summary');
+  if (!el) return;
+
+  const { core, support } = categories;
+  // 取前 5 個最強主題（core 優先，不足補 support）
+  const top = [...core, ...support].slice(0, 5);
+  if (top.length === 0) { el.style.display = 'none'; return; }
+
+  // 為每個主題產出一句精煉描述
+  const lines = top.map(t => {
+    const systemLabel = t.systemCount >= 3
+      ? `<span class="cs-badge-count">${t.systemCount}系統共振</span>`
+      : `<span class="cs-badge-count support">${t.systemCount}系統</span>`;
+    return `<div class="cs-line"><span class="cs-icon">${t.icon}</span><span class="cs-text"><b>${t.zh}</b> — ${t.desc || ''}</span>${systemLabel}</div>`;
+  });
+
+  el.innerHTML = `
+    <div class="cs-header">
+      <div class="cs-title">✦ 你的核心特質</div>
+      <div class="cs-subtitle">五大命理系統交叉比對，以下是最確定的你</div>
+    </div>
+    <div class="cs-body">${lines.join('')}</div>
+  `;
+  el.style.display = '';
+}
+
+// ============ 跨系統共振 Badge ============
+
+/**
+ * 在各引擎 tab 的最上方注入共振 badge，
+ * 告訴使用者哪些主題被 ≥3 個系統同時提到
+ */
+function injectResonanceBadges(categories, allThemes) {
+  const { core } = categories;
+  if (!core || core.length === 0) return;
+
+  // 建立 system → themes 的對照（用於判斷哪個 tab 要顯示哪些 badge）
+  const systemMap = {
+    maya: '馬雅',
+    astro: '占星',
+    bazi: '八字',
+    ziwei: '紫微',
+    hd: '人類圖',
+  };
+
+  for (const [tabKey, systemName] of Object.entries(systemMap)) {
+    const viewEl = document.getElementById(`view-${tabKey}`);
+    if (!viewEl) continue;
+
+    // 找出本系統有貢獻的核心主題
+    const relevant = core.filter(t => t.systems.includes(systemName));
+    if (relevant.length === 0) continue;
+
+    // 建構 badge HTML
+    const badges = relevant.map(t =>
+      `<span class="resonance-badge">⚡ ${t.systemCount}系統共振：${t.zh}</span>`
+    ).join('');
+
+    const badgeBar = document.createElement('div');
+    badgeBar.className = 'resonance-bar';
+    badgeBar.innerHTML = badges;
+
+    // 插入到 view 最前面（在現有內容之前）
+    viewEl.insertBefore(badgeBar, viewEl.firstChild);
+  }
 }
 
 /** 儲存輸入到 localStorage */
