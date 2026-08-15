@@ -29,6 +29,9 @@ function init() {
   initThemeToggle();
   initDailyEnergy();
 
+  // 清除舊版殘留的 Groq API Key（AI 即時解讀功能已移除）
+  try { localStorage.removeItem('groq_api_key'); } catch (e) {}
+
   // 綁定表單提交
   const form = document.getElementById('birth-form');
   if (form) {
@@ -447,8 +450,7 @@ async function calculate() {
   const firstOk = engineTabs.find(k => results[k]?.status === 'ok');
   if (firstOk) ui.switchTab(firstOk);
 
-  // 綁定 AI 解讀按鈕（DOM 渲染後）
-  try { synthesisEngine.attachAIButtons(results); } catch(e) {}
+  // AI 解讀複製鈕改用 click-handlers.js 事件委派（連快取重開也能複製）
 
   // 綁定流年年份切換按鈕（DOM 渲染後）
   try { transitEngine.attachYearSwitcher(); } catch(e) {}

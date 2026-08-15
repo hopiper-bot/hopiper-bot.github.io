@@ -1149,7 +1149,16 @@ function generateScript(categories, results) {
 }
 
 // ============ 渲染 ============
-function renderSynthesis(categories, script) {
+
+/** HTML escape（供 textarea 內容安全嵌入） */
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderSynthesis(categories, script, results) {
   const { core, support } = categories;
   let html = `<div class="sig"><div class="kin">命理交叉比對</div><div class="big">人生劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">綜合八字、紫微斗數、西洋占星、馬雅曆、人類圖五大系統<br>找出你的生命中不斷重複出現的核心主題</div></div>`;
   html += `<div class="divider"></div><h3>📊 主題共振分析</h3><div style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">出現在越多系統 = 越是你靈魂深處的基調</div>`;
@@ -1165,17 +1174,23 @@ function renderSynthesis(categories, script) {
   }
   html += `<div class="divider"></div>${script}`;
 
-  // === AI 深度解讀區塊 ===
+  // === AI 深度解讀區塊（複製 Prompt → 貼到任何 AI）===
+  const fullPrompt = (() => { try { return getFullPrompt(results || {}, categories); } catch (e) { return ''; } })();
   html += `<div class="divider"></div>`;
   html += `<div class="script-section" style="border-left-color:#4ecdc4;">`;
-  html += `<div class="script-title">🤖 AI 深度融合解讀</div>`;
+  html += `<div class="script-title">🤖 想要更深、像真人聊天的解讀？</div>`;
   html += `<div class="script-body">`;
-  html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:12px;">上面是規則引擎的分析。想要像「一位看完全部命盤的朋友跟你聊天」的解讀？</p>`;
-  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">`;
-  html += `<button id="btn-ai-groq" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:700;font-size:.85rem;cursor:pointer;">✨ AI 即時解讀</button>`;
-  html += `<button id="btn-ai-copy" style="padding:8px 16px;background:rgba(255,255,255,.1);color:var(--text);border:1px solid rgba(255,255,255,.2);border-radius:6px;font-size:.85rem;cursor:pointer;">📋 複製 Prompt（貼到其他 AI 解讀）</button>`;
+  html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:6px;">上面是規則引擎的分析。下面這顆按鈕會把你的<b>完整命盤 + 一份專業指令</b>打包好，複製後貼到任何一個 AI（ChatGPT、Gemini、Claude…），就能得到一份 2500 字以上、像老朋友跟你聊的深度融合解讀。</p>`;
+  html += `<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">💡 完全免費、不需要註冊、不用 API Key — 你手邊哪個 AI 順手就用哪個。</p>`;
+  html += `<button id="btn-ai-copy" type="button" style="width:100%;padding:12px 16px;background:var(--accent);color:var(--btn-text,#000);border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;">📋 複製完整解讀 Prompt</button>`;
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">`;
+  html += `<a href="https://chatgpt.com/" target="_blank" rel="noopener" class="ai-launch-link">開 ChatGPT ↗</a>`;
+  html += `<a href="https://gemini.google.com/app" target="_blank" rel="noopener" class="ai-launch-link">開 Gemini ↗</a>`;
+  html += `<a href="https://claude.ai/new" target="_blank" rel="noopener" class="ai-launch-link">開 Claude ↗</a>`;
   html += `</div>`;
-  html += `<div id="ai-result" style="display:none;"></div>`;
+  html += `<details style="margin-top:12px;"><summary style="font-size:.78rem;color:var(--muted);cursor:pointer;">預覽 / 手動複製這段 Prompt</summary>`;
+  html += `<textarea id="ai-prompt-text" readonly style="width:100%;height:160px;margin-top:8px;padding:10px;font-size:.75rem;line-height:1.5;border-radius:8px;border:1px solid var(--card-border);background:var(--chip-bg,rgba(0,0,0,.15));color:var(--text);resize:vertical;">${escapeHtml(fullPrompt)}</textarea>`;
+  html += `</details>`;
   html += `</div></div>`;
 
   html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們用不同語言說同一件事。當你發現「每個系統都在講同一個主題」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支＋十神＋神煞）、紫微斗數（命宮主星＋四化）、西洋占星（太陽/月亮/上升＋相位）、馬雅曆（主印記＋調性）、人類圖（類型＋權威＋通道＋Profile）</div>`;
@@ -1184,113 +1199,103 @@ function renderSynthesis(categories, script) {
 
 // ============ AI 解讀：Prompt 建構 + Groq 呼叫 ============
 
-const AI_SYSTEM_PROMPT = `你是一位整合五大命理系統（八字、紫微斗數、西洋占星、馬雅曆、人類圖）的分析師。
+const AI_SYSTEM_PROMPT = `你是一位同時精通五大命理系統（八字、紫微斗數、西洋占星、馬雅曆、人類圖）的資深分析師，也是一位擅長說人話的心理諮商者。
 
-你的任務：根據使用者的命盤 JSON 資料，寫一段融合分析。
+你的任務：根據下方使用者的命盤 JSON 資料，寫一份「像是一位看完全部命盤的老朋友，坐下來慢慢跟你聊」的深度融合解讀。
 
-規則：
-1. 不要逐系統解釋。不要說「你的八字是...你的紫微是...」
-2. 用條列式分段呈現，每段有小標題
-3. 結構：
-   - 🧭 核心人設（一兩句話定義這個人）
-   - 🎁 天賦清單（3~4 個重點，每個一行）
-   - ⚔️ 內在矛盾（最主要的 1~2 個拉扯）
-   - 💡 具體建議（根據命盤得出的行動方向）
-4. 用自然、溫暖但精準的語氣
-5. 全程用繁體中文
-6. 控制在 1500 字以內
-7. 不要用markdown格式，用純文字 + emoji 分段`;
+【核心手法】
+1. 不要逐系統解釋、不要說「你的八字是…你的紫微是…」。要把五個系統當成同一個人的不同側寫，交叉比對後說出「同一件事」。
+2. 特別注意資料裡的 coreThemes（跨系統共振主題）——這些是多個系統同時指向的核心真相，是整份解讀的主軸，請深入展開、舉例說明它在現實生活中會怎麼呈現。
+3. 每個論點都要「落地」：不要只給形容詞，要說出這個特質在工作、感情、日常決策裡的具體樣子，最好能舉一兩個生活化的情境。
 
-function buildPromptJSON(results) {
+【輸出結構】（每段都要有小標題，內容要飽滿，不要只寫一行）
+🧭 一句話核心人設 — 用一句精準的話定義這個人是誰
+🧬 你天生的作業系統 — 性格底層邏輯，2~3 段，說明你如何看世界、如何做決定
+🎁 你的天賦與才華 — 列 4~6 項，每項都說明「怎麼展現、能用在哪、別人會怎麼看到」
+⚔️ 你的內在矛盾 — 1~3 組最主要的拉扯，說明成因，以及怎麼和自己和解
+💞 感情與人際模式 — 你在關係裡的樣子、需要什麼、容易卡在哪
+💼 事業與金錢傾向 — 適合的工作型態、賺錢的方式、要避開的坑
+🌱 這輩子的功課 — 靈魂層面想學會的事、成長方向
+💡 給你的具體建議 — 5 條可以立刻執行的行動建議
+🎯 結語 — 一段溫暖、給力量的話
+
+【語氣與格式】
+- 自然、溫暖、精準，像朋友聊天，但有專業底氣；可以偶爾幽默、直接。
+- 全程繁體中文。
+- 用純文字 + emoji 分段，不要用 markdown 的 #、* 符號。
+- 篇幅放開來寫，目標 2500~4000 字，寧可深入也不要空泛。
+- 不要免責聲明、不要開場白客套，直接從核心人設開始寫。`;
+
+function buildPromptJSON(results, categories) {
   const j = {};
+
+  // 跨系統共振主題（最重要，放最前面）
+  if (categories?.core?.length) {
+    j.coreThemes = categories.core.map(t => ({ theme: t.zh, appearsIn: t.systems, systemCount: t.systemCount }));
+  }
+  if (categories?.support?.length) {
+    j.supportThemes = categories.support.slice(0, 6).map(t => ({ theme: t.zh, appearsIn: t.systems }));
+  }
+
   const bz = results.bazi?.data;
   if (bz) {
-    j.bazi = { dayMaster: bz.dayMaster, element: bz.dayMasterElem, tenGods: bz.tenGods?.map(t => t.god) || [], shensha: bz.shensha?.map(s => s.name) || [] };
+    const p = bz.pillars || {};
+    const pill = (x) => x ? `${x.stem || ''}${x.branch || ''}` : '';
+    j.bazi = {
+      fourPillars: [pill(p.year), pill(p.month), pill(p.day), pill(p.hour)].filter(Boolean).join(' '),
+      dayMaster: bz.dayMaster,
+      dayMasterElement: bz.dayMasterElem,
+      fiveElements: bz.elements || undefined,
+      tenGods: bz.tenGods?.map(t => `${t.pillar}=${t.god}`) || [],
+      shensha: bz.shensha?.map(s => s.name) || [],
+    };
   }
+
   const zw = results.ziwei?.data;
   if (zw) {
     const ming = zw.palaces?.find(p => p.pos === zw.mingPos);
-    const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/,'').trim() : (s.name||'')).filter(Boolean) || [];
+    const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean) || [];
     j.ziwei = { mingStars: stars, sihua: zw.sihua };
   }
+
   const astro = results.astro?.data;
   if (astro) {
-    j.astro = { sun: astro.sunSign?.zh, moon: astro.moonSign?.zh, rising: astro.risingSign?.zh, aspects: astro.aspects?.slice(0,5).map(a => a.name) || [] };
+    j.astro = {
+      sun: astro.sunSign?.zh,
+      moon: astro.moonSign?.zh,
+      rising: astro.risingSign?.zh,
+      aspects: astro.aspects?.slice(0, 8).map(a => a.name) || [],
+    };
   }
+
   const maya = results.maya?.data;
   if (maya) {
-    j.maya = { seal: maya.dreamspell?.seal?.zh, tone: maya.dreamspell?.tone?.num, toneName: maya.dreamspell?.tone?.zh };
+    j.maya = {
+      seal: maya.dreamspell?.seal?.zh,
+      tone: maya.dreamspell?.tone?.num,
+      toneName: maya.dreamspell?.tone?.zh,
+      color: maya.dreamspell?.color?.zh || maya.dreamspell?.colorZh || undefined,
+    };
   }
+
   const hd = results.hd?.data;
   if (hd) {
-    j.humanDesign = { type: hd.typeInfo?.zh, strategy: hd.strategy?.zh, authority: hd.authority?.zh, profile: hd.profile?.profile, channels: hd.definedChannels?.map(c => c.name) || [] };
+    j.humanDesign = {
+      type: hd.typeInfo?.zh,
+      strategy: hd.strategy?.zh,
+      authority: hd.authority?.zh,
+      profile: hd.profile?.profile,
+      channels: hd.definedChannels?.map(c => c.name) || [],
+      definedCenters: hd.definedCenters?.map(c => (typeof c === 'string' ? c : (c.name || c.zh))).filter(Boolean) || undefined,
+    };
   }
+
   return j;
 }
 
-function getFullPrompt(results) {
-  const json = buildPromptJSON(results);
-  return AI_SYSTEM_PROMPT + '\n\n---\n\n以下是這位使用者的命盤資料：\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```\n\n請開始分析。';
-}
-
-export function attachAIButtons(results) {
-  const btnGroq = document.getElementById('btn-ai-groq');
-  const btnCopy = document.getElementById('btn-ai-copy');
-  const resultDiv = document.getElementById('ai-result');
-  if (!btnGroq || !btnCopy || !resultDiv) return;
-
-  const fullPrompt = getFullPrompt(results);
-
-  btnCopy.addEventListener('click', () => {
-    navigator.clipboard.writeText(fullPrompt).then(() => {
-      btnCopy.textContent = '✅ 已複製！貼到任何 AI 即可';
-      setTimeout(() => { btnCopy.textContent = '📋 複製 Prompt（貼到其他 AI 解讀）'; }, 3000);
-    });
-  });
-
-  btnGroq.addEventListener('click', async () => {
-    // Groq key 從 localStorage 讀取，沒有則提示設定
-    let apiKey = localStorage.getItem('groq_api_key');
-    if (!apiKey) {
-      const input = prompt('首次使用需要 Groq API Key（免費申請：console.groq.com）\n貼上你的 Key：');
-      if (!input) return;
-      apiKey = input.trim();
-      localStorage.setItem('groq_api_key', apiKey);
-    }
-    btnGroq.disabled = true;
-    btnGroq.textContent = '⏳ AI 思考中...';
-    resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="color:var(--muted);font-size:.85rem;">正在連線 AI，請稍候…</div>';
-    try {
-      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: AI_SYSTEM_PROMPT },
-            { role: 'user', content: '以下是我的命盤資料：\n```json\n' + JSON.stringify(buildPromptJSON(results), null, 2) + '\n```\n請開始分析。' },
-          ],
-          max_tokens: 3000,
-          temperature: 0.7,
-        }),
-      });
-      if (!resp.ok) {
-        if (resp.status === 401) { localStorage.removeItem('groq_api_key'); throw new Error('Key 無效，已清除。請重新點擊按鈕輸入正確的 Key。'); }
-        throw new Error(`API 錯誤 ${resp.status}`);
-      }
-      const data = await resp.json();
-      const content = data.choices?.[0]?.message?.content || '（無回應）';
-      const html = content.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-      resultDiv.innerHTML = `<div style="background:rgba(78,205,196,.08);border:1px solid rgba(78,205,196,.3);border-radius:8px;padding:16px;margin-top:8px;line-height:1.9;font-size:.9rem;"><p>${html}</p></div>`;
-      btnGroq.textContent = '✨ 再生成一次';
-      btnGroq.disabled = false;
-    } catch (err) {
-      resultDiv.innerHTML = `<div style="color:#f55;font-size:.85rem;">AI 連線失敗：${err.message}<br>可用「複製 Prompt」手動貼到 ChatGPT。</div>`;
-      btnGroq.textContent = '✨ AI 即時解讀（重試）';
-      btnGroq.disabled = false;
-    }
-  });
+function getFullPrompt(results, categories) {
+  const json = buildPromptJSON(results, categories);
+  return AI_SYSTEM_PROMPT + '\n\n---\n\n以下是這位使用者的命盤資料：\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```\n\n請依照上面的結構，開始寫這份深度融合解讀。';
 }
 
 export function calculate(results) {
@@ -1305,7 +1310,7 @@ export function calculate(results) {
     const sorted = analyzeThemes(allThemes);
     const categories = categorizeThemes(sorted);
     const script = generateScript(categories, results);
-    const html = renderSynthesis(categories, script);
+    const html = renderSynthesis(categories, script, results);
     return { status: 'ok', html, error: null, categories, allThemes };
   } catch (err) {
     return { status: 'error', html: `<div class="placeholder">綜合分析錯誤：${err.message}</div>`, error: err.message };

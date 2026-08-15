@@ -3,7 +3,7 @@
  * 永遠先嘗試網路，失敗才用 cache（離線備援）
  */
 
-const CACHE_NAME = 'destiny-v9';
+const CACHE_NAME = 'destiny-v10';
 
 // Install: 立即接管
 self.addEventListener('install', (event) => {

@@ -333,3 +333,30 @@ async function doPersonCompat() {
     console.error('雙人合盤錯誤:', err);
   }
 }
+
+// ========== AI 深度解讀：複製 Prompt ==========
+// 用事件委派，讀取頁面上嵌入的 #ai-prompt-text，連快取重開也能複製
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest ? e.target.closest('#btn-ai-copy') : null;
+  if (!btn) return;
+
+  var ta = document.getElementById('ai-prompt-text');
+  var text = ta ? ta.value : '';
+  if (!text) { btn.textContent = '⚠️ 找不到內容，請重新計算'; return; }
+
+  var done = function() {
+    btn.textContent = '✅ 已複製！貼到任何 AI 就能解讀';
+    setTimeout(function() { btn.textContent = '📋 複製完整解讀 Prompt'; }, 3000);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      // fallback
+      ta && ta.select();
+      try { document.execCommand('copy'); done(); } catch (err) { btn.textContent = '⚠️ 複製失敗，請手動選取'; }
+    });
+  } else {
+    ta && ta.select();
+    try { document.execCommand('copy'); done(); } catch (err) { btn.textContent = '⚠️ 複製失敗，請手動選取'; }
+  }
+});
