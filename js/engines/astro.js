@@ -14,6 +14,7 @@ import {
 } from '../lib/planets.js';
 import { normalizeDeg } from '../lib/utils.js';
 import { SIGNS } from '../data/astro-text.js';
+import { PLANET_HOUSE_TEXT } from '../data/astro-planet-house.js';
 
 /** 行星資料 */
 const PLANETS = [
@@ -232,6 +233,8 @@ function renderAstro(data) {
     <div class="divider"></div>
     ${renderAspects(aspects)}
     <div class="divider"></div>
+    ${renderHouseCluster(data)}
+    <div class="divider"></div>
     ${renderThreeBig(data)}
     <div class="divider"></div>
     ${renderElementSummary(planets)}
@@ -260,13 +263,16 @@ function renderPlanetRow(planet) {
   `;
 }
 
-/** 取得星體的解說文字 — 具體方向 + 行動建議 */
+/** 取得星體的解說文字 — 星×座 + 星×宮 融合解讀 */
 function getPlanetDetail(planet) {
   const sign = planet.sign;
   const house = planet.house;
   const planetInSign = getPlanetInSign(planet.id, sign);
-  const inHouse = getHouseDirection(house);
-  return `<b>${planet.symbol} ${planet.zh}在${sign.zh} ${house}宮</b><br><br>${planetInSign}<br><br>${inHouse}`;
+  // 使用融合版星×宮解讀（有資料時），fallback 到舊版通用描述
+  const houseKey = `${planet.id}_${house}`;
+  const planetInHouse = PLANET_HOUSE_TEXT[houseKey] || getHouseDirection(house);
+  const houseLabel = `<b>落入${house}宮的具體展現：</b>`;
+  return `<b>${planet.symbol} ${planet.zh}在${sign.zh} ${house}宮</b><br><br>${planetInSign}<br><br>${houseLabel}<br>${planetInHouse}`;
 }
 
 function getPlanetInSign(planetId, sign) {
@@ -310,6 +316,97 @@ function renderThreeBig(data) {
     <p style="font-size:.85rem;color:var(--muted);margin:0 0 8px;">外在面具 · ${asc.sign.element}象${asc.sign.modality}星座 · 1宮</p>
     <p class="meaning">${asc.sign.rising}</p>
   `;
+}
+
+/** 渲染同宮多星綜合提示 */
+function renderHouseCluster(data) {
+  const { planets, northNode, southNode, fortune } = data;
+  // 收集所有星體（排除 ASC/DSC/MC/IC，它們的宮位是固定的）
+  const allBodies = [...planets, northNode, southNode, fortune];
+  
+  // 按宮位分組
+  const houseMap = {};
+  allBodies.forEach(p => {
+    if (!houseMap[p.house]) houseMap[p.house] = [];
+    houseMap[p.house].push(p);
+  });
+
+  // 只顯示有 2 顆以上星的宮位
+  const clusters = Object.entries(houseMap)
+    .filter(([, bodies]) => bodies.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length);
+
+  if (clusters.length === 0) return '';
+
+  const HOUSE_THEMES = ['',
+    '自我形象', '金錢資源', '溝通學習', '家庭根基',
+    '創造快樂', '工作健康', '關係合作', '深層轉化',
+    '遠方探索', '事業地位', '社群理想', '靈性幕後'
+  ];
+
+  const sections = clusters.map(([house, bodies]) => {
+    const h = parseInt(house);
+    const theme = HOUSE_THEMES[h] || '';
+    const names = bodies.map(b => `${b.symbol}${b.zh}`).join('、');
+    const synthesis = getHouseClusterSynthesis(bodies, h);
+    return `
+      <div style="background:rgba(123,108,246,.06);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-weight:700;margin-bottom:6px;">🏠 ${h}宮（${theme}）集中了 ${bodies.length} 顆星</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:8px;">${names}</div>
+        <div style="font-size:.85rem;line-height:1.7;">${synthesis}</div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <h3>🔍 宮位能量聚集</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin:0 0 10px;">當多顆星落入同一宮，這個生活領域會特別突出且複雜。</p>
+    ${sections}
+  `;
+}
+
+/** 生成同宮多星的綜合分析 */
+function getHouseClusterSynthesis(bodies, house) {
+  const planetIds = bodies.map(b => b.id);
+  const planetNames = bodies.map(b => b.zh);
+  
+  // 判斷能量組合的性質
+  const hasBenefic = planetIds.some(id => ['jupiter', 'venus'].includes(id));
+  const hasMalefic = planetIds.some(id => ['saturn', 'mars', 'pluto'].includes(id));
+  const hasLuminary = planetIds.some(id => ['sun', 'moon'].includes(id));
+  const hasOuter = planetIds.some(id => ['uranus', 'neptune', 'pluto'].includes(id));
+  
+  const HOUSE_LIFE_AREA = ['',
+    '自我表達和存在感', '財務和自我價值', '溝通和學習', '家庭和內在安全感',
+    '創造力和快樂', '工作和健康', '一對一關係', '深層轉化和共享資源',
+    '遠方和人生信念', '事業和社會地位', '社群和理想', '靈性和潛意識'
+  ];
+  const area = HOUSE_LIFE_AREA[house] || '';
+
+  let analysis = `<b>${area}</b>是你人生最被強調的領域——${planetNames.join('、')}都聚集在這裡，你的注意力和能量會大量投入在此。`;
+
+  // 混合吉凶的提示
+  if (hasBenefic && hasMalefic) {
+    const benefics = bodies.filter(b => ['jupiter', 'venus'].includes(b.id)).map(b => b.zh);
+    const malefics = bodies.filter(b => ['saturn', 'mars', 'pluto'].includes(b.id)).map(b => b.zh);
+    analysis += `<br><br>⚡ <b>能量拉鋸：</b>${benefics.join('、')}帶來機會和擴展，但${malefics.join('、')}同時要求你付出代價和紀律。這不是矛盾——而是「先苦後甜」或「有天賦但需要磨練」的組合。這個領域的成就會比一般人紮實，因為你同時有幸運和淬煉。`;
+  } else if (hasBenefic && !hasMalefic) {
+    analysis += `<br><br>✨ 多顆吉星聚集，這個領域是你天生的幸運場。好好發展它，回報會超乎預期。`;
+  } else if (hasMalefic && !hasBenefic) {
+    analysis += `<br><br>🔨 這個領域需要你付出比一般人更多的努力，但也因此你在這裡的成長最為深刻。別把挑戰當懲罰——它是通往真正力量的路。`;
+  }
+
+  // 日月同宮特殊提示
+  if (planetIds.includes('sun') && planetIds.includes('moon')) {
+    analysis += `<br><br>🌑 <b>日月同宮：</b>你的意志力和情感在同一個領域完全重疊——你的頭和心高度一致，但也意味著這個生活領域對你而言特別「重」。當這裡出問題時，你整個人都會受影響。`;
+  }
+
+  // 有外行星的提示
+  if (hasOuter && hasLuminary) {
+    analysis += `<br><br>🌀 外行星（${bodies.filter(b => ['uranus','neptune','pluto'].includes(b.id)).map(b => b.zh).join('、')}）和個人星體在同一宮，代表你在這個領域會經歷超越個人層面的力量——可能是時代浪潮推著你走，也可能是深層的靈性轉化。`;
+  }
+
+  return analysis;
 }
 
 function renderElementSummary(planets) {
