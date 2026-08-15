@@ -335,6 +335,9 @@ async function calculate() {
   // 儲存到 localStorage
   saveInput(formData);
 
+  // 重新渲染今日能量，讓「今天對你」立刻個人化（不用等下次開頁）
+  try { initDailyEnergy(); } catch(e) {}
+
   // 顯示 loading，同時先顯示結果容器（用 placeholder）
   ui.showLoading();
   ui.showResults();

@@ -151,6 +151,40 @@
   line-height: 1.6;
 }
 
+/* 個人化流日卡片 */
+.daily-personal {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.16), rgba(var(--accent2-rgb), 0.10));
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: 12px;
+  animation: fadeIn 0.4s ease;
+}
+
+.daily-personal-head {
+  font-size: .95rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.daily-personal-head b { color: var(--accent); }
+
+.daily-personal-text {
+  font-size: .84rem;
+  color: var(--text);
+  line-height: 1.75;
+}
+
+.daily-personal-meta {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.2);
+  font-size: .74rem;
+  color: var(--muted);
+}
+
+.daily-personal-meta b { color: var(--accent2); }
+
 @media (max-width: 480px) {
   .daily-grid {
     grid-template-columns: 1fr;

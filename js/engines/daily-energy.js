@@ -21,8 +21,9 @@ const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","�
 const STEM_ELEMENT = {"甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水"};
 const ELEMENT_EMOJI = {"木":"🌳","火":"🔥","土":"🏔️","金":"⚙️","水":"💧"};
 
-function dayPillarToday(y, m, d) {
-  const jdn = dateToJDN(y, m, d);
+function dayPillarToday(y, m, d, hour) {
+  let jdn = dateToJDN(y, m, d);
+  if (typeof hour === 'number' && hour >= 23) jdn += 1; // 23:00 後算隔天日柱（子時換日，與 bazi.js 一致）
   const base = dateToJDN(2000, 1, 7); // 甲子日
   const diff = ((jdn - base) % 60 + 60) % 60;
   return { stem: STEMS[diff % 10], branch: BRANCHES[diff % 12] };
@@ -41,6 +42,82 @@ const DAY_ADVICE = {
   "壬": { good: "腦力激盪、旅行移動", avoid: "固守不變", vibe: "流動" },
   "癸": { good: "冥想反省、深度對話", avoid: "過度社交", vibe: "沉靜" },
 };
+
+// === 五行生剋（個人化流日）===
+const SHENG = { "木":"火", "火":"土", "土":"金", "金":"水", "水":"木" }; // 我生
+const KE    = { "木":"土", "土":"水", "水":"火", "火":"金", "金":"木" }; // 我剋
+
+/**
+ * 判斷「今日五行」對「使用者日主」的十神關係
+ * @param {string} selfEl 使用者日主五行
+ * @param {string} todayEl 今日天干五行
+ */
+function tenGodRelation(selfEl, todayEl) {
+  if (selfEl === todayEl)      return "比劫";
+  if (SHENG[todayEl] === selfEl) return "印";   // 今生我
+  if (SHENG[selfEl] === todayEl) return "食傷"; // 我生今
+  if (KE[selfEl] === todayEl)    return "財";   // 我剋今
+  if (KE[todayEl] === selfEl)    return "官殺"; // 今剋我
+  return "比劫";
+}
+
+const RELATION_ADVICE = {
+  "比劫": {
+    title: "兄弟日 · 同氣相助",
+    icon: "🤝",
+    text: "今天的能量跟你同一國。適合找夥伴、團隊合作、爭取表現；但同性相斥，也容易有競爭或破費 — 錢包看緊一點。",
+  },
+  "印": {
+    title: "貴人日 · 被滋養",
+    icon: "🌱",
+    text: "今天有貴人、資源、長輩緣靠近你。適合學習、進修、求助、休息充電。累了就允許自己被照顧，不用硬撐。",
+  },
+  "食傷": {
+    title: "才華日 · 盡情輸出",
+    icon: "🎨",
+    text: "今天表達力和創造力特別強，適合發表、創作、經營內容、秀點子。唯一要注意：別過度付出把自己掏空。",
+  },
+  "財": {
+    title: "財氣日 · 掌控局面",
+    icon: "💰",
+    text: "今天掌控力強、目標感清楚，適合談錢、談合作、推進計畫、去追你真正想要的。行動派的一天。",
+  },
+  "官殺": {
+    title: "考驗日 · 守穩接招",
+    icon: "🛡️",
+    text: "今天壓力、規範、責任感較重，可能有主管或外在要求找上門。適合守規矩、處理交辦、按部就班，別硬碰硬。",
+  },
+};
+
+/**
+ * 讀取使用者已儲存的生日，計算個人化流日
+ * 沒有生日資料則回傳 null（維持通用顯示）
+ */
+function calcPersonal(todayStem) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+    if (!saved || !saved.year || !saved.month || !saved.day) return null;
+
+    // 使用者日主（出生當日的日干，含 23:00 換日規則）
+    const birthHour = (typeof saved.hour === 'number' && saved.hour >= 0) ? saved.hour : 12;
+    const { stem: selfStem } = dayPillarToday(saved.year, saved.month, saved.day, birthHour);
+    const selfEl = STEM_ELEMENT[selfStem];
+    const todayEl = STEM_ELEMENT[todayStem];
+    const relation = tenGodRelation(selfEl, todayEl);
+    const info = RELATION_ADVICE[relation];
+
+    return {
+      selfStem, selfEl,
+      selfEmoji: ELEMENT_EMOJI[selfEl],
+      relation,
+      title: info.title,
+      icon: info.icon,
+      text: info.text,
+    };
+  } catch (e) {
+    return null;
+  }
+}
 
 // === 馬雅圖騰日能量 ===
 function sealDayAdvice(sealIdx) {
@@ -90,6 +167,9 @@ export function calculateDaily() {
   const advice = DAY_ADVICE[stem];
   const mayaAdvice = sealDayAdvice(sealIdx);
 
+  // 個人化流日（若使用者已算過命盤）
+  const personal = calcPersonal(stem);
+
   return {
     date: `${y}/${m}/${d}`,
     weekday: ['日','一','二','三','四','五','六'][now.getDay()],
@@ -104,6 +184,7 @@ export function calculateDaily() {
       emoji: ELEMENT_EMOJI[element],
       advice,
     },
+    personal,
   };
 }
 
@@ -111,8 +192,19 @@ export function calculateDaily() {
  * 渲染今日能量 HTML
  */
 export function renderDaily(data) {
-  const { maya, bazi } = data;
-  let html = '<div class="daily-grid">';
+  const { maya, bazi, personal } = data;
+  let html = '';
+
+  // 個人化流日卡片（置頂，最搶眼）
+  if (personal) {
+    html += '<div class="daily-personal">';
+    html += `<div class="daily-personal-head">${personal.icon} 今天對你 — <b>${personal.title}</b></div>`;
+    html += `<div class="daily-personal-text">${personal.text}</div>`;
+    html += `<div class="daily-personal-meta">你的日主 ${personal.selfEmoji} ${personal.selfStem}（${personal.selfEl}）× 今日 ${bazi.emoji} ${bazi.stem}（${bazi.element}）→ <b>${personal.relation}</b></div>`;
+    html += '</div>';
+  }
+
+  html += '<div class="daily-grid">';
 
   // 馬雅能量
   html += '<div class="daily-card">';
