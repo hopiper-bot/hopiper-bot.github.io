@@ -205,7 +205,7 @@ document.addEventListener('click', function(e) {
 async function doCompanyCompat() {
   var errorDiv = document.getElementById('company-compat-error');
   var resultDiv = document.getElementById('company-compat-result');
-  if (!errorDiv || !resultDiv) { alert('找不到 error/result div'); return; }
+  if (!errorDiv || !resultDiv) { console.warn('company-compat: 找不到 error/result div'); return; }
   errorDiv.textContent = '計算中...';
   resultDiv.innerHTML = '';
 
