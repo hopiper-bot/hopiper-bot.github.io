@@ -21,7 +21,7 @@ import { longitudeToGate, GATES, LINE_NAMES } from '../data/hd-gates.js';
 import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
 import { CENTERS, getDefinedCenters, getDefinitionType } from '../data/hd-centers.js';
 import { getChannelDescription } from '../data/hd-channel-desc.js';
-import { getPlanetGateDesc } from '../data/hd-text.js';
+import { getPlanetGateDesc, GATE_DESC } from '../data/hd-text.js';
 import { getCrossInfo, generateSynthesis } from '../data/hd-crosses.js';
 
 /** 用於計算的行星列表 */
@@ -381,6 +381,9 @@ function renderHD(data) {
 
     <div class="divider"></div>
     ${renderSynthesis(data)}
+
+    <div class="divider"></div>
+    ${renderHangingGates(data)}
 
     <div class="note">💡 點擊圖上的中心或通道線查看解說。人類圖整合了易經、卡巴拉、印度脈輪、天文學。Design = 出生前太陽退行 88° 的位置。</div>
   `;
@@ -794,4 +797,200 @@ function getCenterDetail(centerId) {
   }
   html += `</div>`;
   return html;
+}
+
+/**
+ * 掛門分析（Hanging Gates）
+ * 找出已啟動但沒有形成完整通道的閘門，
+ * 說明它們代表什麼，以及你會被什麼樣的人吸引來補完它。
+ * 若為分裂定義（Split Definition），分析哪些通道可以橋接分裂。
+ */
+function renderHangingGates(data) {
+  const { personalityPlanets, designPlanets, definedChannels, definitionType } = data;
+
+  // 收集所有已啟動閘門（去重）
+  const activatedGates = new Set();
+  personalityPlanets.forEach(p => activatedGates.add(p.gate));
+  designPlanets.forEach(p => activatedGates.add(p.gate));
+
+  // 已形成通道的閘門
+  const channelGates = new Set();
+  definedChannels.forEach(ch => {
+    channelGates.add(ch.gates[0]);
+    channelGates.add(ch.gates[1]);
+  });
+
+  // 掛門 = 已啟動但未形成通道
+  const hangingGates = [...activatedGates].filter(g => !channelGates.has(g));
+
+  // 找出每個掛門可能形成的通道及其「對門」
+  const hangingInfo = hangingGates.map(gate => {
+    // 找所有包含此閘門的通道
+    const possibleChannels = CHANNELS.filter(ch =>
+      ch.gates[0] === gate || ch.gates[1] === gate
+    );
+    const partners = possibleChannels.map(ch => {
+      const partnerGate = ch.gates[0] === gate ? ch.gates[1] : ch.gates[0];
+      return {
+        partnerGate,
+        channel: ch,
+        partnerInfo: GATES[partnerGate] || {},
+      };
+    });
+    return {
+      gate,
+      gateInfo: GATES[gate] || {},
+      partners,
+    };
+  });
+
+  // ===== 分裂定義橋接分析 =====
+  let bridgingHtml = '';
+  if (definitionType >= 2) {
+    // 建立定義中心的鄰接圖，找出各連通分量
+    const adj = {};
+    for (const ch of definedChannels) {
+      const [c1, c2] = ch.centers;
+      if (!adj[c1]) adj[c1] = new Set();
+      if (!adj[c2]) adj[c2] = new Set();
+      adj[c1].add(c2);
+      adj[c2].add(c1);
+    }
+    // BFS 找連通分量
+    const visited = new Set();
+    const components = [];
+    for (const start of Object.keys(adj)) {
+      if (visited.has(start)) continue;
+      const comp = new Set();
+      const queue = [start];
+      while (queue.length > 0) {
+        const node = queue.shift();
+        if (visited.has(node)) continue;
+        visited.add(node);
+        comp.add(node);
+        for (const neighbor of (adj[node] || [])) {
+          if (!visited.has(neighbor)) queue.push(neighbor);
+        }
+      }
+      components.push(comp);
+    }
+
+    // 找出能橋接不同分量的通道
+    const bridgingChannels = [];
+    if (components.length >= 2) {
+      for (const ch of CHANNELS) {
+        // 跳過已定義通道
+        if (definedChannels.some(dc => dc.gates[0] === ch.gates[0] && dc.gates[1] === ch.gates[1])) continue;
+        const [c1, c2] = ch.centers;
+        // 找兩個中心分別在哪個分量
+        let comp1 = -1, comp2 = -1;
+        components.forEach((comp, idx) => {
+          if (comp.has(c1)) comp1 = idx;
+          if (comp.has(c2)) comp2 = idx;
+        });
+        // 如果兩個中心在不同分量，這條通道能橋接
+        if (comp1 !== -1 && comp2 !== -1 && comp1 !== comp2) {
+          // 檢查是否有一端已啟動（掛門）
+          const g1Active = activatedGates.has(ch.gates[0]);
+          const g2Active = activatedGates.has(ch.gates[1]);
+          bridgingChannels.push({
+            channel: ch,
+            g1Active,
+            g2Active,
+            priority: (g1Active ? 1 : 0) + (g2Active ? 1 : 0), // 已有一端啟動的優先
+          });
+        }
+      }
+      // 按優先級排序（已有一端啟動的排前面）
+      bridgingChannels.sort((a, b) => b.priority - a.priority);
+    }
+
+    if (bridgingChannels.length > 0) {
+      const defTypeZh = ['', '', '二分', '三分', '四分'][definitionType] || '';
+      bridgingHtml = `
+        <div style="margin-top:20px;padding:16px;background:rgba(90,134,224,.08);border-radius:10px;border:1px solid rgba(90,134,224,.2);">
+          <div style="font-size:1rem;font-weight:700;color:#5a86e0;margin-bottom:8px;">🌉 ${defTypeZh}定義橋接分析</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.7;">
+            你的定義分成 ${components.length} 塊，你會天然被「能橋接你」的人吸引——他們擁有的閘門剛好能連接你分裂的兩塊。
+            以下通道如果被補完，就能串接你的能量：
+          </div>
+          ${bridgingChannels.slice(0, 6).map(b => {
+            const g1Info = GATES[b.channel.gates[0]] || {};
+            const g2Info = GATES[b.channel.gates[1]] || {};
+            const g1Status = b.g1Active ? '<span style="color:var(--accent);font-weight:700;">✓ 你有</span>' : '<span style="color:var(--red);">✗ 需要對方</span>';
+            const g2Status = b.g2Active ? '<span style="color:var(--accent);font-weight:700;">✓ 你有</span>' : '<span style="color:var(--red);">✗ 需要對方</span>';
+            return `
+              <div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+                <div style="font-weight:700;color:var(--text);">
+                  ${b.channel.gates[0]}-${b.channel.gates[1]}：${b.channel.name}
+                </div>
+                <div style="font-size:.82rem;color:var(--muted);margin-top:2px;">
+                  ${b.channel.centers[0]} ↔ ${b.channel.centers[1]}｜${b.channel.keyword}
+                </div>
+                <div style="font-size:.82rem;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
+                  <span>閘門 ${b.channel.gates[0]}（${g1Info.keyword || ''}）${g1Status}</span>
+                  <span>閘門 ${b.channel.gates[1]}（${g2Info.keyword || ''}）${g2Status}</span>
+                </div>
+              </div>`;
+          }).join('')}
+          <div style="font-size:.78rem;color:var(--muted);margin-top:10px;line-height:1.7;">
+            💡 ${definitionType === 2 ? '二分定義的人通常會尋找固定的伴侶或夥伴來橋接——你會覺得有某個人在身邊時「完整了」。' : '三分以上的定義需要多元的人際環境（如市場、社交場合）來感覺完整，不會只被一個人補完。'}
+          </div>
+        </div>`;
+    }
+  }
+
+  // ===== 掛門列表 =====
+  if (hangingGates.length === 0 && !bridgingHtml) {
+    return `
+      <h3>🚪 掛門分析（Hanging Gates）</h3>
+      <p class="meaning" style="color:var(--muted);">你所有啟動的閘門都已形成完整通道，沒有掛門。這是比較少見的情況！</p>
+    `;
+  }
+
+  const hangingRows = hangingInfo.map(h => {
+    const gateDesc = GATE_DESC[h.gate] || '';
+    // 截取簡短版描述（前 60 字）
+    const shortDesc = gateDesc.length > 60 ? gateDesc.slice(0, 60) + '⋯' : gateDesc;
+    const partnerTags = h.partners.map(p =>
+      `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;background:rgba(224,85,107,.1);border-radius:4px;font-size:.78rem;">
+        需要 ${p.partnerGate}（${p.partnerInfo.keyword || ''}）→ ${p.channel.name}
+      </span>`
+    ).join('');
+    return `
+      <div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+        <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+          <span style="font-weight:700;color:var(--accent);font-size:.95rem;">閘門 ${h.gate}</span>
+          <span style="font-size:.82rem;color:var(--text);">「${h.gateInfo.keyword || ''}」</span>
+          <span style="font-size:.75rem;color:var(--muted);">${h.gateInfo.name || ''} ｜ ${CENTERS[h.gateInfo.center]?.zh || ''}</span>
+        </div>
+        <div style="font-size:.82rem;color:var(--text);margin-top:4px;line-height:1.7;">${shortDesc}</div>
+        <div style="margin-top:6px;line-height:1.8;">${partnerTags}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <h3>🚪 掛門分析（Hanging Gates）</h3>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.7;">
+      掛門 = 已啟動但沒有形成完整通道的閘門。這些能量「懸掛」在那裡，
+      會讓你不自覺被擁有「對門」的人吸引——因為他們能補完你的通道，
+      讓能量流動起來。這不是缺陷，而是你天然的人際磁場。
+    </div>
+    <div style="padding:12px 16px;background:rgba(123,108,246,.04);border-radius:10px;margin-bottom:12px;">
+      <div style="font-size:.85rem;color:var(--accent);font-weight:600;margin-bottom:4px;">📊 你有 ${hangingGates.length} 個掛門</div>
+      <div style="font-size:.8rem;color:var(--muted);line-height:1.6;">
+        你的 ${[...activatedGates].length} 個啟動閘門中，有 ${hangingGates.length} 個沒有配對成完整通道。
+        下方列出每個掛門以及它「需要」的對門——擁有這些對門的人會讓你感到莫名的吸引力。
+      </div>
+    </div>
+    ${hangingRows}
+    ${bridgingHtml}
+    <div style="font-size:.78rem;color:var(--muted);margin-top:14px;padding:10px;background:rgba(123,108,246,.04);border-radius:6px;line-height:1.7;">
+      <b>💡 如何運用掛門資訊：</b><br>
+      • 掛門能量你自己感受得到，但無法「穩定輸出」——它需要外在觸發<br>
+      • 當有人帶著你的對門出現，你會覺得「跟這個人在一起很舒服」<br>
+      • 不需要刻意找人補完——按照你的策略和權威生活，正確的人會出現<br>
+      • 流日行星也會暫時補完你的掛門，那幾天你會感覺特別有能量
+    </div>
+  `;
 }

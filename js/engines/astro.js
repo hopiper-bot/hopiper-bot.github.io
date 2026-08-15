@@ -277,7 +277,43 @@ function getPlanetDetail(planet) {
   const houseKey = `${planet.id}_${house}`;
   const planetInHouse = PLANET_HOUSE_TEXT[houseKey] || getHouseDirection(house);
   const houseLabel = `<b>落入${house}宮的具體展現：</b>`;
-  return `<b>${planet.symbol} ${planet.zh}在${sign.zh} ${house}宮</b><br><br>${planetInSign}<br><br>${houseLabel}<br>${planetInHouse}`;
+
+  // 陰影面描述
+  const houseShadow = PLANET_HOUSE_SHADOW[houseKey] || '';
+  const signShadow = PLANET_SIGN_SHADOW[`${planet.id}_${sign.zh}`] || '';
+  let shadowHtml = '';
+  if (houseShadow || signShadow) {
+    const parts = [signShadow, houseShadow].filter(Boolean);
+    shadowHtml = `<br><br><div style="color:var(--muted);opacity:.7;font-size:.82rem;border-left:2px solid rgba(255,255,255,.15);padding-left:10px;">⚠️ <b>陰影面（走偏時）：</b>${parts.join('；')}</div>`;
+  }
+
+  // 年齡感知（土星相關）
+  let ageNote = '';
+  if (planet.id === 'saturn' && userAge > 0) {
+    ageNote = getAgeSaturnNote(userAge);
+  }
+
+  return `<b>${planet.symbol} ${planet.zh}在${sign.zh} ${house}宮</b><br><br>${planetInSign}<br><br>${houseLabel}<br>${planetInHouse}${ageNote}${shadowHtml}`;
+}
+
+/** 根據年齡調整土星相關敘述 */
+function getAgeSaturnNote(age) {
+  if (age < 28) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>你正在土星回歸前的累積期，感覺辛苦很正常——這些壓力是在幫你打地基。28-30 歲土星回歸時，你會迎來人生第一次大考和收穫。</div>`;
+  } else if (age >= 28 && age <= 31) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>你正在經歷或剛經歷土星回歸——人生的第一次大結算。這段時間的選擇會定義你未來十年的方向。如果感覺被迫長大，恭喜，你正在對的路上。</div>`;
+  } else if (age > 31 && age < 42) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>土星回歸已過，你應該已經感受到人生變得更清晰了——那些 20 幾歲覺得難以忍受的壓力，現在回頭看是不是覺得還好？你正在收穫紀律帶來的成果。</div>`;
+  } else if (age >= 42 && age <= 44) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>你正在中年轉折期（土星對分相），人生的優先順序可能正在重新洗牌。這不是危機而是清理——不再適合你的東西自然會離開。</div>`;
+  } else if (age > 44 && age < 57) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>你正進入人生收成期——年輕時的付出開始兌現為智慧和穩定。土星的嚴厲已經成為你的盔甲。</div>`;
+  } else if (age >= 57 && age <= 60) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>第二次土星回歸來了——這一次不是考試而是畢業典禮。回顧整個人生，你學到了什麼？接下來的日子，你只需要做真正重要的事。</div>`;
+  } else if (age > 60) {
+    return `<br><br><div style="font-size:.82rem;color:#c9a84c;"><b>🪐 土星週期提示（你現在 ${age} 歲）：</b>兩次土星回歸的智慧已經沉澱在你骨子裡。你現在的每一句話都有份量——因為那是用時間換來的。</div>`;
+  }
+  return '';
 }
 
 function getPlanetInSign(planetId, sign) {
