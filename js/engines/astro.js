@@ -512,7 +512,19 @@ function getJupiterText(sign) {
 
 function getSaturnText(sign) {
   const t = { "牡羊座":"功課：學會有耐心地行動，不衝動。突破：控制住衝動、有策略出手時就修完了。","金牛座":"功課：建立真正的安全感，區分需要和想要。突破：不用物質填補不安時，內在自然富足。","雙子座":"功課：深度思考，選一個主題真正學透。突破：話語有份量時，影響力就來了。","巨蟹座":"功課：處理家庭情感，學會自己給自己安全感。突破：不需要別人給歸屬感時，你成為別人的避風港。","獅子座":"功課：用實力而非表演贏得認可。突破：真正的自信來自對自己的誠實。","處女座":"功課：接受不完美，夠好就是好。突破：對自己溫柔時，效率反而更高。","天秤座":"功課：在關係中保有自我，學會說不。突破：真正的和諧建立在誠實上。","天蠍座":"功課：面對恐懼，放下控制欲。突破：能信任過程時，轉化自然發生。","射手座":"功課：把理想落地，學會承諾貫徹。突破：有紀律的自由才是真自由。","摩羯座":"功課：找到工作與生活的平衡。突破：成就不是唯一價值，學會享受過程。","水瓶座":"功課：融入群體同時保有個性。突破：你的獨特是禮物不是詛咒。","雙魚座":"功課：建立清晰邊界，分清自己和別人的情緒。突破：有邊界的慈悲才可持續。" };
-  return `<b>土星在${sign.zh}</b>：你的人生功課。${t[sign.zh]||""}`;
+  let base = `<b>土星在${sign.zh}</b>：你的人生功課。${t[sign.zh]||""}`;
+  // 年齡感知語氣調整
+  if (userAge > 0) {
+    if (userAge < 28) {
+      base += ` <span style="color:#c9a84c;font-size:.82rem;">（你現在 ${userAge} 歲——這個功課正在進行中，30 歲前會覺得特別吃力是正常的。）</span>`;
+    } else if (userAge >= 28 && userAge <= 31) {
+      base += ` <span style="color:#c9a84c;font-size:.82rem;">（你正在土星回歸期——這個功課到了「大考」階段，如果最近覺得人生被重新洗牌，那就對了。）</span>`;
+    } else if (userAge > 31) {
+      base += ` <span style="color:#c9a84c;font-size:.82rem;">（你已經走過土星回歸——這個功課的最難部分你應該已經體驗過了，現在是收穫的時候。）</span>`;
+    }
+  }
+  return base;
+}
 }
 
 function getNorthNodeText(sign) {
@@ -728,7 +740,15 @@ function getAspectDetail(aspect) {
   };
   
   let bonus = '';
-  if (p2==='土星' || p1==='土星') bonus += '<br><br>🪨 土星相位：需要耐心修煉的領域，30歲後逐漸看到成果。';
+  if (p2==='土星' || p1==='土星') {
+    if (userAge > 0 && userAge >= 30) {
+      bonus += `<br><br>🪨 土星相位：你已經 ${userAge} 歲，這個相位的修煉成果應該開始顯現了——回想年輕時的辛苦，現在是不是更有底氣？`;
+    } else if (userAge > 0 && userAge < 30) {
+      bonus += `<br><br>🪨 土星相位：你現在 ${userAge} 歲，正在修煉期——覺得辛苦是正常的，30歲後會逐漸看到成果。`;
+    } else {
+      bonus += '<br><br>🪨 土星相位：需要耐心修煉的領域，30歲後逐漸看到成果。';
+    }
+  }
   if (p2==='天王星' || p1==='天王星') bonus += '<br><br>⚡ 天王星相位：你與眾不同的地方，可能帶來突然的改變或獨特才能。';
   
   return (aspectEffect[type] || `${p1}和${p2}之間有${type}的能量互動。`) + bonus;
@@ -819,7 +839,20 @@ function getComboDetail(p1, p2, type) {
     '土星_冥王星_合': '土星合冥王星：這是你們這一代（1982-1983年出生）共有的印記。代表面對權力結構的轉變 — 你們經歷了社會制度從舊到新的過渡期。個人層面：你對「權力」和「控制」的議題特別敏感，人生中會經歷組織/制度的重大變革。你有能力在困難中建立新秩序。',
   };
   
-  return combos[key] || combos[key2] || null;
+  let result = combos[key] || combos[key2] || null;
+  // 年齡感知：替換土星相關的「30歲後」敘述
+  if (result && userAge > 0 && (p1 === '土星' || p2 === '土星' || key.includes('土星'))) {
+    if (userAge >= 35) {
+      result = result.replace(/30歲後開始收穫/g, '你現在應該已經在收穫了');
+      result = result.replace(/30歲後你的執行力會超越大部分人/g, '你現在的執行力應該已經超越大部分人了');
+      result = result.replace(/30歲後溝通能力會越來越被認可/g, '你的溝通能力現在應該已經被認可了');
+      result = result.replace(/年輕時可能覺得被壓抑，但/g, '過去覺得被壓抑的部分，現在');
+    } else if (userAge >= 30) {
+      result = result.replace(/30歲後開始收穫/g, '你現在正要開始收穫');
+      result = result.replace(/年輕時可能覺得被壓抑，但/g, '之前可能覺得被壓抑，但現在');
+    }
+  }
+  return result;
 }
 
 function getHouseDirection(house) {
