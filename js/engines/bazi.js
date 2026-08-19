@@ -309,6 +309,362 @@ function calculateShensha(pillars) {
   return results;
 }
 
+// === 用神/喜忌判定（正式版）===
+
+/**
+ * 月令五行力量表：地支本氣五行在該月令中的旺衰
+ * key = 月支, value = 各五行的月令得分(0-3)
+ * 3=當令(旺), 2=相, 1=休, 0=囚/死
+ */
+const MONTH_ELEMENT_SCORE = {
+  "寅": { "木":3, "火":2, "土":0, "金":0, "水":1 }, // 春月
+  "卯": { "木":3, "火":2, "土":0, "金":0, "水":1 },
+  "辰": { "土":3, "木":1, "火":1, "金":1, "水":0 }, // 季月(土旺)
+  "巳": { "火":3, "土":2, "木":0, "金":0, "水":0 }, // 夏月
+  "午": { "火":3, "土":2, "木":0, "金":0, "水":0 },
+  "未": { "土":3, "火":1, "木":0, "金":1, "水":0 }, // 季月
+  "申": { "金":3, "水":2, "土":1, "木":0, "火":0 }, // 秋月
+  "酉": { "金":3, "水":2, "土":1, "木":0, "火":0 },
+  "戌": { "土":3, "金":1, "火":1, "木":0, "水":0 }, // 季月
+  "亥": { "水":3, "木":2, "金":1, "土":0, "火":0 }, // 冬月
+  "子": { "水":3, "木":2, "金":1, "土":0, "火":0 },
+  "丑": { "土":3, "水":1, "金":1, "木":0, "火":0 }, // 季月
+};
+
+/**
+ * 十二長生表：天干在各地支的長生狀態得分
+ * 長生3, 沐浴1, 冠帶2, 臨官3, 帝旺3, 衰1, 病0, 死0, 墓1, 絕0, 胎0, 養1
+ */
+const CHANGSHENG_SCORE = [3, 1, 2, 3, 3, 1, 0, 0, 1, 0, 0, 1];
+// 天干長生起始地支（陽干順行，陰干逆行）
+const CHANGSHENG_START = {
+  "甲": 11, // 亥
+  "乙": 6,  // 午（逆）
+  "丙": 2,  // 寅
+  "丁": 9,  // 酉（逆）
+  "戊": 2,  // 寅（同丙）
+  "己": 9,  // 酉（同丁）
+  "庚": 5,  // 巳
+  "辛": 0,  // 子（逆）
+  "壬": 8,  // 申
+  "癸": 3,  // 卯（逆）
+};
+
+function getChangshengScore(stem, branchIdx) {
+  const start = CHANGSHENG_START[stem];
+  const yy = STEM_YINYANG[stem];
+  let pos;
+  if (yy === '陽') {
+    pos = ((branchIdx - start) % 12 + 12) % 12;
+  } else {
+    pos = ((start - branchIdx) % 12 + 12) % 12;
+  }
+  return CHANGSHENG_SCORE[pos];
+}
+
+/**
+ * 計算用神 — 基於月令得令、得地（長生）、得生、得助的完整評分
+ * @returns { score, strength, yongshen, xishen, jishen, choushen, description }
+ */
+function calculateYongshen(pillars, dayMaster, dayMasterElem, elements) {
+  const monthBranch = pillars.month.branch;
+  const monthScores = MONTH_ELEMENT_SCORE[monthBranch] || {};
+
+  // --- Step 1: 日主力量評分 ---
+
+  // (A) 得令：月令對日主五行的支持度 (0-3)
+  const deLing = monthScores[dayMasterElem] || 0;
+
+  // (B) 得地：日主在四柱地支的十二長生得分
+  const allBranchIdx = [
+    BRANCHES.indexOf(pillars.year.branch),
+    BRANCHES.indexOf(pillars.month.branch),
+    BRANCHES.indexOf(pillars.day.branch),
+    BRANCHES.indexOf(pillars.hour.branch),
+  ];
+  const deDi = allBranchIdx.reduce((sum, bIdx) => sum + getChangshengScore(dayMaster, bIdx), 0);
+
+  // (C) 得生：生我的五行在命局中的個數（天干+藏干主氣）
+  const shengWoElem = ELEMENT_CYCLE[(ELEMENT_CYCLE.indexOf(dayMasterElem) + 4) % 5]; // 生我的
+  const allStems = [pillars.year.stem, pillars.month.stem, pillars.day.stem, pillars.hour.stem];
+  const deSheng = allStems.filter(s => STEM_ELEMENT[s] === shengWoElem).length;
+
+  // (D) 得助：同我五行在命局中的個數（天干）
+  const deZhu = allStems.filter(s => STEM_ELEMENT[s] === dayMasterElem).length - 1; // 扣掉日主自己
+
+  // 綜合得分
+  const totalScore = deLing * 3 + deDi + deSheng * 2 + deZhu * 2;
+  // 閾值：>= 12 算強，<= 5 算弱，中間中和
+  let strength, strengthLevel;
+  if (totalScore >= 12) { strength = '身強'; strengthLevel = 'strong'; }
+  else if (totalScore <= 5) { strength = '身弱'; strengthLevel = 'weak'; }
+  else { strength = '中和'; strengthLevel = 'neutral'; }
+
+  // --- Step 2: 根據強弱判定用神 ---
+  const iA = ELEMENT_CYCLE.indexOf(dayMasterElem);
+  const woSheng = ELEMENT_CYCLE[(iA + 1) % 5]; // 食傷（我生）
+  const woKe = ELEMENT_CYCLE[(iA + 2) % 5];   // 財（我剋）
+  const keWo = ELEMENT_CYCLE[(iA + 3) % 5];   // 官殺（剋我）
+  const shengWo = ELEMENT_CYCLE[(iA + 4) % 5]; // 印（生我）
+
+  let yongshen, xishen, jishen, choushen, description;
+
+  if (strengthLevel === 'strong') {
+    // 身強 → 用神取洩耗：食傷(洩) > 財(耗) > 官殺(剋)
+    yongshen = woSheng;  // 食傷洩秀
+    xishen = woKe;       // 財星耗身
+    jishen = shengWo;    // 印星生身（忌）
+    choushen = dayMasterElem; // 比劫幫身（仇）
+    description = `日主${dayMasterElem}${strength}，氣勢充足。用神取「${yongshen}」洩秀——把多餘的能量導向創造和表達。喜「${xishen}」耗身——用精力去追求目標和回報。忌「${jishen}」印星再生——太多支持反而讓你懶散。`;
+  } else if (strengthLevel === 'weak') {
+    // 身弱 → 用神取生扶：印(生) > 比劫(助)
+    yongshen = shengWo;  // 印星生身
+    xishen = dayMasterElem; // 比劫幫身
+    jishen = woKe;       // 財星耗身（忌）
+    choushen = keWo;     // 官殺剋身（仇）
+    description = `日主${dayMasterElem}${strength}，需要支撐。用神取「${yongshen}」印星——知識、貴人、長輩的支持是你最大的靠山。喜「${xishen}」比劫——找志同道合的夥伴一起走。忌「${jishen}」財星——太多慾望和追逐反而耗損你的根基。`;
+  } else {
+    // 中和 → 用神取調候或月令所缺
+    // 調候用神簡化：看季節缺什麼
+    const season = { "寅":"春","卯":"春","辰":"春", "巳":"夏","午":"夏","未":"夏", "申":"秋","酉":"秋","戌":"秋", "亥":"冬","子":"冬","丑":"冬" };
+    const s = season[monthBranch] || '春';
+    if (s === '夏') {
+      yongshen = '水'; xishen = '金';
+    } else if (s === '冬') {
+      yongshen = '火'; xishen = '木';
+    } else if (s === '春') {
+      yongshen = '金'; xishen = '土';
+    } else {
+      yongshen = '木'; xishen = '火';
+    }
+    jishen = null; choushen = null;
+    description = `日主${dayMasterElem}${strength}，五行不偏枯。以調候取用：生於${s}季，取「${yongshen}」調和氣候、「${xishen}」輔助平衡，讓命局運行更順暢。`;
+  }
+
+  return {
+    score: totalScore,
+    detail: { deLing, deDi, deSheng, deZhu },
+    strength, strengthLevel,
+    yongshen, xishen, jishen, choushen,
+    description,
+  };
+}
+
+// === 地支合沖刑害破 ===
+
+/**
+ * 計算命局中所有地支之間的合/沖/刑/害/破關係
+ */
+function calculateBranchRelations(pillars) {
+  const results = [];
+  const positions = ['year', 'month', 'day', 'hour'];
+  const posZh = { year: '年', month: '月', day: '日', hour: '時' };
+  const branchList = positions.map(p => ({ pos: p, branch: pillars[p].branch, idx: BRANCHES.indexOf(pillars[p].branch) }));
+
+  // 六合
+  const liuHe = [
+    ["子","丑","土"], ["寅","亥","木"], ["卯","戌","火"],
+    ["辰","酉","金"], ["巳","申","水"], ["午","未","火"],
+  ];
+
+  // 三合局
+  const sanHe = [
+    ["申","子","辰","水"], ["寅","午","戌","火"],
+    ["巳","酉","丑","金"], ["亥","卯","未","木"],
+  ];
+
+  // 六沖
+  const liuChong = [
+    ["子","午"], ["丑","未"], ["寅","申"], ["卯","酉"], ["辰","戌"], ["巳","亥"],
+  ];
+
+  // 三刑
+  const sanXing = [
+    { branches: ["寅","巳","申"], name: "無恩之刑" },
+    { branches: ["丑","未","戌"], name: "恃勢之刑" },
+    { branches: ["子","卯"], name: "無禮之刑" },
+    { branches: ["辰","辰"], name: "自刑" },
+    { branches: ["午","午"], name: "自刑" },
+    { branches: ["酉","酉"], name: "自刑" },
+    { branches: ["亥","亥"], name: "自刑" },
+  ];
+
+  // 六害
+  const liuHai = [
+    ["子","未"], ["丑","午"], ["寅","巳"], ["卯","辰"], ["申","亥"], ["酉","戌"],
+  ];
+
+  // 六破
+  const liuPo = [
+    ["子","酉"], ["午","卯"], ["寅","亥"], ["申","巳"], ["辰","丑"], ["戌","未"],
+  ];
+
+  // 檢查六合
+  for (let i = 0; i < branchList.length; i++) {
+    for (let j = i + 1; j < branchList.length; j++) {
+      const b1 = branchList[i].branch, b2 = branchList[j].branch;
+      const p1 = posZh[branchList[i].pos], p2 = posZh[branchList[j].pos];
+
+      for (const [a, b, elem] of liuHe) {
+        if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          results.push({ type: '合', subtype: '六合', pair: `${p1}${b1}—${p2}${b2}`, element: elem,
+            desc: `${b1}${b2}六合化${elem}：兩柱之間有吸引、親和的力量。代表這兩個人生領域互相支持。` });
+        }
+      }
+
+      // 檢查六沖
+      for (const [a, b] of liuChong) {
+        if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          results.push({ type: '沖', subtype: '六沖', pair: `${p1}${b1}—${p2}${b2}`,
+            desc: `${b1}${b2}相沖：兩股力量正面對撞。代表這兩個人生領域之間有衝突或變動，但也帶來改變的動力。` });
+        }
+      }
+
+      // 檢查六害
+      for (const [a, b] of liuHai) {
+        if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          results.push({ type: '害', subtype: '六害', pair: `${p1}${b1}—${p2}${b2}`,
+            desc: `${b1}${b2}相害：暗中的阻礙和損傷。這兩個領域之間容易有誤會或被動的傷害，需要主動溝通化解。` });
+        }
+      }
+
+      // 檢查六破
+      for (const [a, b] of liuPo) {
+        if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          results.push({ type: '破', subtype: '六破', pair: `${p1}${b1}—${p2}${b2}`,
+            desc: `${b1}${b2}相破：原有的結構被打破。代表這兩個領域可能要經歷解構再重建的過程。` });
+        }
+      }
+
+      // 檢查三刑（兩支先記錄，後面再查三支）
+      for (const xing of sanXing) {
+        if (xing.branches.length === 2) {
+          const [a, b] = xing.branches;
+          if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+            results.push({ type: '刑', subtype: xing.name, pair: `${p1}${b1}—${p2}${b2}`,
+              desc: `${b1}${b2}${xing.name}：帶有摩擦和考驗的互動。刑代表被逼著成長——不舒服但會變強。` });
+          }
+        }
+        // 自刑
+        if (xing.branches.length === 2 && xing.branches[0] === xing.branches[1]) {
+          if (b1 === xing.branches[0] && b2 === xing.branches[0]) {
+            results.push({ type: '刑', subtype: '自刑', pair: `${p1}${b1}—${p2}${b2}`,
+              desc: `${b1}${b2}自刑：自己跟自己過不去，容易鑽牛角尖。學會放過自己是人生課題。` });
+          }
+        }
+      }
+    }
+  }
+
+  // 三合局檢查（需三個地支同時出現）
+  const allBr = branchList.map(b => b.branch);
+  for (const [a, b, c, elem] of sanHe) {
+    const has = [a, b, c].filter(x => allBr.includes(x));
+    if (has.length >= 3) {
+      results.push({ type: '合', subtype: '三合局', pair: `${has.join('')}`,  element: elem,
+        desc: `${a}${b}${c}三合${elem}局：三個位置的能量匯聚成強大的${elem}行力量。這是命局中非常有力的結構。` });
+    } else if (has.length === 2) {
+      // 半合（只有兩個）
+      results.push({ type: '合', subtype: '半合', pair: `${has.join('')}`, element: elem,
+        desc: `${has.join('')}半合${elem}局：兩個位置有合化${elem}的趨勢。力量不如三合完整但仍有引動作用。` });
+    }
+  }
+
+  // 三刑三支檢查
+  for (const xing of sanXing) {
+    if (xing.branches.length === 3) {
+      const [a, b, c] = xing.branches;
+      const hasAll = [a, b, c].every(x => allBr.includes(x));
+      if (hasAll) {
+        results.push({ type: '刑', subtype: xing.name + '（三刑全）', pair: `${a}${b}${c}`,
+          desc: `${a}${b}${c}三刑齊聚（${xing.name}）：命局中壓力和考驗的結構完整呈現。這是需要特別注意的組合，但也代表巨大的成長潛力。` });
+      }
+    }
+  }
+
+  return results;
+}
+
+// === 納音五行 ===
+
+const NAYIN_TABLE = [
+  "海中金","海中金","爐中火","爐中火","大林木","大林木", // 甲子~己巳
+  "路旁土","路旁土","劍鋒金","劍鋒金","山頭火","山頭火", // 庚午~乙亥
+  "澗下水","澗下水","城頭土","城頭土","白蠟金","白蠟金", // 丙子~辛巳
+  "楊柳木","楊柳木","泉中水","泉中水","屋上土","屋上土", // 壬午~丁亥
+  "霹靂火","霹靂火","松柏木","松柏木","長流水","長流水", // 戊子~癸巳
+  "沙中金","沙中金","山下火","山下火","平地木","平地木", // 甲午~己亥
+  "壁上土","壁上土","金箔金","金箔金","覆燈火","覆燈火", // 庚子~乙巳
+  "天河水","天河水","大驛土","大驛土","釵釧金","釵釧金", // 丙午~辛亥
+  "桑柘木","桑柘木","大溪水","大溪水","沙中土","沙中土", // 壬子~丁巳
+  "天上火","天上火","石榴木","石榴木","大海水","大海水", // 戊午~癸亥
+];
+
+function getNayin(stemIdx, branchIdx) {
+  // 六十甲子序號（中國剩餘定理）：n = (6*s + 5*b) % 60
+  const s = stemIdx % 10;
+  const b = branchIdx % 12;
+  const n = (6 * s + 5 * b) % 60;
+  return NAYIN_TABLE[Math.floor(n / 2)] || '';
+}
+
+/**
+ * 計算胎元、命宮、身宮
+ */
+function calculateExtras(pillars, hourBranchIdx) {
+  // 胎元：月干進一位 + 月支進三位
+  const monthStemIdx = STEMS.indexOf(pillars.month.stem);
+  const monthBranchIdx = BRANCHES.indexOf(pillars.month.branch);
+  const taiyuanStemIdx = (monthStemIdx + 1) % 10;
+  const taiyuanBranchIdx = (monthBranchIdx + 3) % 12;
+  const taiyuan = { stem: STEMS[taiyuanStemIdx], branch: BRANCHES[taiyuanBranchIdx], nayin: getNayin(taiyuanStemIdx, taiyuanBranchIdx) };
+
+  // 命宮：月支 + 時支 合計從寅推
+  // 公式：命宮地支 idx = (14 - monthBranchIdx - hourBranchIdx) % 12
+  // 如果 idx 是從子開始(0=子)：命宮支 = (14 - 月支idx - 時支idx) % 12... 
+  // 正統算法：月支數 + 時支數（從寅起算）... 用「逆推法」
+  // 命宮地支 = 寅起逆數(月建數+時辰數-2)
+  // 簡化公式：mingIdx = (月支idx + 時支idx) 然後反推
+  // 正確：令 m=月支在寅起的序(寅=1,卯=2,...丑=12), h=時支在子起的序(子=1,...亥=12)
+  // 命宮地支 = 從「卯」起逆數 (m + h - 2) 位
+  // 另一個常用公式：命宮支idx = (2 + 2 - monthBranchIdx - hourBranchIdx + 24) % 12
+  // 最常用公式：命宮地支 = (14 - 月支 - 時支) % 12（0=子）
+  const mingBranchIdx = ((14 - monthBranchIdx - hourBranchIdx) % 12 + 12) % 12;
+  // 命宮天干：由年干推（五虎遁）
+  const yearStemIdx = STEMS.indexOf(pillars.year.stem);
+  const startStemMap = [2, 4, 6, 8, 0]; // 丙戊庚壬甲（寅月起始干）
+  const yinStartStem = startStemMap[yearStemIdx % 5];
+  // 命宮干 = 寅起始干 + (命宮支idx - 2)
+  const mingStemIdx = (yinStartStem + ((mingBranchIdx - 2 + 12) % 12)) % 10;
+  const minggong = { stem: STEMS[mingStemIdx], branch: BRANCHES[mingBranchIdx], nayin: getNayin(mingStemIdx, mingBranchIdx) };
+
+  // 身宮：月支 + 時支 順數
+  // 公式：身宮地支 = (月支 + 時支 - 2) % 12 （從寅起順數）
+  // 正確公式：身宮支idx = (monthBranchIdx + hourBranchIdx - 2 + 12) % 12
+  const shenBranchIdx = (monthBranchIdx + hourBranchIdx + 2) % 12;
+  const shenStemIdx = (yinStartStem + ((shenBranchIdx - 2 + 12) % 12)) % 10;
+  const shengong = { stem: STEMS[shenStemIdx], branch: BRANCHES[shenBranchIdx], nayin: getNayin(shenStemIdx, shenBranchIdx) };
+
+  // 四柱納音
+  const yearSIdx = STEMS.indexOf(pillars.year.stem);
+  const yearBIdx = BRANCHES.indexOf(pillars.year.branch);
+  const monthSIdx = STEMS.indexOf(pillars.month.stem);
+  const monthBIdx = BRANCHES.indexOf(pillars.month.branch);
+  const daySIdx = STEMS.indexOf(pillars.day.stem);
+  const dayBIdx = BRANCHES.indexOf(pillars.day.branch);
+  const hourSIdx = STEMS.indexOf(pillars.hour.stem);
+  const hourBIdx = BRANCHES.indexOf(pillars.hour.branch);
+
+  const nayinPillars = {
+    year: getNayin(yearSIdx, yearBIdx),
+    month: getNayin(monthSIdx, monthBIdx),
+    day: getNayin(daySIdx, dayBIdx),
+    hour: getNayin(hourSIdx, hourBIdx),
+  };
+
+  return { taiyuan, minggong, shengong, nayinPillars };
+}
+
 // === 主計算 ===
 
 export function calculate(birthData) {
@@ -363,7 +719,16 @@ export function calculate(birthData) {
     // 神煞計算
     const shensha = calculateShensha(pillars);
 
-    const data = { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, birthYear: year };
+    // 用神/喜忌計算
+    const yongshen = calculateYongshen(pillars, dayMaster, dayMasterElem, elements);
+
+    // 地支合沖刑害
+    const branchRelations = calculateBranchRelations(pillars);
+
+    // 納音、胎元、命宮、身宮
+    const extras = calculateExtras(pillars, hp.branchIdx);
+
+    const data = { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, yongshen, branchRelations, extras, birthYear: year };
     const html = renderBazi(data);
     return { status: 'ok', data, html, error: null };
   } catch (err) {
@@ -374,7 +739,7 @@ export function calculate(birthData) {
 // === 渲染 ===
 
 function renderBazi(data) {
-  const { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, birthYear } = data;
+  const { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, yongshen, branchRelations, extras, birthYear } = data;
   const p = pillars;
 
   return `
@@ -489,7 +854,7 @@ function renderBazi(data) {
 
     <div class="divider"></div>
     <h3>🔥 五行分佈</h3>
-    ${renderElements(elements, dayMasterElem)}
+    ${renderElements(elements, dayMasterElem, yongshen)}
 
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('pattern-detail').style.display=document.getElementById('pattern-detail').style.display==='none'?'block':'none';">⚖️ 命盤格局 ▼</h3>
@@ -507,6 +872,18 @@ function renderBazi(data) {
     <h3 style="cursor:pointer;" onclick="document.getElementById('shensha-detail').style.display=document.getElementById('shensha-detail').style.display==='none'?'block':'none';">⭐ 神煞 ▼</h3>
     <div id="shensha-detail" style="display:none;">
       ${renderShensha(shensha)}
+    </div>
+
+    <div class="divider"></div>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('branch-rel-detail').style.display=document.getElementById('branch-rel-detail').style.display==='none'?'block':'none';">🔗 地支合沖刑害 ▼</h3>
+    <div id="branch-rel-detail" style="display:none;">
+      ${renderBranchRelations(branchRelations)}
+    </div>
+
+    <div class="divider"></div>
+    <h3 style="cursor:pointer;" onclick="document.getElementById('extras-detail').style.display=document.getElementById('extras-detail').style.display==='none'?'block':'none';">📜 納音・胎元・命宮・身宮 ▼</h3>
+    <div id="extras-detail" style="display:none;">
+      ${renderExtras(extras, pillars)}
     </div>
 
     <div class="note">💡 日主 ${dayMaster}（${dayMasterElem}）就是「你」。喜用神的顏色和方位可以用在日常穿搭、辦公桌擺設。</div>
@@ -602,58 +979,57 @@ function renderPillarMeaning(tenGods, pillars) {
   }).join('');
 }
 
-function renderElements(elements, dayMasterElem) {
+function renderElements(elements, dayMasterElem, yongshen) {
   const total = Object.values(elements).reduce((a,b) => a+b, 0);
   const emojis = { 木:'🌳', 火:'🔥', 土:'⛰️', 金:'⚔️', 水:'💧' };
 
   let bars = Object.entries(elements).map(([elem, count]) => {
     const pct = Math.round(count / total * 100);
     const isMe = elem === dayMasterElem;
+    const isYong = elem === yongshen.yongshen;
+    const isXi = elem === yongshen.xishen;
     const highlight = isMe ? 'color:var(--accent);font-weight:700;' : '';
+    const tag = isYong ? ' <span style="font-size:.65rem;color:#4ade80;">用</span>' : isXi ? ' <span style="font-size:.65rem;color:#60a5fa;">喜</span>' : '';
     return `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
-      <span style="width:50px;${highlight}">${emojis[elem]} ${elem}</span>
+      <span style="width:60px;${highlight}">${emojis[elem]} ${elem}${tag}</span>
       <div style="flex:1;height:16px;background:var(--input-bg);border-radius:8px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:${isMe?'var(--accent)':'var(--accent2)'};border-radius:8px;"></div>
+        <div style="height:100%;width:${pct}%;background:${isMe?'var(--accent)':isYong?'#4ade80':isXi?'#60a5fa':'var(--accent2)'};border-radius:8px;"></div>
       </div>
       <span style="width:30px;font-size:.8rem;color:var(--muted);">${count}</span>
     </div>`;
   }).join('');
 
-  // 判斷強弱 + 喜用神
-  const meCount = elements[dayMasterElem];
-  const meRatio = meCount / total;
-  let strength = meRatio > 0.3 ? '偏強' : meRatio < 0.15 ? '偏弱' : '中和';
-
-  // 喜用神判斷（簡化版）
-  // 日主強 → 喜剋洩耗（官殺/食傷/財）→ 喜用 = 剋我的 + 我生的 + 我剋的
-  // 日主弱 → 喜生扶（印/比）→ 喜用 = 生我的 + 同我的
-  const iA = ELEMENT_CYCLE.indexOf(dayMasterElem);
-  let xiyong, jiyong;
-  if (meRatio > 0.25) {
-    // 日主偏強，需要洩耗
-    xiyong = [ELEMENT_CYCLE[(iA+1)%5], ELEMENT_CYCLE[(iA+2)%5]]; // 我生的、我剋的
-    jiyong = [ELEMENT_CYCLE[(iA+3)%5]]; // 剋我的也有用
-  } else {
-    // 日主偏弱或中和，需要生扶
-    xiyong = [ELEMENT_CYCLE[(iA+4)%5], dayMasterElem]; // 生我的、同我的
-    jiyong = [];
-  }
+  // 用正式版用神結果
+  const { strength, yongshen: yong, xishen: xi, jishen: ji, choushen: chou, description, score, detail } = yongshen;
 
   const xyColors = { '木':'綠色、青色', '火':'紅色、紫色、橘色', '土':'黃色、咖啡色、米色', '金':'白色、金色、銀色', '水':'黑色、藍色、深灰' };
   const xyDir = { '木':'東方', '火':'南方', '土':'中央', '金':'西方', '水':'北方' };
   const xyIndustry = { '木':'教育、出版、花藝、木業、文創', '火':'餐飲、科技、能源、表演、照明', '土':'房地產、農業、建築、陶瓷、保險', '金':'金融、法律、五金、珠寶、科技硬體', '水':'貿易、物流、旅遊、清潔、漁業' };
   const xyFood = { '木':'綠色蔬菜、酸味食物', '火':'紅色食物、苦味', '土':'根莖類、甜味', '金':'白色食物、辛辣', '水':'黑色食物、鹹味' };
 
+  const xiyong = [yong, xi].filter(Boolean);
   const xyText = xiyong.map(e => `<div style="margin:6px 0;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">
-    <b>${e}</b>：顏色 ${xyColors[e]} / 方位 ${xyDir[e]} / 行業 ${xyIndustry[e]} / 飲食 ${xyFood[e]}
+    <b>${emojis[e]} ${e}</b>（${e === yong ? '用神' : '喜神'}）：顏色 ${xyColors[e]} / 方位 ${xyDir[e]} / 行業 ${xyIndustry[e]} / 飲食 ${xyFood[e]}
   </div>`).join('');
 
+  const jiText = [ji, chou].filter(Boolean).map(e => `<span style="color:var(--muted);">${emojis[e]} ${e}</span>`).join('、');
+
+  // 評分詳情
+  const scoreDetail = `<div style="font-size:.78rem;color:var(--muted);margin:8px 0;padding:8px;background:rgba(255,255,255,.02);border-radius:6px;">
+    判定依據：得令 ${detail.deLing}/3 ＋ 得地 ${detail.deDi}/12 ＋ 得生 ${detail.deSheng} ＋ 得助 ${detail.deZhu}　→　綜合分 ${score}（≥12 身強 / ≤5 身弱）
+  </div>`;
+
   return `${bars}
-    <p class="meaning" style="margin-top:12px;">你的日主 <span class="kw">${dayMasterElem}</span> 在命盤中${strength}。${strength==='偏強'?'能量足夠，適合往外發展和付出。':''}${strength==='偏弱'?'需要外在支持，團隊合作比單打獨鬥更適合你。':''}${strength==='中和'?'五行平衡，適應力強。':''}</p>
-    <h3 style="cursor:pointer;" onclick="document.getElementById('xiyong-detail').style.display=document.getElementById('xiyong-detail').style.display==='none'?'block':'none';">💎 喜用神：${xiyong.join('、')} ▼</h3>
+    <div style="margin-top:14px;padding:12px;background:rgba(123,108,246,.06);border-radius:10px;border-left:3px solid var(--accent);">
+      <div style="font-weight:700;font-size:.95rem;margin-bottom:6px;">⚖️ ${strength}</div>
+      <div style="font-size:.85rem;line-height:1.7;">${description}</div>
+      ${scoreDetail}
+    </div>
+    <h3 style="cursor:pointer;margin-top:14px;" onclick="document.getElementById('xiyong-detail').style.display=document.getElementById('xiyong-detail').style.display==='none'?'block':'none';">💎 用神：${emojis[yong]} ${yong}　喜神：${emojis[xi]} ${xi} ▼</h3>
     <div id="xiyong-detail" style="display:none;">
-      <p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">喜用神 = 對你有利的五行能量。多接觸這些顏色、方位、行業能幫助你順流。</p>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:8px;">用神 = 命局最需要的五行。喜神 = 輔助用神的五行。多接觸這些顏色、方位、行業能幫你順流。</p>
       ${xyText}
+      ${jiText ? `<p style="font-size:.82rem;margin-top:8px;">忌避：${jiText}（對你不利的五行能量，少碰為妙）</p>` : ''}
     </div>`;
 }
 
@@ -726,6 +1102,82 @@ function renderShensha(shensha) {
       <div style="font-size:.85rem;color:var(--text);margin-top:4px;line-height:1.7;">你的命盤中沒有特別突出的神煞，代表你的命運更多由四柱本身和大運決定。</div>
     </div>`;
   }
+  return html;
+}
+
+/** 渲染地支合沖刑害 */
+function renderBranchRelations(relations) {
+  if (!relations || relations.length === 0) {
+    return `<div style="padding:10px 0;font-size:.85rem;color:var(--muted);">你的四柱地支之間沒有明顯的合沖刑害關係。四柱相安無事，人生各領域之間比較獨立、不互相拉扯。</div>`;
+  }
+
+  const typeIcon = { '合': '🤝', '沖': '⚡', '刑': '🔥', '害': '🗡️', '破': '💔' };
+  const typeColor = { '合': '#4ade80', '沖': '#f87171', '刑': '#fb923c', '害': '#a78bfa', '破': '#94a3b8' };
+
+  return relations.map(r => `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:1.1rem;">${typeIcon[r.type]}</span>
+      <span style="color:${typeColor[r.type]};font-weight:700;">${r.subtype}</span>
+      <span style="font-size:.85rem;color:var(--muted);">${r.pair}</span>
+      ${r.element ? `<span style="font-size:.75rem;padding:2px 6px;background:rgba(123,108,246,.1);border-radius:4px;">→ ${r.element}</span>` : ''}
+    </div>
+    <div style="font-size:.83rem;color:var(--text);margin-top:4px;line-height:1.6;">${r.desc}</div>
+  </div>`).join('');
+}
+
+/** 渲染納音・胎元・命宮・身宮 */
+function renderExtras(extras, pillars) {
+  const { taiyuan, minggong, shengong, nayinPillars } = extras;
+
+  let html = '';
+
+  // 納音表
+  html += `<div style="margin-bottom:14px;">
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:6px;">四柱納音（古法五行歸類）</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;">
+      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
+        <div style="font-size:.7rem;color:var(--muted);">年柱</div>
+        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.year}</div>
+      </div>
+      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
+        <div style="font-size:.7rem;color:var(--muted);">月柱</div>
+        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.month}</div>
+      </div>
+      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
+        <div style="font-size:.7rem;color:var(--muted);">日柱</div>
+        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.day}</div>
+      </div>
+      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
+        <div style="font-size:.7rem;color:var(--muted);">時柱</div>
+        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.hour}</div>
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--muted);margin-top:6px;">年柱納音「${nayinPillars.year}」是坊間常說的「你屬什麼命」的由來。</div>
+  </div>`;
+
+  // 胎元命宮身宮
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
+    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--muted);">胎元</div>
+      <div style="font-size:1.1rem;font-weight:700;">${taiyuan.stem}${taiyuan.branch}</div>
+      <div style="font-size:.72rem;color:var(--muted);">${taiyuan.nayin}</div>
+    </div>
+    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--muted);">命宮</div>
+      <div style="font-size:1.1rem;font-weight:700;">${minggong.stem}${minggong.branch}</div>
+      <div style="font-size:.72rem;color:var(--muted);">${minggong.nayin}</div>
+    </div>
+    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--muted);">身宮</div>
+      <div style="font-size:1.1rem;font-weight:700;">${shengong.stem}${shengong.branch}</div>
+      <div style="font-size:.72rem;color:var(--muted);">${shengong.nayin}</div>
+    </div>
+  </div>`;
+
+  html += `<div style="font-size:.78rem;color:var(--muted);margin-top:10px;line-height:1.6;">
+    <b>胎元</b>：受胎月的干支，看先天稟賦。<b>命宮</b>：不拿出來示人的真實性格（月支+時支推算）。<b>身宮</b>：後天努力的方向和成就。
+  </div>`;
+
   return html;
 }
 
