@@ -565,6 +565,23 @@ const PALACE_ROLE = {
   "父母": "💡 父母宮 = 跟長輩的關係、學習能力、文書考試運。也看你的教養背景。",
 };
 
+// === 長生十二宮 ===
+const CHANGSHENG_NAMES = ['長生','沐浴','冠帶','臨官','帝旺','衰','病','死','墓','絕','胎','養'];
+
+// 五行局 → 長生起始地支位置
+// 水二局長生在申(8)，木三局長生在亥(11)，金四局長生在巳(5)，土五局長生在申(8)，火六局長生在寅(2)
+const CHANGSHENG_START = { 2:8, 3:11, 4:5, 5:8, 6:2 };
+
+function calculateChangsheng(juNum, isForward) {
+  const start = CHANGSHENG_START[juNum];
+  const result = {};
+  for (let i = 0; i < 12; i++) {
+    const pos = isForward ? (start + i) % 12 : (start - i + 12) % 12;
+    result[pos] = CHANGSHENG_NAMES[i];
+  }
+  return result;
+}
+
 // === 大限計算 ===
 function calculateDaxian(mingPos, juNum, isForward, palaces) {
   // 大限起始年齡 = 五行局數 + 1（水二局從2歲起，木三局從3歲起...）
@@ -665,6 +682,10 @@ export function calculate(birthData) {
     const isForward = (isMale && yearStemYY === 'yang') || (!isMale && yearStemYY === 'yin');
     const daxian = calculateDaxian(mingPos, ju.num, isForward, palaces);
 
+    // 長生十二宮
+    const changsheng = calculateChangsheng(ju.num, isForward);
+    data.changsheng = changsheng;
+
     // 流年計算
     const currentYear = new Date().getFullYear();
     const liunian = calculateLiunian(currentYear, mingPos);
@@ -702,7 +723,7 @@ function renderZiwei(data) {
       </div>
     </div>
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
-    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos)}
+    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
@@ -717,7 +738,7 @@ function renderZiwei(data) {
   `;
 }
 
-function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos) {
+function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, changsheng) {
   // 標準紫微盤方格：4x4，地支位置固定
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
@@ -762,11 +783,12 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos) {
       const dxMark = isDxCurrent ? ' ★' : '';
       dxLabel = `<div style="font-size:.55rem;${dxColor}margin-top:2px;">⏳${dx.age}-${dx.ageEnd}歲${dxMark}</div>`;
     }
+    const csLabel = changsheng && changsheng[branchIdx] ? changsheng[branchIdx] : '';
     return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}
-        <div style="font-size:.55rem;color:var(--muted);">${BRANCHES[branchIdx]}</div>
+        <div style="font-size:.55rem;color:var(--muted);">${csLabel ? '<span style="color:#9cb;">'+csLabel+'</span> ' : ''}${BRANCHES[branchIdx]}</div>
       </div>
     </div>`;
   }
