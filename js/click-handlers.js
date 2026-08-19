@@ -57,11 +57,103 @@ document.addEventListener('click', function(e) {
   var oppositePos = (pos + 6) % 12;
   var oppP = d.posMap[oppositePos];
 
+  // === 白話總結邏輯 ===
+  function generateSummary(palace, pos, oppPalace, data) {
+    var points = []; // { score: +1/-1, text: '...' }
+
+    // 主星亮度評估
+    palace.main.forEach(function(s) {
+      if (s.brightness === '廟' || s.brightness === '旺') {
+        points.push({ score: 1, text: s.name + '（' + s.brightness + '）加持' });
+      } else if (s.brightness === '陷') {
+        points.push({ score: -1, text: s.name + '（陷）力量不足' });
+      }
+    });
+
+    // 四化影響
+    var sihuaHere = data.sihuaPalaces[palace.name];
+    if (sihuaHere) {
+      sihuaHere.forEach(function(item) {
+        var type = item.charAt(0);
+        if (type === '祿') points.push({ score: 1, text: '化祿加持（順利有資源）' });
+        else if (type === '權') points.push({ score: 1, text: '化權加持（有掌控力）' });
+        else if (type === '科') points.push({ score: 1, text: '化科加持（有貴人名聲）' });
+        else if (type === '忌') points.push({ score: -1, text: '化忌提醒（需多經營）' });
+      });
+    }
+
+    // 長生十二宮
+    var csGood = ['長生','冠帶','臨官','帝旺'];
+    var csBad = ['衰','病','死','絕'];
+    var csName = data.changsheng && data.changsheng[pos];
+    if (csName) {
+      if (csGood.indexOf(csName) >= 0) points.push({ score: 1, text: '長生位「' + csName + '」能量旺' });
+      else if (csBad.indexOf(csName) >= 0) points.push({ score: -1, text: '長生位「' + csName + '」能量弱' });
+    }
+
+    // 博士十二神
+    var bsGood = ['博士','力士','青龍','將軍','奏書','喜神'];
+    var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
+    var bsName = data.boshi && data.boshi[pos];
+    if (bsName) {
+      if (bsGood.indexOf(bsName) >= 0) points.push({ score: 1, text: '博士神「' + bsName + '」吉利' });
+      else if (bsJi.indexOf(bsName) >= 0) points.push({ score: -1, text: '博士神「' + bsName + '」要留意' });
+    }
+
+    // 無主星
+    if (palace.main.length === 0) {
+      points.push({ score: -1, text: '無主星，受外在影響大' });
+    }
+
+    // 計算總分
+    var totalScore = 0;
+    points.forEach(function(pt) { totalScore += pt.score; });
+
+    // 產生總結文字
+    var good = points.filter(function(pt) { return pt.score > 0; });
+    var bad = points.filter(function(pt) { return pt.score < 0; });
+
+    var summaryText = '';
+    var summaryColor = '';
+    var summaryEmoji = '';
+
+    if (totalScore >= 2) {
+      summaryEmoji = '🟢';
+      summaryColor = '#4f4';
+      summaryText = '整體很好！';
+      if (good.length > 0) summaryText += good.map(function(g){return g.text;}).join('、') + '。';
+      if (bad.length > 0) summaryText += '小提醒：' + bad.map(function(b){return b.text;}).join('、') + '。';
+    } else if (totalScore >= 0) {
+      summaryEmoji = '🟡';
+      summaryColor = '#fc0';
+      summaryText = '中等偏好。';
+      if (good.length > 0) summaryText += '利：' + good.map(function(g){return g.text;}).join('、') + '。';
+      if (bad.length > 0) summaryText += '注意：' + bad.map(function(b){return b.text;}).join('、') + '。';
+    } else {
+      summaryEmoji = '🟠';
+      summaryColor = '#f84';
+      summaryText = '挑戰較多，需要多花心力。';
+      if (bad.length > 0) summaryText += bad.map(function(b){return b.text;}).join('、') + '。';
+      if (good.length > 0) summaryText += '但有亮點：' + good.map(function(g){return g.text;}).join('、') + '。';
+    }
+
+    return { emoji: summaryEmoji, color: summaryColor, text: summaryText };
+  }
+
+  var summary = generateSummary(p, pos, oppP, d);
+
   var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
 
-  // 本宮
+  // 本宮標題
   html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">\u{1F4CD} ' + p.name + '\uFF08' + p.branch + '\u5BAE\uFF09</div>';
   html += '<div style="color:var(--muted);margin-bottom:4px;">' + (d.palaceInfo[p.name]||'') + '</div>';
+
+  // ★ 白話總結區塊（最醒目的位置）
+  html += '<div style="margin:8px 0 12px;padding:10px 12px;background:rgba(245,197,66,.1);border-radius:8px;border-left:4px solid ' + summary.color + ';">';
+  html += '<div style="font-size:.9rem;font-weight:700;margin-bottom:2px;">' + summary.emoji + ' 白話總結</div>';
+  html += '<div style="font-size:.83rem;line-height:1.6;color:var(--text);">' + summary.text + '</div>';
+  html += '</div>';
+
   // 宮位角色定位
   if (d.palaceRole && d.palaceRole[p.name]) {
     html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
@@ -76,11 +168,10 @@ document.addEventListener('click', function(e) {
     html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
     p.main.forEach(function(s) {
       var bColor = (s.brightness==='\u5EDF'||s.brightness==='\u65FA') ? 'var(--accent)' : s.brightness==='\u9677' ? 'var(--red)' : 'var(--muted)';
-      // 優先用「星×宮」解讀，沒有才用通用
       var interpKey = s.name + '_' + p.name;
       var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
       html += '<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-      html += '<span style="font-size:.75rem;color:' + bColor + ';">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + interp + '</div>';
+      html += '<span style="font-size:.75rem;color:' + bColor + ';" title="廟/旺=力量強，平=普通，陷=力量弱">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + interp + '</div>';
     });
     // 雙星組合
     if (p.main.length >= 2) {
@@ -102,11 +193,11 @@ document.addEventListener('click', function(e) {
     });
   }
 
-  // 四化落此宮
+  // 四化落此宮（加 tooltip 解釋「四化」）
   var sihuaHere = d.sihuaPalaces[p.name];
   if (sihuaHere) {
     html += '<div style="margin-top:10px;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">';
-    html += '<b>\u{1F300} \u6B64\u5BAE\u6709\u56DB\u5316\uFF1A</b><br>';
+    html += '<b title="四化 = 祿權科忌，代表今生被激活的能量方向。祿=好運、權=掌控、科=貴人、忌=功課">\u{1F300} \u6B64\u5BAE\u6709\u56DB\u5316\uFF1A</b><br>';
     sihuaHere.forEach(function(item) {
       var type = item.charAt(0);
       var interp = '';
@@ -120,7 +211,7 @@ document.addEventListener('click', function(e) {
     html += '</div>';
   }
 
-  // 長生十二宮
+  // 長生十二宮（折疊式）
   if (d.changsheng && d.changsheng[pos]) {
     var csName = d.changsheng[pos];
     var csInterp = {
@@ -139,15 +230,14 @@ document.addEventListener('click', function(e) {
     };
     var cs = csInterp[csName];
     if (cs) {
-      html += '<div style="margin-top:10px;padding:10px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;">';
-      html += '<div style="color:#9cb;font-weight:700;margin-bottom:4px;">' + cs.emoji + ' 長生十二宮：' + csName + (cs.alias ? ' <span style="font-size:.75rem;font-weight:400;color:var(--muted);">（' + cs.alias + '）</span>' : '') + '</div>';
-      html += '<div style="font-size:.82rem;color:var(--accent);margin-bottom:4px;">👉 一句話：' + cs.tldr + '</div>';
-      html += '<div style="font-size:.82rem;color:var(--muted);line-height:1.6;">' + cs.desc + '</div>';
-      html += '</div>';
+      html += '<details style="margin-top:10px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;overflow:hidden;">';
+      html += '<summary style="padding:10px;cursor:pointer;color:#9cb;font-weight:700;" title="長生十二宮 = 用五行生命週期比喻此宮能量強弱，從「長生」到「養」循環一圈">' + cs.emoji + ' 長生十二宮：' + csName + ' — ' + cs.tldr + (cs.alias ? ' <span style="font-size:.75rem;font-weight:400;color:var(--muted);">（' + cs.alias + '）</span>' : '') + '</summary>';
+      html += '<div style="padding:6px 10px 10px;font-size:.82rem;color:var(--muted);line-height:1.6;">' + cs.desc + '</div>';
+      html += '</details>';
     }
   }
 
-  // 博士十二神
+  // 博士十二神（折疊式）
   if (d.boshi && d.boshi[pos]) {
     var bsName = d.boshi[pos];
     var bsInterp = {
@@ -168,17 +258,16 @@ document.addEventListener('click', function(e) {
     if (bs) {
       var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
       var bsColorStyle = bsJi.indexOf(bsName) >= 0 ? '#f77' : '#ad8';
-      html += '<div style="margin-top:10px;padding:10px;background:rgba(173,216,136,.08);border-radius:6px;border-left:3px solid ' + bsColorStyle + ';">';
-      html += '<div style="color:' + bsColorStyle + ';font-weight:700;margin-bottom:4px;">' + bs.emoji + ' 博士十二神：' + bsName + '</div>';
-      html += '<div style="font-size:.82rem;color:var(--accent);margin-bottom:4px;">👉 一句話：' + bs.tldr + '</div>';
-      html += '<div style="font-size:.82rem;color:var(--muted);line-height:1.6;">' + bs.desc + '</div>';
-      html += '</div>';
+      html += '<details style="margin-top:10px;background:rgba(173,216,136,.08);border-radius:6px;border-left:3px solid ' + bsColorStyle + ';overflow:hidden;">';
+      html += '<summary style="padding:10px;cursor:pointer;color:' + bsColorStyle + ';font-weight:700;" title="博士十二神 = 從祿存位起算的12顆輔助小星，代表各宮額外的吉凶加成">' + bs.emoji + ' 博士十二神：' + bsName + ' — ' + bs.tldr + '</summary>';
+      html += '<div style="padding:6px 10px 10px;font-size:.82rem;color:var(--muted);line-height:1.6;">' + bs.desc + '</div>';
+      html += '</details>';
     }
   }
 
-  // 對宮
-  html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
-  html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</div>';
+  // 對宮（加 tooltip 解釋）
+  html += '<details style="margin-top:14px;border-top:1px solid var(--card-border);padding-top:10px;" open>';
+  html += '<summary style="font-size:.95rem;font-weight:700;color:var(--accent2);cursor:pointer;margin-bottom:4px;" title="對宮 = 命盤上正對面的宮位，它的星曜會「照入」本宮，產生間接影響（約60-70%）">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</summary>';
   html += '<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">\u5C0D\u5BAE\u7684\u661F\u6703\u300C\u7167\u5165\u300D\u672C\u5BAE\uFF0C\u5F71\u97FF\u529B\u7D04 60-70%\u3002\u672C\u5BAE\u7121\u4E3B\u661F\u6642\u5F71\u97FF\u66F4\u5927\u3002</div>';
 
   if (oppP && oppP.main.length > 0) {
@@ -188,7 +277,7 @@ document.addEventListener('click', function(e) {
   } else {
     html += '<div style="font-size:.82rem;color:var(--muted);">\u5C0D\u5BAE\u4E5F\u7121\u4E3B\u661F\uFF08\u96D9\u7A7A\u5BAE\uFF09\uFF0C\u9019\u500B\u9762\u5411\u6BD4\u8F03\u81EA\u7531\u767C\u63EE\u3002</div>';
   }
-  html += '</div></div>';
+  html += '</details></div>';
 
   var detailEl = document.getElementById('zw-detail');
   if (detailEl) {
