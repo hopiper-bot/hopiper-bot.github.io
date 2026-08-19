@@ -115,6 +115,29 @@ document.addEventListener('click', function(e) {
     html += '</div>';
   }
 
+  // 長生十二宮
+  if (d.changsheng && d.changsheng[pos]) {
+    var csName = d.changsheng[pos];
+    var csInterp = {
+      '長生': '生命力旺盛、如初生嬰兒般充滿潛力。此宮事務容易開展、有貴人相助。',
+      '沐浴': '又稱「桃花位」。不穩定但有魅力，此宮事務容易有外在誘惑或變動。感情方面比較精彩。',
+      '冠帶': '成長茁壯中，此宮事務逐漸上軌道，有被肯定的機會。像年輕人剛出社會積極表現。',
+      '臨官': '事業有成之位。此宮事務發展順利，有掌權或晉升的能量。做事有條有理。',
+      '帝旺': '最強盛之位！此宮事務達到巔峰，但物極必反要注意。能量極強但也可能過度。',
+      '衰': '過了巔峰開始走下坡。此宮事務可能遇到瓶頸，需要調整策略，不宜硬撐。',
+      '病': '能量虛弱之位。此宮事務容易出問題或拖延。需要休養生息，不適合強求。',
+      '死': '名稱嚇人但不是真死。代表此宮事務暫時停滯、需要重新思考方向。有時反而是轉機的開始。',
+      '墓': '收藏之位。此宮事務傾向內斂、保守。適合儲蓄和累積，不適合張揚。有隱藏的資源。',
+      '絕': '能量最弱之位。此宮事務可能要經歷一次「歸零」。但絕處逢生，也代表浴火重生的可能。',
+      '胎': '孕育新生之位。此宮事務正在醞釀新的可能性。雖然還看不到成果，但種子已種下。',
+      '養': '溫養等待之位。此宮事務需要耐心培養，時機未到不宜操之過急。靜待花開。'
+    };
+    html += '<div style="margin-top:10px;padding:8px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;">';
+    html += '<b style="color:#9cb;">\u{1F331} \u9577\u751F\u5341\u4E8C\u5BAE\uFF1A' + csName + '</b><br>';
+    html += '<span style="font-size:.82rem;color:var(--muted);">' + (csInterp[csName]||'') + '</span>';
+    html += '</div>';
+  }
+
   // 對宮
   html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
   html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</div>';

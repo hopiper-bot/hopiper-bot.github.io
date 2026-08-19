@@ -712,7 +712,7 @@ function renderZiwei(data) {
   const shenPalaceName = shenPalace ? shenPalace.name : '';
 
   // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
-  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
+  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear, data.changsheng); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
 
   return `
     <div class="sig">
@@ -875,7 +875,7 @@ const SIHUA_PALACE_INTERP = {
 };
 
 // === 註冊全域點擊處理器 ===
-function registerGlobalClickHandler(palaces, sihua, daxian, birthYear) {
+function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changsheng) {
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
 
@@ -908,6 +908,7 @@ function registerGlobalClickHandler(palaces, sihua, daxian, birthYear) {
       starCombos: STAR_COMBOS,
       sihuaPalaceInterp: SIHUA_PALACE_INTERP,
       branches: BRANCHES,
+      changsheng: changsheng || {},
     };
   }
 }
