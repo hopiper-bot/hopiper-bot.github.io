@@ -806,11 +806,13 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, chang
       dxLabel = `<div style="font-size:.55rem;${dxColor}margin-top:2px;">⏳${dx.age}-${dx.ageEnd}歲${dxMark}</div>`;
     }
     const csLabel = changsheng && changsheng[branchIdx] ? changsheng[branchIdx] : '';
+    const csEmoji = {'長生':'🌱','沐浴':'🛁','冠帶':'👔','臨官':'📈','帝旺':'🔥','衰':'🍂','病':'🤒','死':'💀','墓':'💰','絕':'⚡','胎':'🥒','養':'🌤️'};
+    const csDisplay = csLabel ? '<span style="color:#9cb;">' + (csEmoji[csLabel]||'') + csLabel + '</span> ' : '';
     return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}
-        <div style="font-size:.55rem;color:var(--muted);">${csLabel ? '<span style="color:#9cb;">'+csLabel+'</span> ' : ''}${BRANCHES[branchIdx]}</div>
+        <div style="font-size:.55rem;color:var(--muted);">${csDisplay}${BRANCHES[branchIdx]}</div>
       </div>
     </div>`;
   }

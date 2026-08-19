@@ -124,23 +124,27 @@ document.addEventListener('click', function(e) {
   if (d.changsheng && d.changsheng[pos]) {
     var csName = d.changsheng[pos];
     var csInterp = {
-      '長生': '生命力旺盛、如初生嬰兒般充滿潛力。此宮事務容易開展、有貴人相助。',
-      '沐浴': '又稱「桃花位」。不穩定但有魅力，此宮事務容易有外在誘惑或變動。感情方面比較精彩。',
-      '冠帶': '成長茁壯中，此宮事務逐漸上軌道，有被肯定的機會。像年輕人剛出社會積極表現。',
-      '臨官': '事業有成之位。此宮事務發展順利，有掌權或晉升的能量。做事有條有理。',
-      '帝旺': '最強盛之位！此宮事務達到巔峰，但物極必反要注意。能量極強但也可能過度。',
-      '衰': '過了巔峰開始走下坡。此宮事務可能遇到瓶頸，需要調整策略，不宜硬撐。',
-      '病': '能量虛弱之位。此宮事務容易出問題或拖延。需要休養生息，不適合強求。',
-      '死': '名稱嚇人但不是真死。代表此宮事務暫時停滯、需要重新思考方向。有時反而是轉機的開始。',
-      '墓': '收藏之位。此宮事務傾向內斂、保守。適合儲蓄和累積，不適合張揚。有隱藏的資源。',
-      '絕': '能量最弱之位。此宮事務可能要經歷一次「歸零」。但絕處逢生，也代表浴火重生的可能。',
-      '胎': '孕育新生之位。此宮事務正在醞釀新的可能性。雖然還看不到成果，但種子已種下。',
-      '養': '溫養等待之位。此宮事務需要耐心培養，時機未到不宜操之過急。靜待花開。'
+      '長生': { emoji:'🌱', alias:'', tldr:'剛發芽，潛力滿滿', desc:'像嬰兒出生 — 這個宮位的事務充滿活力和可能性。容易起步、有人幫忙、發展順利。' },
+      '沐浴': { emoji:'🛁', alias:'又叫「桃花位」', tldr:'有魅力但不穩定', desc:'像青少年叛逆期 — 這方面的事容易有誘惑、變動、桃花。不是壞事，但需要判斷力。感情宮遇到特別精彩。' },
+      '冠帶': { emoji:'👔', alias:'', tldr:'正在茁壯，被人看見', desc:'像剛出社會的年輕人 — 積極表現、逐漸被肯定。這方面的事正在上軌道，持續努力就會有成果。' },
+      '臨官': { emoji:'📈', alias:'又叫「建祿」', tldr:'穩定上升，有實力', desc:'像職場中堅 — 做事有條有理、穩定發展。這方面的事已經有基礎，容易升遷或掌權。' },
+      '帝旺': { emoji:'🔥', alias:'', tldr:'最旺！但小心過頭', desc:'巔峰狀態 — 這個宮位的能量最強。但物極必反，太強也可能過度執著或衝過頭。旺到頂了就該轉彎。' },
+      '衰':   { emoji:'🍂', alias:'', tldr:'過了高峰，需要調整', desc:'像秋天落葉 — 不是完蛋，是過了最猛的階段。這方面的事需要換個策略，硬撐不如轉型。' },
+      '病':   { emoji:'🤒', alias:'', tldr:'能量低，別硬撐', desc:'不是真的生病，是這方面的事容易拖延或出小問題。適合休養生息、降低期望值。養好了再出發。' },
+      '死':   { emoji:'💀', alias:'名字嚇人但別怕', tldr:'暫停，重新想方向', desc:'不是真死！是這方面的事暫時停滯、需要歸零重來。反而可能是轉機 — 舊的不去新的不來。' },
+      '墓':   { emoji:'💰', alias:'又叫「庫」= 倉庫', tldr:'悶聲累積型，低調有實力', desc:'東西藏在倉庫裡 — 這方面的事你傾向保守、不張揚，但暗中其實有在累積。適合存錢、存實力，不適合高調。財帛宮遇到 = 悶聲發財。' },
+      '絕':   { emoji:'⚡', alias:'', tldr:'歸零，但絕處逢生', desc:'能量歸零 — 但「絕」的下一步就是「胎」（新生）。這方面的事可能要經歷一次砍掉重練，之後反而海闊天空。' },
+      '胎':   { emoji:'🥒', alias:'', tldr:'種子種下了，還沒發芽', desc:'懷孕期 — 新的可能性正在醞釀，還看不到成果但已經有東西在長。耐心等，不要太早期待收穫。' },
+      '養':   { emoji:'🌤️', alias:'', tldr:'慢慢養，時機未到', desc:'像花苞等著開 — 這方面的事需要時間和耐心。不能急、不能催，但只要持續投入，時間到了自然會綻放。' }
     };
-    html += '<div style="margin-top:10px;padding:8px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;">';
-    html += '<b style="color:#9cb;">\u{1F331} \u9577\u751F\u5341\u4E8C\u5BAE\uFF1A' + csName + '</b><br>';
-    html += '<span style="font-size:.82rem;color:var(--muted);">' + (csInterp[csName]||'') + '</span>';
-    html += '</div>';
+    var cs = csInterp[csName];
+    if (cs) {
+      html += '<div style="margin-top:10px;padding:10px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;">';
+      html += '<div style="color:#9cb;font-weight:700;margin-bottom:4px;">' + cs.emoji + ' 長生十二宮：' + csName + (cs.alias ? ' <span style="font-size:.75rem;font-weight:400;color:var(--muted);">（' + cs.alias + '）</span>' : '') + '</div>';
+      html += '<div style="font-size:.82rem;color:var(--accent);margin-bottom:4px;">👉 一句話：' + cs.tldr + '</div>';
+      html += '<div style="font-size:.82rem;color:var(--muted);line-height:1.6;">' + cs.desc + '</div>';
+      html += '</div>';
+    }
   }
 
   // 對宮
