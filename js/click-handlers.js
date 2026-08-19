@@ -67,6 +67,11 @@ document.addEventListener('click', function(e) {
     html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
   }
 
+  // 身宮標記
+  if (d.shenPos !== undefined && pos === d.shenPos) {
+    html += '<div style="font-size:.82rem;color:#e9a;margin-bottom:8px;padding:6px 8px;background:rgba(238,153,170,.08);border-radius:4px;border-left:3px solid #e9a;">\u{1F3E0} \u9019\u88E1\u662F\u4F60\u7684<b>\u8EAB\u5BAE</b>\uFF0C\u4EE3\u8868\u5F8C\u5929\u4EBA\u751F\u91CD\u5FC3\u3002\u4F60\u6700\u82B1\u5FC3\u529B\u3001\u6700\u5728\u610F\u7684\u9818\u57DF\u5C31\u662F\u9019\u500B\u5BAE\u4F4D\u4EE3\u8868\u7684\u4E8B\u60C5\u3002</div>';
+  }
+
   if (p.main.length > 0) {
     html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
     p.main.forEach(function(s) {

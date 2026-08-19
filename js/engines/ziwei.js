@@ -712,7 +712,24 @@ function renderZiwei(data) {
   const shenPalaceName = shenPalace ? shenPalace.name : '';
 
   // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
-  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear, data.changsheng); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
+  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear, data.changsheng, shenPos); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
+
+  // 身宮落各宮的解讀
+  const SHEN_GONG_INTERP = {
+    "命宮": "身宮與命宮重疊，代表你的先天和後天一致。一生圍繞「自我」展開 — 自我成長、自我實現是你最大的課題。你是個很清楚自己要什麼的人。",
+    "兄弟": "人生重心放在人際關係和合作上。你很在意跟朋友、同事、兄弟姊妹的關係，人脈是你最大的資產。適合團隊合作、社群經營。",
+    "夫妻": "感情是你一輩子最在意的事。不論單身或有伴，伴侶關係都是你人生的核心課題。你會花很多心力在經營親密關係上。",
+    "子女": "後代、創作、投資是你人生重心。你很在意下一代的培育，或者把精力放在創造性工作上。也代表投資理財是你一直關注的領域。",
+    "財帛": "一輩子繞著錢轉。不是壞事 — 代表你天生對金錢敏感，會花大量精力在賺錢和理財上。財務自由是你的人生驅動力。",
+    "疾厄": "健康和身體是你一生的功課。你比別人更需要注意養生，但也代表你對身心靈的覺察力很強。適合從事健康、醫療相關領域。",
+    "遷移": "你的人生在「外面」。不適合待在原地，越往外走越好。出差、外派、移民、旅行都是你的養分。宅在家反而限制了你的發展。",
+    "交友": "社交圈是你人生的舞台。你很在意外在人脈和社會連結，朋友的品質直接影響你的人生品質。適合做公關、業務、社群。",
+    "事業": "工作就是你的命。不是 workaholic 那種，而是你的人生價值感來自於事業成就。你會不自覺地把大量精力投入工作，專業能力是你的核心競爭力。",
+    "田宅": "家庭和居住環境是你人生的重心。你很在意「家」的感覺，可能花大量心力在買房、佈置家裡或照顧家人。安穩的根基對你很重要。",
+    "福德": "精神世界是你最在意的。你追求內心的滿足勝過物質。哲學、宗教、藝術、心靈成長這些東西對你的人生影響很大。享受生活的能力很強。",
+    "父母": "你跟長輩的關係是人生重點。可能一生都在承擔照顧父母的責任，或者受父母影響很深。也代表你很重視學習和知識傳承。",
+  };
+  const shenInterp = SHEN_GONG_INTERP[shenPalaceName] || '';
 
   return `
     <div class="sig">
@@ -721,6 +738,11 @@ function renderZiwei(data) {
       <div style="font-size:.85rem;color:var(--muted);margin-top:6px;">
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]} · 身宮在${BRANCHES[shenPos]}（${shenPalaceName}）
       </div>
+    </div>
+    <div style="margin:10px 0;padding:10px 12px;background:rgba(238,153,170,.08);border-radius:8px;border-left:3px solid #e9a;font-size:.85rem;line-height:1.7;">
+      <b style="color:#e9a;">🏠 身宮在${shenPalaceName}</b>
+      <div style="margin-top:4px;color:var(--muted);font-size:.82rem;">命宮 = 天生的你；身宮 = 後天發展的重心，你這輩子最花心力的地方。</div>
+      <div style="margin-top:6px;">${shenInterp}</div>
     </div>
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
     ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng)}
@@ -875,7 +897,7 @@ const SIHUA_PALACE_INTERP = {
 };
 
 // === 註冊全域點擊處理器 ===
-function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changsheng) {
+function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changsheng, shenPos) {
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
 
@@ -909,6 +931,7 @@ function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changshen
       sihuaPalaceInterp: SIHUA_PALACE_INTERP,
       branches: BRANCHES,
       changsheng: changsheng || {},
+      shenPos: shenPos,
     };
   }
 }
