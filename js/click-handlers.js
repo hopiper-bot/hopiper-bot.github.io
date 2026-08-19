@@ -207,11 +207,44 @@ document.addEventListener('click', function(e) {
     html += '<div style="color:var(--muted);margin-bottom:8px;">\u6B64\u5BAE\u7121\u4E3B\u661F \u2014 \u501F\u5C0D\u5BAE\u661F\u529B\u3002\u4F60\u5728\u9019\u500B\u9762\u5411\u6BD4\u8F03\u300C\u770B\u60C5\u6CC1\u300D\uFF0C\u53D7\u74B0\u5883\u548C\u5C0D\u5BAE\u5F71\u97FF\u5927\u3002</div>';
   }
 
+  // ★ 副星分組顯示（吉星 vs 煞星）
   if (p.minor.length > 0) {
-    html += '<div style="margin-top:8px;margin-bottom:4px;"><b>\u526F\u661F\uFF1A</b></div>';
+    var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
+    var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
+    var jiList = [];
+    var shaList = [];
+    var otherList = [];
     p.minor.forEach(function(s) {
-      html += '<div style="margin-left:8px;font-size:.82rem;color:var(--muted);">' + s + '\uFF1A' + (d.starInfo[s]||'') + '</div>';
+      if (jiStars.indexOf(s) >= 0) jiList.push(s);
+      else if (shaStars.indexOf(s) >= 0) shaList.push(s);
+      else otherList.push(s);
     });
+    html += '<div style="margin-top:10px;">';
+    if (jiList.length > 0) {
+      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(79,255,79,.06);border-radius:6px;border-left:3px solid #4f4;">';
+      html += '<div style="font-size:.82rem;font-weight:700;color:#4f4;margin-bottom:3px;">✨ 吉星（助力）</div>';
+      jiList.forEach(function(s) {
+        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--text);line-height:1.6;"><span style="color:#4f4;font-weight:600;">' + s + '</span>：' + (d.starInfo[s]||'') + '</div>';
+      });
+      html += '</div>';
+    }
+    if (shaList.length > 0) {
+      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(255,85,85,.06);border-radius:6px;border-left:3px solid #f55;">';
+      html += '<div style="font-size:.82rem;font-weight:700;color:#f55;margin-bottom:3px;">⚡ 煞星（阻力/挑戰）</div>';
+      shaList.forEach(function(s) {
+        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--text);line-height:1.6;"><span style="color:#f55;font-weight:600;">' + s + '</span>：' + (d.starInfo[s]||'') + '</div>';
+      });
+      html += '</div>';
+    }
+    if (otherList.length > 0) {
+      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(123,108,246,.04);border-radius:6px;">';
+      html += '<div style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:3px;">其他副星</div>';
+      otherList.forEach(function(s) {
+        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--muted);line-height:1.6;">' + s + '：' + (d.starInfo[s]||'') + '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
   }
 
   // 四化落此宮（加 tooltip 解釋「四化」）
@@ -286,19 +319,83 @@ document.addEventListener('click', function(e) {
     }
   }
 
-  // 對宮（加 tooltip 解釋）
-  html += '<details style="margin-top:14px;border-top:1px solid var(--card-border);padding-top:10px;" open>';
-  html += '<summary style="font-size:.95rem;font-weight:700;color:var(--accent2);cursor:pointer;margin-bottom:4px;" title="對宮 = 命盤上正對面的宮位，它的星曜會「照入」本宮，產生間接影響（約60-70%）">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</summary>';
-  html += '<div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;">\u5C0D\u5BAE\u7684\u661F\u6703\u300C\u7167\u5165\u300D\u672C\u5BAE\uFF0C\u5F71\u97FF\u529B\u7D04 60-70%\u3002\u672C\u5BAE\u7121\u4E3B\u661F\u6642\u5F71\u97FF\u66F4\u5927\u3002</div>';
+  // ★ 三方四正標示（對宮 + 三合宮 + 會照宮的完整格局）
+  // 三方四正 = 本宮 + 對宮(+6) + 三合宮(+4, +8)
+  var sanhePos1 = (pos + 4) % 12;
+  var sanhePos2 = (pos + 8) % 12;
+  var sanheP1 = d.posMap[sanhePos1];
+  var sanheP2 = d.posMap[sanhePos2];
 
+  html += '<div style="margin-top:14px;border-top:1px solid var(--card-border);padding-top:10px;">';
+  html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:6px;" title="三方四正 = 本宮+對宮+三合宮，這四個宮位的星曜互相會照，構成完整格局">🔮 三方四正（完整格局）</div>';
+  html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">三方四正 = 本宮 + 對宮 + 兩個三合宮。這四個位置的星曜互相照會，形成一個命理學上的「能量場」。看一個宮位不能只看本宮，三方四正才是完整的影響面。</div>';
+
+  // 對宮
+  html += '<details style="margin-bottom:8px;background:rgba(123,108,246,.05);border-radius:6px;border-left:3px solid var(--accent2);overflow:hidden;" open>';
+  html += '<summary style="padding:8px 10px;cursor:pointer;font-weight:700;color:var(--accent2);font-size:.88rem;" title="對宮 = 正對面的宮位，星曜照入本宮，影響力約60-70%">🔄 對宮：' + (oppP?oppP.name:'') + '（' + d.branches[oppositePos] + '）— 照入影響 60-70%</summary>';
+  html += '<div style="padding:6px 10px 10px;font-size:.82rem;">';
   if (oppP && oppP.main.length > 0) {
     oppP.main.forEach(function(s) {
-      html += '<div style="margin-left:8px;font-size:.82rem;"><span style="color:var(--accent2);">' + s.name + '</span>\uFF08' + s.brightness + '\uFF09\u7167\u5165\uFF1A' + (d.starInfo[s.name]||'') + '</div>';
+      html += '<div style="margin-left:4px;margin-bottom:2px;"><span style="color:var(--accent2);font-weight:600;">' + s.name + '</span>（' + s.brightness + '）照入：' + (d.starInfo[s.name]||'') + '</div>';
     });
   } else {
-    html += '<div style="font-size:.82rem;color:var(--muted);">\u5C0D\u5BAE\u4E5F\u7121\u4E3B\u661F\uFF08\u96D9\u7A7A\u5BAE\uFF09\uFF0C\u9019\u500B\u9762\u5411\u6BD4\u8F03\u81EA\u7531\u767C\u63EE\u3002</div>';
+    html += '<div style="color:var(--muted);">對宮無主星（雙空宮），這個面向比較自由發揮。</div>';
   }
-  html += '</details></div>';
+  if (oppP && oppP.minor.length > 0) {
+    var oppMinorStr = oppP.minor.join('、');
+    html += '<div style="margin-top:4px;font-size:.78rem;color:var(--muted);">副星：' + oppMinorStr + '</div>';
+  }
+  html += '</div></details>';
+
+  // 三合宮（兩個）
+  function renderSanhe(sanheP, sanhePos, label) {
+    var result = '';
+    result += '<details style="margin-bottom:8px;background:rgba(245,197,66,.05);border-radius:6px;border-left:3px solid #c90;overflow:hidden;">';
+    result += '<summary style="padding:8px 10px;cursor:pointer;font-weight:700;color:#c90;font-size:.88rem;" title="三合宮 = 跟本宮形成三角關係的宮位，星曜也會照入本宮">🔺 三合宮：' + (sanheP?sanheP.name:'') + '（' + d.branches[sanhePos] + '）— ' + label + '</summary>';
+    result += '<div style="padding:6px 10px 10px;font-size:.82rem;">';
+    if (sanheP && sanheP.main.length > 0) {
+      sanheP.main.forEach(function(s) {
+        result += '<div style="margin-left:4px;margin-bottom:2px;"><span style="color:#c90;font-weight:600;">' + s.name + '</span>（' + s.brightness + '）會照：' + (d.starInfo[s.name]||'') + '</div>';
+      });
+    } else {
+      result += '<div style="color:var(--muted);">此三合宮無主星。</div>';
+    }
+    if (sanheP && sanheP.minor.length > 0) {
+      var minorStr = sanheP.minor.join('、');
+      result += '<div style="margin-top:4px;font-size:.78rem;color:var(--muted);">副星：' + minorStr + '</div>';
+    }
+    result += '</div></details>';
+    return result;
+  }
+  html += renderSanhe(sanheP1, sanhePos1, '會照影響');
+  html += renderSanhe(sanheP2, sanhePos2, '會照影響');
+
+  // 三方四正總結
+  var allStarsInSanfang = [];
+  if (oppP) oppP.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
+  if (sanheP1) sanheP1.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
+  if (sanheP2) sanheP2.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
+  if (allStarsInSanfang.length > 0) {
+    html += '<div style="margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.6;">';
+    html += '<b style="color:var(--accent);">📋 三方四正匯總：</b>除了本宮的星曜外，還有 <b>' + allStarsInSanfang.join('、') + '</b> 從三方四正照入，一起組成這個宮位的完整格局。';
+    // 檢查是否有六吉星會照
+    var liuji = ['文昌','文曲','左輔','右弼','天魁','天鉞'];
+    var liusha = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
+    var allMinorInSanfang = [];
+    if (oppP) oppP.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+    if (sanheP1) sanheP1.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+    if (sanheP2) sanheP2.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+    var jiCount = allMinorInSanfang.filter(function(s) { return liuji.indexOf(s) >= 0; }).length;
+    var shaCount = allMinorInSanfang.filter(function(s) { return liusha.indexOf(s) >= 0; }).length;
+    if (jiCount > 0 || shaCount > 0) {
+      html += '<br>';
+      if (jiCount > 0) html += '<span style="color:#4f4;">三方有 ' + jiCount + ' 顆吉星會照（加分）</span>';
+      if (jiCount > 0 && shaCount > 0) html += '，';
+      if (shaCount > 0) html += '<span style="color:#f55;">三方有 ' + shaCount + ' 顆煞星夾攻（留意挑戰）</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div></div>';
 
   var detailEl = document.getElementById('zw-detail');
   if (detailEl) {

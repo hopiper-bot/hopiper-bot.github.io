@@ -722,6 +722,285 @@ export function calculate(birthData) {
   }
 }
 
+// === 格局判斷（古典紫微斗數格局檢測）===
+function detectFormations(palaces, sihua, mingPos) {
+  const formations = [];
+  // 建立 pos → palace 的映射
+  const posMap = {};
+  palaces.forEach(p => { posMap[p.pos] = p; });
+
+  // 取得命宮的 palace
+  const ming = palaces[0]; // palaces[0] 一定是命宮
+
+  // 輔助函數：某宮位是否包含指定主星
+  function hasMainStar(palace, starName) {
+    return palace && palace.main.some(s => s.name === starName);
+  }
+  // 某宮位主星名陣列
+  function mainNames(palace) {
+    return palace ? palace.main.map(s => s.name) : [];
+  }
+  // 某地支位置的宮
+  function palaceAt(pos) { return posMap[pos]; }
+  // 命宮三方四正的主星集合
+  function getSanfangStars() {
+    const oppPos = (ming.pos + 6) % 12;
+    const s1Pos = (ming.pos + 4) % 12;
+    const s2Pos = (ming.pos + 8) % 12;
+    let stars = [];
+    [ming.pos, oppPos, s1Pos, s2Pos].forEach(pos => {
+      const p = palaceAt(pos);
+      if (p) p.main.forEach(s => { stars.push(s.name); });
+    });
+    return stars;
+  }
+  const sanfangStars = getSanfangStars();
+
+  // 1. 紫府同宮
+  if (hasMainStar(ming, '紫微') && hasMainStar(ming, '天府')) {
+    formations.push({
+      name: '紫府同宮',
+      type: 'ji', // 吉格
+      desc: '帝星+庫星同坐命宮，一生穩重有格局，物質和地位都不差。做事有領導力又懂守成，適合高階管理。少年得志的組合。'
+    });
+  }
+
+  // 2. 紫府朝垣（紫微、天府不在命宮但三方四正會照命宮）
+  if (!hasMainStar(ming, '紫微') && !hasMainStar(ming, '天府')) {
+    if (sanfangStars.indexOf('紫微') >= 0 && sanfangStars.indexOf('天府') >= 0) {
+      formations.push({
+        name: '紫府朝垣',
+        type: 'ji',
+        desc: '紫微和天府從三方四正照入命宮，雖然不在命宮本身，但帝星和庫星的能量依然照會過來。一生有貴人相助，大方向上不會差。'
+      });
+    }
+  }
+
+  // 3. 日月並明（太陽在巳/午廟旺 + 太陰在亥/子廟旺，且命宮受其照會）
+  // 標準：太陽在旺地（寅卯辰巳午）、太陰在旺地（酉戌亥子丑）
+  var sunPalace = null, moonPalace = null;
+  palaces.forEach(p => {
+    p.main.forEach(s => {
+      if (s.name === '太陽') sunPalace = { palace: p, brightness: s.brightness };
+      if (s.name === '太陰') moonPalace = { palace: p, brightness: s.brightness };
+    });
+  });
+  if (sunPalace && moonPalace) {
+    var sunGood = ['廟','旺'].indexOf(sunPalace.brightness) >= 0;
+    var moonGood = ['廟','旺'].indexOf(moonPalace.brightness) >= 0;
+    if (sunGood && moonGood) {
+      formations.push({
+        name: '日月並明',
+        type: 'ji',
+        desc: '太陽和太陰都在廟旺之地，日月光明照耀全盤。代表人生光明正大、人際關係好、男女貴人兼得。早年得父蔭，中晚年自己發光。'
+      });
+    }
+  }
+
+  // 4. 機月同梁（天機+太陰+天同+天梁，任三顆以上在命宮三方四正）
+  var jiyue = ['天機','太陰','天同','天梁'];
+  var jiyueCount = jiyue.filter(s => sanfangStars.indexOf(s) >= 0).length;
+  if (jiyueCount >= 3) {
+    formations.push({
+      name: '機月同梁',
+      type: 'ji',
+      desc: '天機、太陰、天同、天梁三顆以上會照命宮。這是「穩定上班族」的經典格局 — 聰明溫和、適合大機構大企業、有公職運。不太適合自己創業，但在體制內能走得又穩又遠。'
+    });
+  }
+
+  // 5. 殺破狼（七殺+破軍+貪狼在命宮三方四正）
+  var spw = ['七殺','破軍','貪狼'];
+  var spwCount = spw.filter(s => sanfangStars.indexOf(s) >= 0).length;
+  if (spwCount >= 3) {
+    formations.push({
+      name: '殺破狼',
+      type: 'mixed',
+      desc: '七殺、破軍、貪狼三將星齊聚三方四正。這是「開創型人生」的格局 — 一生變動大、波折多，但成就也大。不安於現狀、敢打敢拼，適合創業或獨當一面的開拓性工作。前半生辛苦打底，後半生收割成果。'
+    });
+  }
+
+  // 6. 府相朝垣（天府+天相在命宮三方四正會照）
+  if (sanfangStars.indexOf('天府') >= 0 && sanfangStars.indexOf('天相') >= 0) {
+    formations.push({
+      name: '府相朝垣',
+      type: 'ji',
+      desc: '天府和天相會照命宮三方。庫星+印星形成穩固結構，代表一生物質有保障、有靠山。適合公家機關或大企業穩定發展，財運平穩。'
+    });
+  }
+
+  // 7. 祿馬交馳（祿存+天馬同宮或三方四正會照）
+  var lumaPositions = [];
+  palaces.forEach(p => {
+    if (p.minor.indexOf('祿存') >= 0 && p.minor.indexOf('天馬') >= 0) {
+      lumaPositions.push(p.name);
+    }
+  });
+  if (lumaPositions.length > 0) {
+    formations.push({
+      name: '祿馬交馳',
+      type: 'ji',
+      desc: '祿存和天馬同宮，財祿遇上驛馬 = 「動中生財」。越往外跑越有錢、適合出差外派、業務跑動、進出口貿易。靠行動力賺錢的格局。（位於' + lumaPositions.join('、') + '）'
+    });
+  }
+
+  // 8. 左右夾命（左輔、右弼夾命宮左右兩鄰宮）
+  var leftPos = (ming.pos + 1) % 12;
+  var rightPos = (ming.pos - 1 + 12) % 12;
+  var leftP = palaceAt(leftPos);
+  var rightP = palaceAt(rightPos);
+  var hasZuofu = false, hasYoubi = false;
+  if (leftP && leftP.minor.indexOf('左輔') >= 0) hasZuofu = true;
+  if (rightP && rightP.minor.indexOf('右弼') >= 0) hasYoubi = true;
+  if (leftP && leftP.minor.indexOf('右弼') >= 0) hasYoubi = true;
+  if (rightP && rightP.minor.indexOf('左輔') >= 0) hasZuofu = true;
+  if (hasZuofu && hasYoubi) {
+    formations.push({
+      name: '左右夾命',
+      type: 'ji',
+      desc: '左輔和右弼分別在命宮兩鄰宮夾護。代表一生有人在旁邊幫忙、左右逢源。不論工作或生活，都不會孤軍奮戰。'
+    });
+  }
+
+  // 9. 昌曲夾命
+  var hasWenchang = false, hasWenqu = false;
+  if (leftP && leftP.minor.indexOf('文昌') >= 0) hasWenchang = true;
+  if (rightP && rightP.minor.indexOf('文曲') >= 0) hasWenqu = true;
+  if (leftP && leftP.minor.indexOf('文曲') >= 0) hasWenqu = true;
+  if (rightP && rightP.minor.indexOf('文昌') >= 0) hasWenchang = true;
+  if (hasWenchang && hasWenqu) {
+    formations.push({
+      name: '昌曲夾命',
+      type: 'ji',
+      desc: '文昌和文曲夾命宮。代表聰明有文采、學習力強、考試運佳。適合走文路 — 教育、寫作、研究、文創類工作特別有利。'
+    });
+  }
+
+  // 10. 火貪格 / 鈴貪格（火星或鈴星與貪狼同宮在命或三方）
+  palaces.forEach(p => {
+    if (hasMainStar(p, '貪狼')) {
+      if (p.minor.indexOf('火星') >= 0) {
+        formations.push({
+          name: '火貪格',
+          type: 'ji',
+          desc: '火星+貪狼同宮。爆發力極強的格局 — 適合突然翻身、意外之財、一夜成名。中年後有暴發運。缺點是來得快去得也快，要趁機站穩。（位於' + p.name + '）'
+        });
+      }
+      if (p.minor.indexOf('鈴星') >= 0) {
+        formations.push({
+          name: '鈴貪格',
+          type: 'ji',
+          desc: '鈴星+貪狼同宮。跟火貪格類似但更沉穩 — 適合厚積薄發，在某個時間點突然爆發。偏財運或意外機會比別人多。（位於' + p.name + '）'
+        });
+      }
+    }
+  });
+
+  // 11. 羊陀夾命（擎羊、陀羅夾命宮）
+  var hasQingyang = false, hasTuoluo = false;
+  if (leftP && leftP.minor.indexOf('擎羊') >= 0) hasQingyang = true;
+  if (rightP && rightP.minor.indexOf('陀羅') >= 0) hasTuoluo = true;
+  if (leftP && leftP.minor.indexOf('陀羅') >= 0) hasTuoluo = true;
+  if (rightP && rightP.minor.indexOf('擎羊') >= 0) hasQingyang = true;
+  if (hasQingyang && hasTuoluo) {
+    formations.push({
+      name: '羊陀夾命',
+      type: 'xiong',
+      desc: '擎羊和陀羅夾命宮。前有險阻後有拖累，做事容易進退兩難。但如果命宮主星強旺（廟/旺），反而能化壓力為動力，成就更高。關鍵是用對方法突破。'
+    });
+  }
+
+  // 12. 空劫夾命
+  var hasDikong = false, hasDijie = false;
+  if (leftP && leftP.minor.indexOf('地空') >= 0) hasDikong = true;
+  if (rightP && rightP.minor.indexOf('地劫') >= 0) hasDijie = true;
+  if (leftP && leftP.minor.indexOf('地劫') >= 0) hasDijie = true;
+  if (rightP && rightP.minor.indexOf('地空') >= 0) hasDikong = true;
+  if (hasDikong && hasDijie) {
+    formations.push({
+      name: '空劫夾命',
+      type: 'xiong',
+      desc: '地空和地劫夾命宮。想法超脫但容易不切實際，財運有起伏。好處是創意十足、適合宗教哲學藝術。壞處是容易錯失良機或判斷失準。保持腳踏實地很重要。'
+    });
+  }
+
+  // 13. 明珠出海（太陽在寅/卯宮且廟旺，坐命或照命）
+  if (sunPalace) {
+    var sunPos = sunPalace.palace.pos;
+    var sunBright = sunPalace.brightness;
+    if ((sunPos === 2 || sunPos === 3) && (sunBright === '廟' || sunBright === '旺')) {
+      if (sunPalace.palace.name === '命宮' || sanfangStars.indexOf('太陽') >= 0) {
+        formations.push({
+          name: '明珠出海',
+          type: 'ji',
+          desc: '太陽在寅/卯宮（日出方位）且廟旺。如旭日東昇，光芒萬丈。代表前途光明、有社會聲望、適合公眾型事業。男命得此格尤佳。'
+        });
+      }
+    }
+  }
+
+  // 14. 日月反背（太陽在戌/亥落陷 + 太陰在辰/巳落陷）
+  if (sunPalace && moonPalace) {
+    var sunBad = sunPalace.brightness === '陷';
+    var moonBad = moonPalace.brightness === '陷';
+    if (sunBad && moonBad) {
+      formations.push({
+        name: '日月反背',
+        type: 'xiong',
+        desc: '太陽和太陰都在落陷之地。日月無光，早年比較辛苦，缺乏長輩助力。但不代表一輩子不好 — 靠自己打拼成功的例子很多，只是起步比別人慢一點。'
+      });
+    }
+  }
+
+  // 15. 化祿+化權+化科三奇同宮或三方會照
+  var luPalaceIdx = -1, quanPalaceIdx = -1, kePalaceIdx = -1;
+  palaces.forEach(p => {
+    p.main.forEach(s => {
+      if (s.name === sihua.lu) luPalaceIdx = p.pos;
+      if (s.name === sihua.quan) quanPalaceIdx = p.pos;
+      if (s.name === sihua.ke) kePalaceIdx = p.pos;
+    });
+    p.minor.forEach(s => {
+      if (s === sihua.lu) luPalaceIdx = p.pos;
+      if (s === sihua.quan) quanPalaceIdx = p.pos;
+      if (s === sihua.ke) kePalaceIdx = p.pos;
+    });
+  });
+  if (luPalaceIdx >= 0 && quanPalaceIdx >= 0 && kePalaceIdx >= 0) {
+    if (luPalaceIdx === quanPalaceIdx && quanPalaceIdx === kePalaceIdx) {
+      var triPalace = posMap[luPalaceIdx];
+      formations.push({
+        name: '三奇嘉會',
+        type: 'ji',
+        desc: '化祿、化權、化科三顆吉化同聚一宮（' + (triPalace?triPalace.name:'') + '）。非常罕見的大吉格局 — 該宮位代表的事務會特別順遂，有財有權有名聲。'
+      });
+    }
+  }
+
+  return formations;
+}
+
+// === 格局渲染 ===
+function renderFormations(formations) {
+  if (!formations || formations.length === 0) return '';
+  var html = '<div style="margin:10px 0;padding:12px;background:linear-gradient(135deg,rgba(245,197,66,.1),rgba(123,108,246,.08));border-radius:10px;border:1px solid rgba(245,197,66,.3);">';
+  html += '<div style="font-size:.95rem;font-weight:800;margin-bottom:8px;color:var(--accent);">🏛️ 命盤格局</div>';
+  html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;">格局 = 古典紫微斗數的「星曜組合判斷」，看你的命盤是否符合特定有名的格局。有格局加持不代表躺贏，沒格局也不代表不好 — 格局只是起點和趨勢。</div>';
+  formations.forEach(function(f) {
+    var typeColor = f.type === 'ji' ? '#4f4' : f.type === 'xiong' ? '#f55' : '#fc0';
+    var typeLabel = f.type === 'ji' ? '吉格' : f.type === 'xiong' ? '凶格' : '雙面格';
+    var typeEmoji = f.type === 'ji' ? '✨' : f.type === 'xiong' ? '⚠️' : '🔄';
+    html += '<div style="margin-bottom:8px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:6px;border-left:3px solid ' + typeColor + ';">';
+    html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">';
+    html += '<span style="font-size:.9rem;font-weight:700;">' + typeEmoji + ' ' + f.name + '</span>';
+    html += '<span style="font-size:.65rem;padding:1px 6px;border-radius:3px;background:' + typeColor + ';color:#111;font-weight:700;">' + typeLabel + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:.82rem;color:var(--text);line-height:1.6;">' + f.desc + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
 // === 渲染：方格圖 ===
 function renderZiwei(data) {
   const { lunar, mingPos, shenPos, ju, palaces } = data;
@@ -751,6 +1030,10 @@ function renderZiwei(data) {
   };
   const shenInterp = SHEN_GONG_INTERP[shenPalaceName] || '';
 
+  // 格局判斷
+  const formations = detectFormations(palaces, data.sihua, mingPos);
+  const formationsHtml = renderFormations(formations);
+
   return `
     <div class="sig">
       <div class="kin">紫微斗數命盤</div>
@@ -759,13 +1042,14 @@ function renderZiwei(data) {
         農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]} · 身宮在${BRANCHES[shenPos]}（${shenPalaceName}）
       </div>
     </div>
+    ${formationsHtml}
     <div style="margin:10px 0;padding:10px 12px;background:rgba(238,153,170,.08);border-radius:8px;border-left:3px solid #e9a;font-size:.85rem;line-height:1.7;">
       <b style="color:#e9a;">🏠 身宮在${shenPalaceName}</b>
       <div style="margin-top:4px;color:var(--muted);font-size:.82rem;">命宮 = 天生的你；身宮 = 後天發展的重心，你這輩子最花心力的地方。</div>
       <div style="margin-top:6px;">${shenInterp}</div>
     </div>
     ${renderLifeStory(palaces, data.sihua, shenPalaceName)}
-    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
+    <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含三方四正完整格局分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
     ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng, data.boshi)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
