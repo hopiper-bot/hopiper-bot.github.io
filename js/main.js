@@ -193,7 +193,7 @@ function restoreCachedResults() {
       }
     });
 
-    // 重新計算紫微以設定 window._zwData（cache 只存 HTML，不含互動 runtime data）
+    // 重新計算各引擎 runtime data（cache 只存 HTML，不含互動所需的 runtime state）
     try {
       const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
       if (saved && saved.year && saved.month && saved.day) {
@@ -202,10 +202,19 @@ function restoreCachedResults() {
           hour: saved.hour || 12, minute: saved.minute || 0,
           gender: saved.gender || 'female',
         };
-        // 紫微 — 重跑 calculate 設定 window._zwData，讓點擊解說可以運作
-        try { ziweiEngine.calculate(birthData); } catch(e) { console.warn('[cache-restore] ziwei re-calc failed:', e); }
+        // 重跑各引擎設定 runtime state（紫微點擊解說 + 流年年份切換）
+        const reResults = {};
+        try { reResults.ziwei = ziweiEngine.calculate(birthData); } catch(e) { console.warn('[cache-restore] ziwei re-calc failed:', e); }
+        try { reResults.bazi = baziEngine.calculate(birthData); } catch(e) {}
+        try { reResults.hd = hdEngine.calculate(birthData); } catch(e) {}
+        try { reResults.astro = astroEngine.calculate(birthData); } catch(e) {}
+        try { reResults.maya = mayaEngine.calculate(birthData); } catch(e) {}
+        try { transitEngine.calculate(reResults); } catch(e) { console.warn('[cache-restore] transit re-calc failed:', e); }
       }
     } catch(e) { console.warn('[cache-restore] re-calc failed:', e); }
+
+    // 綁定流年年份切換按鈕
+    try { transitEngine.attachYearSwitcher(); } catch(e) {}
 
     ui.switchTab('maya');
 
