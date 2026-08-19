@@ -1414,7 +1414,7 @@ function renderDaxian(daxian, birthYear) {
   const now = new Date().getFullYear();
   const currentAge = now - birthYear;
 
-  // 年齡段情境補充（只對童年做提示，其他不預設人生劇本）
+  // 年齡段情境補充（童年 + 老年做語境調整，中間不預設人生劇本）
   function ageContext(age, palaceName) {
     if (age <= 11) {
       const childNotes = {
@@ -1432,6 +1432,23 @@ function renderDaxian(daxian, birthYear) {
         "父母": "（童年）跟父母最親密的時期。",
       };
       return childNotes[palaceName] || '';
+    }
+    if (age >= 65) {
+      const seniorNotes = {
+        "命宮": "（熟齡）人生智慧圓融期，自在做自己。",
+        "兄弟": "（熟齡）老友相伴，重質不重量的交情。",
+        "夫妻": "（熟齡）伴侶是最重要的支持，相伴的深度勝過激情。",
+        "子女": "（熟齡）享受含飴弄孫、看著後代成長的滿足。",
+        "財帛": "（熟齡）財務以穩健保守為主，重點在安心無虞。",
+        "疾厄": "（熟齡）保養身體是第一要務，定期檢查、養生為主。",
+        "遷移": "（熟齡）適合輕旅行、散心，環境舒適比刺激重要。",
+        "交友": "（熟齡）社交圈精簡但溫暖，志同道合的老友最珍貴。",
+        "事業": "（熟齡）不再是拼績效，而是傳承經驗、發揮影響力的階段。",
+        "田宅": "（熟齡）居住舒適度是關鍵，安穩的家是最大幸福。",
+        "福德": "（熟齡）內心平靜、知足常樂，人生真正享福的時期。",
+        "父母": "（熟齡）自己成為被尊敬的長輩，智慧傳承給後代。",
+      };
+      return seniorNotes[palaceName] || '';
     }
     return '';
   }
@@ -1452,19 +1469,21 @@ function renderDaxian(daxian, birthYear) {
       const starStr = d.main.length > 0 ? d.main.map(s=>s.name).join('、') : '無主星';
 
       // 解讀
-      const palaceInterp = DAXIAN_INTERP[d.palaceName] || '';
+      const palaceInterpRaw = DAXIAN_INTERP[d.palaceName] || '';
       const starInterp = d.main.length > 0 
         ? d.main.map(s => DAXIAN_STAR_BOOST[s.name] || '').filter(x=>x).join(' ')
         : '此限無主星坐守，受對宮和鄰宮星力影響，性格表現較隨環境變化。';
       const ageNote = ageContext(d.age, d.palaceName);
+      // 有年齡情境註解時，用它取代通用宮位解讀（避免老年還說「衝刺職涯」）
+      const palaceInterp = ageNote || palaceInterpRaw;
 
       let interpBlock;
       if (isCurrent) {
-        interpBlock = `<div style="margin-top:6px;padding:8px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.7;color:var(--text);">${ageNote ? '<div style="color:var(--accent);margin-bottom:4px;">📌 ' + ageNote + '</div>' : ''}${palaceInterp}<br>${starInterp}</div>`;
+        interpBlock = `<div style="margin-top:6px;padding:8px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.7;color:var(--text);"><div style="color:var(--accent);margin-bottom:4px;">📌 ${palaceInterp}</div>${starInterp}</div>`;
       } else if (isPast) {
-        interpBlock = `<div style="margin-top:4px;font-size:.75rem;color:var(--muted);line-height:1.5;opacity:0.7;">${ageNote ? ageNote + ' ' : ''}${palaceInterp}</div>`;
+        interpBlock = `<div style="margin-top:4px;font-size:.75rem;color:var(--muted);line-height:1.5;opacity:0.7;">${palaceInterp}</div>`;
       } else {
-        interpBlock = `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.6;">${ageNote ? '<span style="color:var(--accent2);">' + ageNote + '</span> ' : ''}${palaceInterp} ${starInterp}</div>`;
+        interpBlock = `<div style="margin-top:4px;font-size:.78rem;color:var(--muted);line-height:1.6;">${ageNote ? '<span style="color:var(--accent2);">' + palaceInterp + '</span> ' : palaceInterp + ' '}${starInterp}</div>`;
       }
 
       return `<div style="padding:8px 10px;margin:4px 0;border-radius:6px;${hl}${isPast?'opacity:0.75;':''}">
