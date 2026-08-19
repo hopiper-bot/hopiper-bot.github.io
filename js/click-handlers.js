@@ -102,35 +102,100 @@ document.addEventListener('click', function(e) {
 
   var summary = generateSummary(p, pos, oppP, d);
 
-  // === 產生「人設一句話」 ===
-  function getPersonaLine(palace, data) {
-    // 優先用 starInPalace 的第一句話作為 persona
-    if (palace.main.length > 0) {
-      var mainNames = palace.main.map(function(s){ return s.name; });
-      // 嘗試雙星組合
-      if (palace.main.length >= 2) {
-        var k1 = palace.main[0].name + '+' + palace.main[1].name;
-        var k2 = palace.main[1].name + '+' + palace.main[0].name;
-        var combo = data.starCombos[k1] || data.starCombos[k2];
-        if (combo) {
-          var dashIdx = combo.indexOf('：');
-          if (dashIdx > 0) return combo.substring(dashIdx + 1).split('。')[0] + '。';
+  // === 產生「綜合敘述」（不重複第二層的逐星解讀） ===
+  function generateNarrative(palace, pos, data, summary, oppP) {
+    var parts = [];
+
+    // 主星人設標籤（用 STAR_PERSONA 對照表，不抄 starInfo）
+    var STAR_PERSONA = {
+      '紫微': '帝王星 — 天生有領袖氣場，做事大器但自尊心高',
+      '天機': '軍師星 — 聰明善謀、反應快，但想太多容易猶豫',
+      '太陽': '光明星 — 熱心博愛、愛面子，適合站在台前發光',
+      '武曲': '財星 — 務實果斷、執行力強，做事不囉嗦',
+      '天同': '福星 — 溫和好相處，但容易安逸、缺乏衝勁',
+      '廉貞': '桃花殺星 — 有野心有魅力，在高壓環境如魚得水',
+      '天府': '庫星 — 穩重保守、守成有餘，適合管錢管人',
+      '太陰': '月亮星 — 細膩敏感、有藝術天份，內心世界豐富',
+      '貪狼': '慾望星 — 多才多藝、興趣廣泛，桃花旺但不專一',
+      '巨門': '暗星 — 口才犀利、分析力強，說話容易得罪人',
+      '天相': '印星 — 斯文有禮、善於協調，適合輔佐角色',
+      '天梁': '蔭星 — 正派有威望、逢凶化吉，適合專業路線',
+      '七殺': '將星 — 有魄力有衝勁，獨當一面但不服管',
+      '破軍': '破壞星 — 敢打破現狀，前半生折騰後半生穩定'
+    };
+
+    // 第一句：主星人設
+    if (palace.main.length >= 2) {
+      var k1 = palace.main[0].name + '+' + palace.main[1].name;
+      var k2 = palace.main[1].name + '+' + palace.main[0].name;
+      var combo = data.starCombos[k1] || data.starCombos[k2];
+      if (combo) {
+        // 取組合的「冒號後第一句」作為人設
+        var colonIdx = combo.indexOf('：');
+        if (colonIdx > 0) {
+          var comboDesc = combo.substring(colonIdx + 1);
+          var sentences = comboDesc.split('。').filter(function(s){ return s.trim().length > 0; });
+          parts.push(sentences[0] + '。');
+          if (sentences.length > 1) parts.push(sentences[1] + '。');
         }
+      } else {
+        // 沒有組合資料，用兩顆星的 persona 拼
+        parts.push(palace.main.map(function(s){ return (STAR_PERSONA[s.name] || s.name); }).join('；') + '。');
       }
-      // 單星：取 starInPalace 或 starInfo 的第一句
-      var s = palace.main[0];
-      var interpKey = s.name + '_' + palace.name;
-      var interp = (data.starInPalace && data.starInPalace[interpKey]) || data.starInfo[s.name] || '';
-      if (interp) {
-        var firstSentence = interp.split('。')[0];
-        return firstSentence + '。';
-      }
-      return mainNames.join('、') + '坐守此宮。';
+    } else if (palace.main.length === 1) {
+      var persona = STAR_PERSONA[palace.main[0].name];
+      if (persona) parts.push(persona + '。');
+    } else {
+      parts.push('此宮無主星，個性上比較隨環境而變，彈性大但方向感較弱。');
     }
-    return '此宮無主星，借對宮星力，隨環境而變。';
+
+    // 第二句：亮度評價
+    if (palace.main.length > 0) {
+      var brightParts = [];
+      palace.main.forEach(function(s) {
+        if (s.brightness === '廟') brightParts.push(s.name + '在最強位置（廟），能量全開');
+        else if (s.brightness === '旺') brightParts.push(s.name + '狀態不錯（旺），發揮順暢');
+        else if (s.brightness === '陷') brightParts.push(s.name + '力量偏弱（陷），特質容易走偏或被壓抑');
+      });
+      if (brightParts.length > 0) parts.push(brightParts.join('；') + '。');
+    }
+
+    // 第三句：四化加味
+    var sihuaHere = data.sihuaPalaces[palace.name];
+    if (sihuaHere && sihuaHere.length > 0) {
+      var huaParts = [];
+      sihuaHere.forEach(function(item) {
+        var type = item.charAt(0);
+        if (type === '祿') huaParts.push('化祿加持，這方面容易有好運和資源');
+        else if (type === '權') huaParts.push('化權加持，掌控力強、容易當家作主');
+        else if (type === '科') huaParts.push('化科加持，有貴人看見、名聲好');
+        else if (type === '忌') huaParts.push('化忌提醒，這方面是今生功課，越經營越好');
+      });
+      parts.push(huaParts.join('。') + '。');
+    }
+
+    // 第四句：吉煞星影響（如果有顯著的）
+    var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
+    var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
+    var jiHere = []; var shaHere = [];
+    palace.minor.forEach(function(s) {
+      if (jiStars.indexOf(s) >= 0) jiHere.push(s);
+      else if (shaStars.indexOf(s) >= 0) shaHere.push(s);
+    });
+    var auxParts = [];
+    if (jiHere.length > 0) auxParts.push('有 ' + jiHere.join('、') + ' 助陣，貴人運和才華加分');
+    if (shaHere.length > 0) auxParts.push('但 ' + shaHere.join('、') + ' 同宮，個性上容易衝動或遇阻力');
+    if (auxParts.length > 0) parts.push(auxParts.join('；') + '。');
+
+    // 第五句：對宮補充（如果本宮無主星或對宮很強）
+    if (palace.main.length === 0 && oppP && oppP.main.length > 0) {
+      parts.push('借對宮 ' + oppP.main.map(function(s){return s.name;}).join('、') + ' 的能量，受對面影響大。');
+    }
+
+    return parts.join('');
   }
 
-  var personaLine = getPersonaLine(p, d);
+  var narrativeText = generateNarrative(p, pos, d, summary, oppP);
 
   // ============================
   // 開始組裝 HTML — 新版分層結構
@@ -151,23 +216,27 @@ document.addEventListener('click', function(e) {
   html += '</div>';
   // 宮位一句話定位
   html += '<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">' + (d.palaceInfo[p.name]||'') + '</div>';
-  // 人設結論（大字）
-  html += '<div style="font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.6;">' + summary.emoji + ' ' + personaLine + '</div>';
+  // 綜合敘述（多句段落，跟第二層的逐星解讀不重複）
+  html += '<div style="font-size:.9rem;color:var(--text);margin-bottom:8px;line-height:1.7;padding:10px 12px;background:rgba(245,197,66,.06);border-radius:8px;border-left:4px solid ' + summary.color + ';">';
+  html += '<div style="font-weight:700;margin-bottom:4px;">' + summary.emoji + ' 白話總結</div>';
+  html += narrativeText;
+  html += '</div>';
   // 評分理由（條列，但簡短）
-  html += '<div style="padding:8px 10px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid ' + summary.color + ';">';
+  html += '<div style="padding:6px 10px;background:var(--input-bg);border-radius:6px;font-size:.78rem;">';
   if (summary.good.length > 0) {
-    html += '<div style="font-size:.8rem;color:#4f4;margin-bottom:3px;">';
+    html += '<span style="color:#4f4;">';
     summary.good.forEach(function(g, i) {
       html += (i > 0 ? '｜' : '▲ ') + g.text;
     });
-    html += '</div>';
+    html += '</span>';
   }
+  if (summary.good.length > 0 && summary.bad.length > 0) html += '<br>';
   if (summary.bad.length > 0) {
-    html += '<div style="font-size:.8rem;color:#f84;">';
+    html += '<span style="color:#f84;">';
     summary.bad.forEach(function(b, i) {
       html += (i > 0 ? '｜' : '▼ ') + b.text;
     });
-    html += '</div>';
+    html += '</span>';
   }
   html += '</div>';
   html += '</div>';
