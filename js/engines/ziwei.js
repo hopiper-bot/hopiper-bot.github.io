@@ -19,6 +19,11 @@ function getMingGong(lunarMonth, hourBranch) {
   return (2 + lunarMonth - 1 - hourBranch + 12) % 12;
 }
 
+// === 身宮定位 ===
+function getShenGong(lunarMonth, hourBranch) {
+  return (2 + lunarMonth - 1 + hourBranch) % 12;
+}
+
 // === 五行局（納音查表）===
 function getWuxingJu(yearStemIdx, mingGongPos) {
   const startStemMap = [2, 4, 6, 8, 0];
@@ -626,6 +631,7 @@ export function calculate(birthData) {
 
     const hourBranch = hourToBranch(hour);
     const mingPos = getMingGong(lunarMonthForCalc, hourBranch);
+    const shenPos = getShenGong(lunarMonthForCalc, hourBranch);
     const ju = getWuxingJu(lunar.yearStemIdx, mingPos);
     const ziweiPos = getZiweiPos(ju.num, lunar.lunarDay);
     const mainStars = placeMainStars(ziweiPos);
@@ -651,7 +657,7 @@ export function calculate(birthData) {
       });
     }
 
-    const data = { lunar, mingPos, ju, palaces, gender, sihua, year };
+    const data = { lunar, mingPos, shenPos, ju, palaces, gender, sihua, year };
 
     // 大限計算
     const isMale = (gender !== 'female');
@@ -677,8 +683,12 @@ export function calculate(birthData) {
 
 // === 渲染：方格圖 ===
 function renderZiwei(data) {
-  const { lunar, mingPos, ju, palaces } = data;
+  const { lunar, mingPos, shenPos, ju, palaces } = data;
   const mingStars = palaces[0].main;
+
+  // 找出身宮名稱（身宮落在哪個十二宮）
+  const shenPalace = palaces.find(p => p.pos === shenPos);
+  const shenPalaceName = shenPalace ? shenPalace.name : '';
 
   // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
   try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
@@ -688,11 +698,11 @@ function renderZiwei(data) {
       <div class="kin">紫微斗數命盤</div>
       <div class="big">${mingStars.length > 0 ? mingStars.map(s=>s.name).join(' ') + ' 坐命' : '命宮無主星'}</div>
       <div style="font-size:.85rem;color:var(--muted);margin-top:6px;">
-        農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]}
+        農曆 ${lunar.lunarYear}年${lunar.isLeap?'閏':''}${lunar.lunarMonth}月${lunar.lunarDay}日 · ${ju.name} · 命宮在${BRANCHES[mingPos]} · 身宮在${BRANCHES[shenPos]}（${shenPalaceName}）
       </div>
     </div>
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
-    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear)}
+    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
@@ -707,7 +717,7 @@ function renderZiwei(data) {
   `;
 }
 
-function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
+function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos) {
   // 標準紫微盤方格：4x4，地支位置固定
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
@@ -724,9 +734,10 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
     const p = posMap[branchIdx];
     if (!p) return `<div style="padding:6px;background:var(--input-bg);border:1px solid var(--card-border);border-radius:4px;min-height:60px;"></div>`;
     const isMing = p.name === "命宮";
+    const isShen = (branchIdx === shenPos);
     const dx = daxianMap[branchIdx];
     const isDxCurrent = dx && (currentAge >= dx.age && currentAge <= dx.ageEnd);
-    const border = isMing ? 'border:2px solid var(--accent);' : isDxCurrent ? 'border:2px solid var(--accent2);' : 'border:1px solid var(--card-border);';
+    const border = isMing ? 'border:2px solid var(--accent);' : isShen ? 'border:2px solid #e9a;' : isDxCurrent ? 'border:2px solid var(--accent2);' : 'border:1px solid var(--card-border);';
     const mainStr = p.main.length > 0 ? `<div style="font-weight:700;font-size:.8rem;${isMing?'color:var(--accent);':''}">${p.main.map(s=>{
       let hua='';
       if(s.name===sihua.lu) hua='<span style=\"color:#4f4;font-size:.55rem;\">祿</span>';
@@ -743,7 +754,8 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear) {
       else if(s===sihua.ji) hua='<span style=\"color:#f55;font-size:.55rem;\">忌</span>';
       return s+hua;
     }).join(' ')}</div>` : '';
-    const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}</div>`;
+    const shenLabel = isShen ? '<span style="color:#e9a;font-weight:700;margin-left:4px;">身</span>' : '';
+    const palaceLabel = `<div style="font-size:.6rem;color:var(--muted);margin-bottom:2px;">${p.name}${shenLabel}</div>`;
     let dxLabel = '';
     if (dx) {
       const dxColor = isDxCurrent ? 'color:var(--accent);font-weight:700;' : 'color:var(--muted);';
