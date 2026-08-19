@@ -568,6 +568,22 @@ const PALACE_ROLE = {
 // === 長生十二宮 ===
 const CHANGSHENG_NAMES = ['長生','沐浴','冠帶','臨官','帝旺','衰','病','死','墓','絕','胎','養'];
 
+// === 博士十二神 ===
+// 從祿存位置起「博士」，陽男陰女順行，陰男陽女逆行
+const BOSHI_NAMES = ["博士","力士","青龍","小耗","將軍","奏書","飛廉","喜神","病符","大耗","伏兵","官府"];
+
+function calculateBoshi(yearStemIdx, isForward) {
+  // 祿存位置 = 博士起點
+  const luPos = [2,3,5,6,5,6,8,9,11,0]; // 甲~癸的祿位
+  const start = luPos[yearStemIdx];
+  const result = {};
+  for (let i = 0; i < 12; i++) {
+    const pos = isForward ? (start + i) % 12 : (start - i + 12) % 12;
+    result[pos] = BOSHI_NAMES[i];
+  }
+  return result;
+}
+
 // 五行局 → 長生起始地支位置
 // 水二局長生在申(8)，木三局長生在亥(11)，金四局長生在巳(5)，土五局長生在申(8)，火六局長生在寅(2)
 const CHANGSHENG_START = { 2:8, 3:11, 4:5, 5:8, 6:2 };
@@ -686,6 +702,10 @@ export function calculate(birthData) {
     const changsheng = calculateChangsheng(ju.num, isForward);
     data.changsheng = changsheng;
 
+    // 博士十二神
+    const boshi = calculateBoshi(lunar.yearStemIdx, isForward);
+    data.boshi = boshi;
+
     // 流年計算
     const currentYear = new Date().getFullYear();
     const liunian = calculateLiunian(currentYear, mingPos);
@@ -712,7 +732,7 @@ function renderZiwei(data) {
   const shenPalaceName = shenPalace ? shenPalace.name : '';
 
   // 註冊全域點擊函數（解決 innerHTML 內 script 不執行的問題）
-  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear, data.changsheng, shenPos); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
+  try { registerGlobalClickHandler(palaces, data.sihua, data.daxian, data.birthYear, data.changsheng, shenPos, data.boshi); } catch(e) { console.error('registerGlobalClickHandler error:', e); }
 
   // 身宮落各宮的解讀
   const SHEN_GONG_INTERP = {
@@ -745,7 +765,7 @@ function renderZiwei(data) {
       <div style="margin-top:6px;">${shenInterp}</div>
     </div>
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
-    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng)}
+    ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng, data.boshi)}
     <div id="zw-detail" style="margin-top:12px;"></div>
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
@@ -760,7 +780,7 @@ function renderZiwei(data) {
   `;
 }
 
-function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, changsheng) {
+function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, changsheng, boshi) {
   // 標準紫微盤方格：4x4，地支位置固定
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
@@ -808,11 +828,15 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, chang
     const csLabel = changsheng && changsheng[branchIdx] ? changsheng[branchIdx] : '';
     const csEmoji = {'長生':'🌱','沐浴':'🛁','冠帶':'👔','臨官':'📈','帝旺':'🔥','衰':'🍂','病':'🤒','死':'💀','墓':'💰','絕':'⚡','胎':'🥒','養':'🌤️'};
     const csDisplay = csLabel ? '<span style="color:#9cb;">' + (csEmoji[csLabel]||'') + csLabel + '</span> ' : '';
+    const bsLabel = boshi && boshi[branchIdx] ? boshi[branchIdx] : '';
+    const bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
+    const bsColor = bsJi.includes(bsLabel) ? '#f77' : '#ad8';
+    const bsDisplay = bsLabel ? `<span style="font-size:.55rem;color:${bsColor};">${bsLabel}</span>` : '';
     return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}
-        <div style="font-size:.55rem;color:var(--muted);">${csDisplay}${BRANCHES[branchIdx]}</div>
+        <div style="font-size:.55rem;color:var(--muted);">${bsDisplay} ${csDisplay}${BRANCHES[branchIdx]}</div>
       </div>
     </div>`;
   }
@@ -899,7 +923,7 @@ const SIHUA_PALACE_INTERP = {
 };
 
 // === 註冊全域點擊處理器 ===
-function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changsheng, shenPos) {
+function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changsheng, shenPos, boshi) {
   const posMap = {};
   palaces.forEach(p => { posMap[p.pos] = p; });
 
@@ -933,6 +957,7 @@ function registerGlobalClickHandler(palaces, sihua, daxian, birthYear, changshen
       sihuaPalaceInterp: SIHUA_PALACE_INTERP,
       branches: BRANCHES,
       changsheng: changsheng || {},
+      boshi: boshi || {},
       shenPos: shenPos,
     };
   }

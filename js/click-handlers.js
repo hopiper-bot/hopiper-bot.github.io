@@ -147,6 +147,35 @@ document.addEventListener('click', function(e) {
     }
   }
 
+  // 博士十二神
+  if (d.boshi && d.boshi[pos]) {
+    var bsName = d.boshi[pos];
+    var bsInterp = {
+      '博士': { emoji:'🎓', tldr:'聰明有學問', desc:'此宮帶學識、文雅氣質。代表這方面的事務有智慧加持，適合靠腦袋和專業來發展。' },
+      '力士': { emoji:'💪', tldr:'有力有氣魄', desc:'此宮有力士助陣，代表有行動力、有貴人撐腰。做事有魄力、能推動。' },
+      '青龍': { emoji:'🐉', tldr:'大吉！喜慶順遂', desc:'青龍為十二神中最吉。此宮事務有喜事臨門、逢凶化吉的格局。動則有利。' },
+      '小耗': { emoji:'💸', tldr:'小花費、小損耗', desc:'不是大破，但這方面容易有些小開銷或小麻煩。不影響大局，留意就好。' },
+      '將軍': { emoji:'⚔️', tldr:'有威嚴、有衝勁', desc:'將軍主果斷、主威。此宮做事有氣勢但也容易衝動。適合開創，不適合靜守。' },
+      '奏書': { emoji:'📜', tldr:'文書利達、有才華', desc:'主文書、考試、證照。此宮事務適合走文路、靠專業資格出頭。申請和考試有利。' },
+      '飛廉': { emoji:'🌪️', tldr:'是非口舌、小人干擾', desc:'飛廉為煞神。此宮事務容易遇到非議、嫉妒或突發干擾。低調為宜，少惹事。' },
+      '喜神': { emoji:'🎉', tldr:'喜氣洋洋、好事發生', desc:'此宮有喜事加持。感情宮遇到有桃花喜訊，財帛宮遇到有意外之財，整體是好事。' },
+      '病符': { emoji:'🤧', tldr:'健康注意、事情拖延', desc:'此宮事務容易停滯或出狀況。不是不行，但需要耐心和注意細節。疾厄宮遇到要特別注意保養。' },
+      '大耗': { emoji:'💰', tldr:'大破財、大損耗', desc:'大耗為凶星。此宮事務容易有較大的損失或意外開銷。投資和花錢要特別小心。' },
+      '伏兵': { emoji:'🥷', tldr:'暗中有阻礙', desc:'表面平靜但暗藏問題。此宮事務容易有看不見的障礙或對手。做事前多調查、多防範。' },
+      '官府': { emoji:'⚖️', tldr:'官非糾紛、法律注意', desc:'官府主訴訟、糾紛。此宮事務容易牽涉到規則、制度或法律問題。凡事按規矩來。' }
+    };
+    var bs = bsInterp[bsName];
+    if (bs) {
+      var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
+      var bsColorStyle = bsJi.indexOf(bsName) >= 0 ? '#f77' : '#ad8';
+      html += '<div style="margin-top:10px;padding:10px;background:rgba(173,216,136,.08);border-radius:6px;border-left:3px solid ' + bsColorStyle + ';">';
+      html += '<div style="color:' + bsColorStyle + ';font-weight:700;margin-bottom:4px;">' + bs.emoji + ' 博士十二神：' + bsName + '</div>';
+      html += '<div style="font-size:.82rem;color:var(--accent);margin-bottom:4px;">👉 一句話：' + bs.tldr + '</div>';
+      html += '<div style="font-size:.82rem;color:var(--muted);line-height:1.6;">' + bs.desc + '</div>';
+      html += '</div>';
+    }
+  }
+
   // 對宮
   html += '<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--card-border);">';
   html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:4px;">\u{1F504} \u5C0D\u5BAE\uFF1A' + (oppP?oppP.name:'') + '\uFF08' + d.branches[oppositePos] + '\u5BAE\uFF09</div>';
