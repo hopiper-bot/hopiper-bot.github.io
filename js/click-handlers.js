@@ -57,109 +57,286 @@ document.addEventListener('click', function(e) {
   var oppositePos = (pos + 6) % 12;
   var oppP = d.posMap[oppositePos];
 
-  // === 白話總結邏輯 ===
+  // === 評分邏輯（不變，但結果用法不同） ===
   function generateSummary(palace, pos, oppPalace, data) {
-    var points = []; // { score: +1/-1, text: '...' }
-
-    // 主星亮度評估
+    var points = [];
     palace.main.forEach(function(s) {
-      if (s.brightness === '廟' || s.brightness === '旺') {
-        points.push({ score: 1, text: s.name + '（' + s.brightness + '）加持' });
-      } else if (s.brightness === '陷') {
-        points.push({ score: -1, text: s.name + '（陷）力量不足' });
-      }
+      if (s.brightness === '廟' || s.brightness === '旺') points.push({ score: 1, text: s.name + '（' + s.brightness + '）加持', tag: 'star' });
+      else if (s.brightness === '陷') points.push({ score: -1, text: s.name + '（陷）力量不足', tag: 'star' });
     });
-
-    // 四化影響
     var sihuaHere = data.sihuaPalaces[palace.name];
     if (sihuaHere) {
       sihuaHere.forEach(function(item) {
         var type = item.charAt(0);
-        if (type === '祿') points.push({ score: 1, text: '化祿加持（順利有資源）' });
-        else if (type === '權') points.push({ score: 1, text: '化權加持（有掌控力）' });
-        else if (type === '科') points.push({ score: 1, text: '化科加持（有貴人名聲）' });
-        else if (type === '忌') points.push({ score: -1, text: '化忌提醒（需多經營）' });
+        if (type === '祿') points.push({ score: 1, text: '化祿（順利有資源）', tag: 'sihua' });
+        else if (type === '權') points.push({ score: 1, text: '化權（有掌控力）', tag: 'sihua' });
+        else if (type === '科') points.push({ score: 1, text: '化科（有貴人名聲）', tag: 'sihua' });
+        else if (type === '忌') points.push({ score: -1, text: '化忌（需多經營）', tag: 'sihua' });
       });
     }
-
-    // 長生十二宮
     var csGood = ['長生','冠帶','臨官','帝旺'];
     var csBad = ['衰','病','死','絕'];
     var csName = data.changsheng && data.changsheng[pos];
     if (csName) {
-      if (csGood.indexOf(csName) >= 0) points.push({ score: 1, text: '長生位「' + csName + '」能量旺' });
-      else if (csBad.indexOf(csName) >= 0) points.push({ score: -1, text: '長生位「' + csName + '」能量弱' });
+      if (csGood.indexOf(csName) >= 0) points.push({ score: 1, text: '長生位「' + csName + '」能量旺', tag: 'cs' });
+      else if (csBad.indexOf(csName) >= 0) points.push({ score: -1, text: '長生位「' + csName + '」能量弱', tag: 'cs' });
     }
-
-    // 博士十二神
     var bsGood = ['博士','力士','青龍','將軍','奏書','喜神'];
     var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
     var bsName = data.boshi && data.boshi[pos];
     if (bsName) {
-      if (bsGood.indexOf(bsName) >= 0) points.push({ score: 1, text: '博士神「' + bsName + '」吉利' });
-      else if (bsJi.indexOf(bsName) >= 0) points.push({ score: -1, text: '博士神「' + bsName + '」要留意' });
+      if (bsGood.indexOf(bsName) >= 0) points.push({ score: 1, text: '博士神「' + bsName + '」吉利', tag: 'bs' });
+      else if (bsJi.indexOf(bsName) >= 0) points.push({ score: -1, text: '博士神「' + bsName + '」要留意', tag: 'bs' });
     }
-
-    // 無主星
-    if (palace.main.length === 0) {
-      points.push({ score: -1, text: '無主星，受外在影響大' });
-    }
-
-    // 計算總分
+    if (palace.main.length === 0) points.push({ score: -1, text: '無主星，受外在影響大', tag: 'star' });
     var totalScore = 0;
     points.forEach(function(pt) { totalScore += pt.score; });
-
-    // 產生總結文字
     var good = points.filter(function(pt) { return pt.score > 0; });
     var bad = points.filter(function(pt) { return pt.score < 0; });
-
-    var summaryText = '';
-    var summaryColor = '';
-    var summaryEmoji = '';
-
-    if (totalScore >= 2) {
-      summaryEmoji = '🟢';
-      summaryColor = '#4f4';
-      summaryText = '整體很好！';
-      if (good.length > 0) summaryText += good.map(function(g){return g.text;}).join('、') + '。';
-      if (bad.length > 0) summaryText += '小提醒：' + bad.map(function(b){return b.text;}).join('、') + '。';
-    } else if (totalScore >= 0) {
-      summaryEmoji = '🟡';
-      summaryColor = '#fc0';
-      summaryText = '中等偏好。';
-      if (good.length > 0) summaryText += '利：' + good.map(function(g){return g.text;}).join('、') + '。';
-      if (bad.length > 0) summaryText += '注意：' + bad.map(function(b){return b.text;}).join('、') + '。';
-    } else {
-      summaryEmoji = '🟠';
-      summaryColor = '#f84';
-      summaryText = '挑戰較多，需要多花心力。';
-      if (bad.length > 0) summaryText += bad.map(function(b){return b.text;}).join('、') + '。';
-      if (good.length > 0) summaryText += '但有亮點：' + good.map(function(g){return g.text;}).join('、') + '。';
-    }
-
-    return { emoji: summaryEmoji, color: summaryColor, text: summaryText };
+    var summaryColor, summaryEmoji, summaryLevel;
+    if (totalScore >= 2) { summaryEmoji = '🟢'; summaryColor = '#4f4'; summaryLevel = 'great'; }
+    else if (totalScore >= 0) { summaryEmoji = '🟡'; summaryColor = '#fc0'; summaryLevel = 'ok'; }
+    else { summaryEmoji = '🟠'; summaryColor = '#f84'; summaryLevel = 'challenge'; }
+    return { emoji: summaryEmoji, color: summaryColor, level: summaryLevel, good: good, bad: bad, totalScore: totalScore };
   }
 
   var summary = generateSummary(p, pos, oppP, d);
 
-  var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-
-  // 本宮標題
-  html += '<div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px;">\u{1F4CD} ' + p.name + '\uFF08' + p.branch + '\u5BAE\uFF09</div>';
-  html += '<div style="color:var(--muted);margin-bottom:4px;">' + (d.palaceInfo[p.name]||'') + '</div>';
-
-  // ★ 白話總結區塊（最醒目的位置）
-  html += '<div style="margin:8px 0 12px;padding:10px 12px;background:rgba(245,197,66,.1);border-radius:8px;border-left:4px solid ' + summary.color + ';">';
-  html += '<div style="font-size:.9rem;font-weight:700;margin-bottom:2px;">' + summary.emoji + ' 白話總結</div>';
-  html += '<div style="font-size:.83rem;line-height:1.6;color:var(--text);">' + summary.text + '</div>';
-  html += '</div>';
-
-  // 宮位角色定位
-  if (d.palaceRole && d.palaceRole[p.name]) {
-    html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
+  // === 產生「人設一句話」 ===
+  function getPersonaLine(palace, data) {
+    // 優先用 starInPalace 的第一句話作為 persona
+    if (palace.main.length > 0) {
+      var mainNames = palace.main.map(function(s){ return s.name; });
+      // 嘗試雙星組合
+      if (palace.main.length >= 2) {
+        var k1 = palace.main[0].name + '+' + palace.main[1].name;
+        var k2 = palace.main[1].name + '+' + palace.main[0].name;
+        var combo = data.starCombos[k1] || data.starCombos[k2];
+        if (combo) {
+          var dashIdx = combo.indexOf('：');
+          if (dashIdx > 0) return combo.substring(dashIdx + 1).split('。')[0] + '。';
+        }
+      }
+      // 單星：取 starInPalace 或 starInfo 的第一句
+      var s = palace.main[0];
+      var interpKey = s.name + '_' + palace.name;
+      var interp = (data.starInPalace && data.starInPalace[interpKey]) || data.starInfo[s.name] || '';
+      if (interp) {
+        var firstSentence = interp.split('。')[0];
+        return firstSentence + '。';
+      }
+      return mainNames.join('、') + '坐守此宮。';
+    }
+    return '此宮無主星，借對宮星力，隨環境而變。';
   }
 
-  // ★ 宮位關聯提示（告訴使用者相關宮位的連動關係）
+  var personaLine = getPersonaLine(p, d);
+
+  // ============================
+  // 開始組裝 HTML — 新版分層結構
+  // ============================
+  var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:10px;font-size:.85rem;line-height:1.8;">';
+
+  // ═══════════════════════════════════════
+  // 第一層：標題 + 人設結論 + 評分展開
+  // ═══════════════════════════════════════
+  html += '<div style="margin-bottom:12px;">';
+  // 標題行
+  html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">';
+  html += '<span style="font-size:1.1rem;font-weight:700;color:var(--accent);">' + p.name + '</span>';
+  html += '<span style="font-size:.8rem;color:var(--muted);">（' + p.branch + '宮）</span>';
+  if (d.shenPos !== undefined && pos === d.shenPos) {
+    html += '<span style="font-size:.72rem;padding:1px 6px;background:#e9a;color:#000;border-radius:3px;font-weight:600;">身宮</span>';
+  }
+  html += '</div>';
+  // 宮位一句話定位
+  html += '<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">' + (d.palaceInfo[p.name]||'') + '</div>';
+  // 人設結論（大字）
+  html += '<div style="font-size:.95rem;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.6;">' + summary.emoji + ' ' + personaLine + '</div>';
+  // 評分理由（條列，但簡短）
+  html += '<div style="padding:8px 10px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid ' + summary.color + ';">';
+  if (summary.good.length > 0) {
+    html += '<div style="font-size:.8rem;color:#4f4;margin-bottom:3px;">';
+    summary.good.forEach(function(g, i) {
+      html += (i > 0 ? '｜' : '▲ ') + g.text;
+    });
+    html += '</div>';
+  }
+  if (summary.bad.length > 0) {
+    html += '<div style="font-size:.8rem;color:#f84;">';
+    summary.bad.forEach(function(b, i) {
+      html += (i > 0 ? '｜' : '▼ ') + b.text;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  // ═══════════════════════════════════════
+  // 第二層：主星完整解讀 + 四化 + 吉煞星
+  // ═══════════════════════════════════════
+  html += '<div style="margin-bottom:12px;border-top:1px solid var(--card-border);padding-top:10px;">';
+
+  if (p.main.length > 0) {
+    p.main.forEach(function(s) {
+      var bColor = (s.brightness === '廟' || s.brightness === '旺') ? 'var(--accent)' : s.brightness === '陷' ? '#f55' : 'var(--muted)';
+      var interpKey = s.name + '_' + p.name;
+      var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
+      html += '<div style="margin-bottom:8px;padding:8px 10px;background:var(--input-bg);border-radius:6px;">';
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">';
+      html += '<span style="font-size:.92rem;font-weight:700;color:var(--accent);">' + s.name + '</span>';
+      html += '<span style="font-size:.72rem;padding:1px 5px;border-radius:3px;background:' + bColor + ';color:#fff;font-weight:600;">' + s.brightness + '</span>';
+      // 四化標記（如果這顆星有四化）
+      var sihuaHere2 = d.sihuaPalaces[p.name];
+      if (sihuaHere2) {
+        sihuaHere2.forEach(function(item) {
+          var starInItem = item.split('→')[1];
+          if (starInItem === s.name) {
+            var type = item.charAt(0);
+            var huaColor = type === '祿' ? '#4f4' : type === '權' ? '#f84' : type === '科' ? '#8cf' : type === '忌' ? '#f55' : 'var(--muted)';
+            html += '<span style="font-size:.7rem;padding:1px 4px;border-radius:3px;background:' + huaColor + ';color:#000;font-weight:700;">化' + type + '</span>';
+          }
+        });
+      }
+      html += '</div>';
+      html += '<div style="font-size:.82rem;color:var(--text);line-height:1.7;">' + interp + '</div>';
+      html += '</div>';
+    });
+    // 雙星組合
+    if (p.main.length >= 2) {
+      var key1 = p.main[0].name + '+' + p.main[1].name;
+      var key2 = p.main[1].name + '+' + p.main[0].name;
+      var combo = d.starCombos[key1] || d.starCombos[key2];
+      if (combo) {
+        html += '<div style="padding:8px 10px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);margin-bottom:8px;">';
+        html += '<div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:2px;">⚡ 組合效應</div>';
+        html += '<div style="font-size:.82rem;color:var(--text);line-height:1.6;">' + combo + '</div>';
+        html += '</div>';
+      }
+    }
+  } else {
+    html += '<div style="padding:8px 10px;background:var(--input-bg);border-radius:6px;color:var(--muted);font-size:.83rem;line-height:1.6;">此宮無主星 — 借對宮星力。你在這個面向比較「看情況」，受環境和對宮影響大。彈性是優點，但方向感較弱。</div>';
+  }
+
+  // 四化落此宮（獨立於主星卡片之外）
+  var sihuaHere = d.sihuaPalaces[p.name];
+  if (sihuaHere) {
+    html += '<div style="padding:8px 10px;background:rgba(123,108,246,.05);border-radius:6px;margin-bottom:8px;">';
+    html += '<div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:3px;" title="四化 = 祿權科忌，代表今生被激活的能量方向">🔮 此宮四化</div>';
+    sihuaHere.forEach(function(item) {
+      var type = item.charAt(0);
+      var interp = '';
+      if (type === '祿' && d.sihuaPalaceInterp['祿']) interp = d.sihuaPalaceInterp['祿'][p.name] || '';
+      if (type === '忌' && d.sihuaPalaceInterp['忌']) interp = d.sihuaPalaceInterp['忌'][p.name] || '';
+      var color = type === '祿' ? '#4f4' : type === '權' ? '#f84' : type === '科' ? '#8cf' : type === '忌' ? '#f55' : 'var(--text)';
+      html += '<div style="margin-bottom:3px;"><span style="color:' + color + ';font-weight:700;">' + item + '</span>';
+      if (interp) html += '<span style="font-size:.8rem;color:var(--muted);margin-left:6px;">' + interp + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // 吉星 / 煞星 — 用標籤+一句話形式（比舊版緊湊但資訊不少）
+  if (p.minor.length > 0) {
+    var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
+    var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
+    var jiList = []; var shaList = []; var otherList = [];
+    p.minor.forEach(function(s) {
+      if (jiStars.indexOf(s) >= 0) jiList.push(s);
+      else if (shaStars.indexOf(s) >= 0) shaList.push(s);
+      else otherList.push(s);
+    });
+    if (jiList.length > 0) {
+      html += '<div style="padding:6px 10px;background:rgba(79,255,79,.05);border-radius:6px;margin-bottom:4px;border-left:3px solid #4f4;">';
+      html += '<span style="font-size:.78rem;font-weight:700;color:#4f4;">✨ 吉星：</span>';
+      jiList.forEach(function(s, i) {
+        html += '<span style="font-size:.8rem;color:var(--text);">' + (i > 0 ? '、' : '') + s + '</span>';
+        var info = d.starInfo[s] || '';
+        if (info) {
+          var short = info.split('。')[0];
+          html += '<span style="font-size:.75rem;color:var(--muted);">（' + short + '）</span>';
+        }
+      });
+      html += '</div>';
+    }
+    if (shaList.length > 0) {
+      html += '<div style="padding:6px 10px;background:rgba(255,85,85,.05);border-radius:6px;margin-bottom:4px;border-left:3px solid #f55;">';
+      html += '<span style="font-size:.78rem;font-weight:700;color:#f55;">⚡ 煞星：</span>';
+      shaList.forEach(function(s, i) {
+        html += '<span style="font-size:.8rem;color:var(--text);">' + (i > 0 ? '、' : '') + s + '</span>';
+        var info = d.starInfo[s] || '';
+        if (info) {
+          var short = info.split('。')[0];
+          html += '<span style="font-size:.75rem;color:var(--muted);">（' + short + '）</span>';
+        }
+      });
+      html += '</div>';
+    }
+    if (otherList.length > 0) {
+      html += '<div style="padding:4px 10px;font-size:.78rem;color:var(--muted);">其他：' + otherList.join('、') + '</div>';
+    }
+  }
+  html += '</div>';
+
+  // ═══════════════════════════════════════
+  // 第三層：三方四正 — 表格式（緊湊）
+  // ═══════════════════════════════════════
+  var sanhePos1 = (pos + 4) % 12;
+  var sanhePos2 = (pos + 8) % 12;
+  var sanheP1 = d.posMap[sanhePos1];
+  var sanheP2 = d.posMap[sanhePos2];
+
+  html += '<div style="margin-bottom:12px;border-top:1px solid var(--card-border);padding-top:10px;">';
+  html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
+  html += '<span style="font-size:.88rem;font-weight:700;color:var(--accent2);">🔮 三方四正</span>';
+  html += '<span style="font-size:.7rem;color:var(--muted);cursor:help;" title="三方四正 = 本宮 + 對宮 + 兩個三合宮，四個位置的星曜互相會照構成完整格局。對宮影響力約60-70%，三合宮約30-40%。">ⓘ</span>';
+  html += '</div>';
+
+  // 表格
+  html += '<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:2px;font-size:.78rem;">';
+  // header
+  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">方位</div>';
+  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">宮位 / 主星</div>';
+  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">一句話</div>';
+  // 對宮
+  html += '<div style="padding:4px 6px;color:var(--accent2);font-weight:600;">對宮</div>';
+  html += '<div style="padding:4px 6px;">' + (oppP ? oppP.name : '') + '：' + (oppP && oppP.main.length > 0 ? oppP.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
+  html += '<div style="padding:4px 6px;color:var(--muted);">' + (oppP && oppP.main.length > 0 ? (d.starInfo[oppP.main[0].name] || '').split('。')[0] : '自由發揮') + '</div>';
+  // 三合1
+  html += '<div style="padding:4px 6px;color:#c90;font-weight:600;">三合</div>';
+  html += '<div style="padding:4px 6px;">' + (sanheP1 ? sanheP1.name : '') + '：' + (sanheP1 && sanheP1.main.length > 0 ? sanheP1.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
+  html += '<div style="padding:4px 6px;color:var(--muted);">' + (sanheP1 && sanheP1.main.length > 0 ? (d.starInfo[sanheP1.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
+  // 三合2
+  html += '<div style="padding:4px 6px;color:#c90;font-weight:600;">三合</div>';
+  html += '<div style="padding:4px 6px;">' + (sanheP2 ? sanheP2.name : '') + '：' + (sanheP2 && sanheP2.main.length > 0 ? sanheP2.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
+  html += '<div style="padding:4px 6px;color:var(--muted);">' + (sanheP2 && sanheP2.main.length > 0 ? (d.starInfo[sanheP2.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
+  html += '</div>';
+
+  // 三方吉煞統計（一行）
+  var liuji = ['文昌','文曲','左輔','右弼','天魁','天鉞'];
+  var liusha = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
+  var allMinorInSanfang = [];
+  if (oppP) oppP.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+  if (sanheP1) sanheP1.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+  if (sanheP2) sanheP2.minor.forEach(function(s) { allMinorInSanfang.push(s); });
+  var jiCount = allMinorInSanfang.filter(function(s) { return liuji.indexOf(s) >= 0; }).length;
+  var shaCount = allMinorInSanfang.filter(function(s) { return liusha.indexOf(s) >= 0; }).length;
+  if (jiCount > 0 || shaCount > 0) {
+    html += '<div style="margin-top:6px;font-size:.76rem;color:var(--muted);">';
+    if (jiCount > 0) html += '<span style="color:#4f4;">三方 ' + jiCount + ' 吉星會照</span>';
+    if (jiCount > 0 && shaCount > 0) html += ' · ';
+    if (shaCount > 0) html += '<span style="color:#f55;">' + shaCount + ' 煞星夾攻</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // ═══════════════════════════════════════
+  // 第四層：更多資訊（收合）
+  // ═══════════════════════════════════════
+  var hasLayer4 = false;
+  var layer4Html = '';
+
+  // 宮位關聯
   var palaceRelations = {
     '命宮': '命宮的「裡面」是福德宮（內心世界），命宮的「身體」是疾厄宮。三者合看才完整。',
     '財帛': '財帛宮看「怎麼賺」，事業宮看「做什麼工作」，田宅宮看「存下多少」。三個一起看財務全貌。',
@@ -175,123 +352,41 @@ document.addEventListener('click', function(e) {
     '父母': '父母宮也代表學習運和文書運。跟事業宮一起看考證照/升遷，跟命宮一起看家庭背景影響。'
   };
   if (palaceRelations[p.name]) {
-    html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:rgba(123,108,246,.04);border-radius:4px;border-left:2px solid var(--accent2);">';
-    html += '🔗 ' + palaceRelations[p.name];
-    html += '</div>';
+    hasLayer4 = true;
+    layer4Html += '<div style="margin-bottom:8px;font-size:.8rem;color:var(--muted);line-height:1.6;"><b style="color:var(--accent2);">🔗 宮位關聯：</b>' + palaceRelations[p.name] + '</div>';
   }
 
-  // 身宮標記
+  // 身宮說明
   if (d.shenPos !== undefined && pos === d.shenPos) {
-    html += '<div style="font-size:.82rem;color:#e9a;margin-bottom:8px;padding:6px 8px;background:rgba(238,153,170,.08);border-radius:4px;border-left:3px solid #e9a;">\u{1F3E0} \u9019\u88E1\u662F\u4F60\u7684<b>\u8EAB\u5BAE</b>\uFF0C\u4EE3\u8868\u5F8C\u5929\u4EBA\u751F\u91CD\u5FC3\u3002\u4F60\u6700\u82B1\u5FC3\u529B\u3001\u6700\u5728\u610F\u7684\u9818\u57DF\u5C31\u662F\u9019\u500B\u5BAE\u4F4D\u4EE3\u8868\u7684\u4E8B\u60C5\u3002</div>';
+    hasLayer4 = true;
+    layer4Html += '<div style="margin-bottom:8px;font-size:.8rem;color:#e9a;line-height:1.6;"><b>🏠 身宮：</b>這裡是你的身宮，代表後天人生重心。你最花心力、最在意的領域就是這個宮位代表的事情。</div>';
   }
 
-  if (p.main.length > 0) {
-    html += '<div style="margin-bottom:6px;"><b>\u4E3B\u661F\uFF1A</b></div>';
-    p.main.forEach(function(s) {
-      var bColor = (s.brightness==='\u5EDF'||s.brightness==='\u65FA') ? 'var(--accent)' : s.brightness==='\u9677' ? 'var(--red)' : 'var(--muted)';
-      var interpKey = s.name + '_' + p.name;
-      var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
-      html += '<div style="margin-left:8px;margin-bottom:4px;"><span style="color:var(--accent);font-weight:700;">' + s.name + '</span>';
-      html += '<span style="font-size:.75rem;color:' + bColor + ';" title="廟/旺=力量強，平=普通，陷=力量弱">\uFF08' + s.brightness + '\uFF09</span>\uFF1A' + interp + '</div>';
-    });
-    // 雙星組合
-    if (p.main.length >= 2) {
-      var key1 = p.main[0].name + '+' + p.main[1].name;
-      var key2 = p.main[1].name + '+' + p.main[0].name;
-      var combo = d.starCombos[key1] || d.starCombos[key2];
-      if (combo) {
-        html += '<div style="margin:8px 0;padding:8px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);"><b>\u26A1 \u7D44\u5408\u6548\u61C9\uFF1A</b>' + combo + '</div>';
-      }
-    }
-  } else {
-    html += '<div style="color:var(--muted);margin-bottom:8px;">\u6B64\u5BAE\u7121\u4E3B\u661F \u2014 \u501F\u5C0D\u5BAE\u661F\u529B\u3002\u4F60\u5728\u9019\u500B\u9762\u5411\u6BD4\u8F03\u300C\u770B\u60C5\u6CC1\u300D\uFF0C\u53D7\u74B0\u5883\u548C\u5C0D\u5BAE\u5F71\u97FF\u5927\u3002</div>';
-  }
-
-  // ★ 副星分組顯示（吉星 vs 煞星）
-  if (p.minor.length > 0) {
-    var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
-    var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
-    var jiList = [];
-    var shaList = [];
-    var otherList = [];
-    p.minor.forEach(function(s) {
-      if (jiStars.indexOf(s) >= 0) jiList.push(s);
-      else if (shaStars.indexOf(s) >= 0) shaList.push(s);
-      else otherList.push(s);
-    });
-    html += '<div style="margin-top:10px;">';
-    if (jiList.length > 0) {
-      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(79,255,79,.06);border-radius:6px;border-left:3px solid #4f4;">';
-      html += '<div style="font-size:.82rem;font-weight:700;color:#4f4;margin-bottom:3px;">✨ 吉星（助力）</div>';
-      jiList.forEach(function(s) {
-        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--text);line-height:1.6;"><span style="color:#4f4;font-weight:600;">' + s + '</span>：' + (d.starInfo[s]||'') + '</div>';
-      });
-      html += '</div>';
-    }
-    if (shaList.length > 0) {
-      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(255,85,85,.06);border-radius:6px;border-left:3px solid #f55;">';
-      html += '<div style="font-size:.82rem;font-weight:700;color:#f55;margin-bottom:3px;">⚡ 煞星（阻力/挑戰）</div>';
-      shaList.forEach(function(s) {
-        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--text);line-height:1.6;"><span style="color:#f55;font-weight:600;">' + s + '</span>：' + (d.starInfo[s]||'') + '</div>';
-      });
-      html += '</div>';
-    }
-    if (otherList.length > 0) {
-      html += '<div style="margin-bottom:6px;padding:6px 8px;background:rgba(123,108,246,.04);border-radius:6px;">';
-      html += '<div style="font-size:.82rem;font-weight:700;color:var(--muted);margin-bottom:3px;">其他副星</div>';
-      otherList.forEach(function(s) {
-        html += '<div style="margin-left:8px;font-size:.8rem;color:var(--muted);line-height:1.6;">' + s + '：' + (d.starInfo[s]||'') + '</div>';
-      });
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  // 四化落此宮（加 tooltip 解釋「四化」）
-  var sihuaHere = d.sihuaPalaces[p.name];
-  if (sihuaHere) {
-    html += '<div style="margin-top:10px;padding:8px;background:rgba(123,108,246,.05);border-radius:6px;">';
-    html += '<b title="四化 = 祿權科忌，代表今生被激活的能量方向。祿=好運、權=掌控、科=貴人、忌=功課">\u{1F300} \u6B64\u5BAE\u6709\u56DB\u5316\uFF1A</b><br>';
-    sihuaHere.forEach(function(item) {
-      var type = item.charAt(0);
-      var interp = '';
-      if (type === '\u797F' && d.sihuaPalaceInterp['\u797F']) interp = d.sihuaPalaceInterp['\u797F'][p.name] || '';
-      if (type === '\u5FCC' && d.sihuaPalaceInterp['\u5FCC']) interp = d.sihuaPalaceInterp['\u5FCC'][p.name] || '';
-      var color = type==='\u797F'?'#4f4':type==='\u6B0A'?'#f84':type==='\u79D1'?'#8cf':type==='\u5FCC'?'#f55':'var(--text)';
-      html += '<span style="color:' + color + ';font-weight:700;">' + item + '</span>';
-      if (interp) html += '<br><span style="font-size:.8rem;color:var(--muted);margin-left:8px;">' + interp + '</span>';
-      html += '<br>';
-    });
-    html += '</div>';
-  }
-
-  // 長生十二宮（折疊式）
+  // 長生十二宮
   if (d.changsheng && d.changsheng[pos]) {
     var csName = d.changsheng[pos];
     var csInterp = {
-      '長生': { emoji:'🌱', alias:'', tldr:'剛發芽，潛力滿滿', desc:'像嬰兒出生 — 這個宮位的事務充滿活力和可能性。容易起步、有人幫忙、發展順利。' },
-      '沐浴': { emoji:'🛁', alias:'又叫「桃花位」', tldr:'有魅力但不穩定', desc:'像青少年叛逆期 — 這方面的事容易有誘惑、變動、桃花。不是壞事，但需要判斷力。感情宮遇到特別精彩。' },
-      '冠帶': { emoji:'👔', alias:'', tldr:'正在茁壯，被人看見', desc:'像剛出社會的年輕人 — 積極表現、逐漸被肯定。這方面的事正在上軌道，持續努力就會有成果。' },
-      '臨官': { emoji:'📈', alias:'又叫「建祿」', tldr:'穩定上升，有實力', desc:'像職場中堅 — 做事有條有理、穩定發展。這方面的事已經有基礎，容易升遷或掌權。' },
-      '帝旺': { emoji:'🔥', alias:'', tldr:'最旺！但小心過頭', desc:'巔峰狀態 — 這個宮位的能量最強。但物極必反，太強也可能過度執著或衝過頭。旺到頂了就該轉彎。' },
-      '衰':   { emoji:'🍂', alias:'', tldr:'過了高峰，需要調整', desc:'像秋天落葉 — 不是完蛋，是過了最猛的階段。這方面的事需要換個策略，硬撐不如轉型。' },
-      '病':   { emoji:'🤒', alias:'', tldr:'能量低，別硬撐', desc:'不是真的生病，是這方面的事容易拖延或出小問題。適合休養生息、降低期望值。養好了再出發。' },
-      '死':   { emoji:'💀', alias:'名字嚇人但別怕', tldr:'暫停，重新想方向', desc:'不是真死！是這方面的事暫時停滯、需要歸零重來。反而可能是轉機 — 舊的不去新的不來。' },
-      '墓':   { emoji:'💰', alias:'又叫「庫」= 倉庫', tldr:'悶聲累積型，低調有實力', desc:'東西藏在倉庫裡 — 這方面的事你傾向保守、不張揚，但暗中其實有在累積。適合存錢、存實力，不適合高調。財帛宮遇到 = 悶聲發財。' },
-      '絕':   { emoji:'⚡', alias:'', tldr:'歸零，但絕處逢生', desc:'能量歸零 — 但「絕」的下一步就是「胎」（新生）。這方面的事可能要經歷一次砍掉重練，之後反而海闊天空。' },
-      '胎':   { emoji:'🥒', alias:'', tldr:'種子種下了，還沒發芽', desc:'懷孕期 — 新的可能性正在醞釀，還看不到成果但已經有東西在長。耐心等，不要太早期待收穫。' },
-      '養':   { emoji:'🌤️', alias:'', tldr:'慢慢養，時機未到', desc:'像花苞等著開 — 這方面的事需要時間和耐心。不能急、不能催，但只要持續投入，時間到了自然會綻放。' }
+      '長生': { emoji:'🌱', tldr:'剛發芽，潛力滿滿', desc:'像嬰兒出生 — 這個宮位的事務充滿活力和可能性。容易起步、有人幫忙、發展順利。' },
+      '沐浴': { emoji:'🛁', tldr:'有魅力但不穩定', desc:'像青少年叛逆期 — 這方面的事容易有誘惑、變動、桃花。不是壞事，但需要判斷力。感情宮遇到特別精彩。' },
+      '冠帶': { emoji:'👔', tldr:'正在茁壯，被人看見', desc:'像剛出社會的年輕人 — 積極表現、逐漸被肯定。這方面的事正在上軌道，持續努力就會有成果。' },
+      '臨官': { emoji:'📈', tldr:'穩定上升，有實力', desc:'像職場中堅 — 做事有條有理、穩定發展。這方面的事已經有基礎，容易升遷或掌權。' },
+      '帝旺': { emoji:'🔥', tldr:'最旺！但小心過頭', desc:'巔峰狀態 — 這個宮位的能量最強。但物極必反，太強也可能過度執著或衝過頭。旺到頂了就該轉彎。' },
+      '衰':   { emoji:'🍂', tldr:'過了高峰，需要調整', desc:'像秋天落葉 — 不是完蛋，是過了最猛的階段。這方面的事需要換個策略，硬撐不如轉型。' },
+      '病':   { emoji:'🤒', tldr:'能量低，別硬撐', desc:'不是真的生病，是這方面的事容易拖延或出小問題。適合休養生息、降低期望值。養好了再出發。' },
+      '死':   { emoji:'💀', tldr:'暫停，重新想方向', desc:'不是真死！是這方面的事暫時停滯、需要歸零重來。反而可能是轉機 — 舊的不去新的不來。' },
+      '墓':   { emoji:'💰', tldr:'悶聲累積型，低調有實力', desc:'東西藏在倉庫裡 — 這方面的事你傾向保守、不張揚，但暗中其實有在累積。適合存錢、存實力，不適合高調。財帛宮遇到 = 悶聲發財。' },
+      '絕':   { emoji:'⚡', tldr:'歸零，但絕處逢生', desc:'能量歸零 — 但「絕」的下一步就是「胎」（新生）。這方面的事可能要經歷一次砍掉重練，之後反而海闊天空。' },
+      '胎':   { emoji:'🥒', tldr:'種子種下了，還沒發芽', desc:'懷孕期 — 新的可能性正在醞釀，還看不到成果但已經有東西在長。耐心等，不要太早期待收穫。' },
+      '養':   { emoji:'🌤️', tldr:'慢慢養，時機未到', desc:'像花苞等著開 — 這方面的事需要時間和耐心。不能急、不能催，但只要持續投入，時間到了自然會綻放。' }
     };
     var cs = csInterp[csName];
     if (cs) {
-      html += '<details style="margin-top:10px;background:rgba(156,203,187,.08);border-radius:6px;border-left:3px solid #9cb;overflow:hidden;">';
-      html += '<summary style="padding:10px;cursor:pointer;color:#9cb;font-weight:700;" title="長生十二宮 = 用五行生命週期比喻此宮能量強弱，從「長生」到「養」循環一圈">' + cs.emoji + ' 長生十二宮：' + csName + ' — ' + cs.tldr + (cs.alias ? ' <span style="font-size:.75rem;font-weight:400;color:var(--muted);">（' + cs.alias + '）</span>' : '') + '</summary>';
-      html += '<div style="padding:6px 10px 10px;font-size:.82rem;color:var(--muted);line-height:1.6;">' + cs.desc + '</div>';
-      html += '</details>';
+      hasLayer4 = true;
+      layer4Html += '<div style="margin-bottom:6px;font-size:.8rem;line-height:1.6;"><span style="color:#9cb;font-weight:600;">' + cs.emoji + ' 長生十二宮：' + csName + '</span> — ' + cs.tldr + '<br><span style="color:var(--muted);">' + cs.desc + '</span></div>';
     }
   }
 
-  // 博士十二神（折疊式）
+  // 博士十二神
   if (d.boshi && d.boshi[pos]) {
     var bsName = d.boshi[pos];
     var bsInterp = {
@@ -310,92 +405,44 @@ document.addEventListener('click', function(e) {
     };
     var bs = bsInterp[bsName];
     if (bs) {
+      hasLayer4 = true;
       var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
       var bsColorStyle = bsJi.indexOf(bsName) >= 0 ? '#f77' : '#ad8';
-      html += '<details style="margin-top:10px;background:rgba(173,216,136,.08);border-radius:6px;border-left:3px solid ' + bsColorStyle + ';overflow:hidden;">';
-      html += '<summary style="padding:10px;cursor:pointer;color:' + bsColorStyle + ';font-weight:700;" title="博士十二神 = 從祿存位起算的12顆輔助小星，代表各宮額外的吉凶加成">' + bs.emoji + ' 博士十二神：' + bsName + ' — ' + bs.tldr + '</summary>';
-      html += '<div style="padding:6px 10px 10px;font-size:.82rem;color:var(--muted);line-height:1.6;">' + bs.desc + '</div>';
-      html += '</details>';
+      layer4Html += '<div style="margin-bottom:6px;font-size:.8rem;line-height:1.6;"><span style="color:' + bsColorStyle + ';font-weight:600;">' + bs.emoji + ' 博士十二神：' + bsName + '</span> — ' + bs.tldr + '<br><span style="color:var(--muted);">' + bs.desc + '</span></div>';
     }
   }
 
-  // ★ 三方四正標示（對宮 + 三合宮 + 會照宮的完整格局）
-  // 三方四正 = 本宮 + 對宮(+6) + 三合宮(+4, +8)
-  var sanhePos1 = (pos + 4) % 12;
-  var sanhePos2 = (pos + 8) % 12;
-  var sanheP1 = d.posMap[sanhePos1];
-  var sanheP2 = d.posMap[sanhePos2];
-
-  html += '<div style="margin-top:14px;border-top:1px solid var(--card-border);padding-top:10px;">';
-  html += '<div style="font-size:.95rem;font-weight:700;color:var(--accent2);margin-bottom:6px;" title="三方四正 = 本宮+對宮+三合宮，這四個宮位的星曜互相會照，構成完整格局">🔮 三方四正（完整格局）</div>';
-  html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">三方四正 = 本宮 + 對宮 + 兩個三合宮。這四個位置的星曜互相照會，形成一個命理學上的「能量場」。看一個宮位不能只看本宮，三方四正才是完整的影響面。</div>';
-
+  // 三方四正詳細展開（完整解讀給進階者看）
+  hasLayer4 = true;
+  layer4Html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--card-border);">';
+  layer4Html += '<div style="font-size:.78rem;font-weight:600;color:var(--accent2);margin-bottom:4px;">三方四正詳細</div>';
   // 對宮
-  html += '<details style="margin-bottom:8px;background:rgba(123,108,246,.05);border-radius:6px;border-left:3px solid var(--accent2);overflow:hidden;" open>';
-  html += '<summary style="padding:8px 10px;cursor:pointer;font-weight:700;color:var(--accent2);font-size:.88rem;" title="對宮 = 正對面的宮位，星曜照入本宮，影響力約60-70%">🔄 對宮：' + (oppP?oppP.name:'') + '（' + d.branches[oppositePos] + '）— 照入影響 60-70%</summary>';
-  html += '<div style="padding:6px 10px 10px;font-size:.82rem;">';
   if (oppP && oppP.main.length > 0) {
-    oppP.main.forEach(function(s) {
-      html += '<div style="margin-left:4px;margin-bottom:2px;"><span style="color:var(--accent2);font-weight:600;">' + s.name + '</span>（' + s.brightness + '）照入：' + (d.starInfo[s.name]||'') + '</div>';
-    });
-  } else {
-    html += '<div style="color:var(--muted);">對宮無主星（雙空宮），這個面向比較自由發揮。</div>';
+    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:var(--accent2);">對宮 ' + oppP.name + '：</span>';
+    oppP.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
+    layer4Html += '</div>';
   }
-  if (oppP && oppP.minor.length > 0) {
-    var oppMinorStr = oppP.minor.join('、');
-    html += '<div style="margin-top:4px;font-size:.78rem;color:var(--muted);">副星：' + oppMinorStr + '</div>';
+  if (sanheP1 && sanheP1.main.length > 0) {
+    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:#c90;">三合 ' + sanheP1.name + '：</span>';
+    sanheP1.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
+    layer4Html += '</div>';
   }
-  html += '</div></details>';
+  if (sanheP2 && sanheP2.main.length > 0) {
+    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:#c90;">三合 ' + sanheP2.name + '：</span>';
+    sanheP2.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
+    layer4Html += '</div>';
+  }
+  layer4Html += '</div>';
 
-  // 三合宮（兩個）
-  function renderSanhe(sanheP, sanhePos, label) {
-    var result = '';
-    result += '<details style="margin-bottom:8px;background:rgba(245,197,66,.05);border-radius:6px;border-left:3px solid #c90;overflow:hidden;">';
-    result += '<summary style="padding:8px 10px;cursor:pointer;font-weight:700;color:#c90;font-size:.88rem;" title="三合宮 = 跟本宮形成三角關係的宮位，星曜也會照入本宮">🔺 三合宮：' + (sanheP?sanheP.name:'') + '（' + d.branches[sanhePos] + '）— ' + label + '</summary>';
-    result += '<div style="padding:6px 10px 10px;font-size:.82rem;">';
-    if (sanheP && sanheP.main.length > 0) {
-      sanheP.main.forEach(function(s) {
-        result += '<div style="margin-left:4px;margin-bottom:2px;"><span style="color:#c90;font-weight:600;">' + s.name + '</span>（' + s.brightness + '）會照：' + (d.starInfo[s.name]||'') + '</div>';
-      });
-    } else {
-      result += '<div style="color:var(--muted);">此三合宮無主星。</div>';
-    }
-    if (sanheP && sanheP.minor.length > 0) {
-      var minorStr = sanheP.minor.join('、');
-      result += '<div style="margin-top:4px;font-size:.78rem;color:var(--muted);">副星：' + minorStr + '</div>';
-    }
-    result += '</div></details>';
-    return result;
+  // 組裝第四層
+  if (hasLayer4) {
+    html += '<details style="border-top:1px solid var(--card-border);padding-top:8px;">';
+    html += '<summary style="cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);padding:4px 0;">📖 更多細節（長生、博士、宮位關聯、三方四正解讀）</summary>';
+    html += '<div style="padding:8px 0;font-size:.8rem;line-height:1.7;">' + layer4Html + '</div>';
+    html += '</details>';
   }
-  html += renderSanhe(sanheP1, sanhePos1, '會照影響');
-  html += renderSanhe(sanheP2, sanhePos2, '會照影響');
 
-  // 三方四正總結
-  var allStarsInSanfang = [];
-  if (oppP) oppP.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
-  if (sanheP1) sanheP1.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
-  if (sanheP2) sanheP2.main.forEach(function(s) { allStarsInSanfang.push(s.name); });
-  if (allStarsInSanfang.length > 0) {
-    html += '<div style="margin-top:6px;padding:8px 10px;background:rgba(123,108,246,.08);border-radius:6px;font-size:.8rem;line-height:1.6;">';
-    html += '<b style="color:var(--accent);">📋 三方四正匯總：</b>除了本宮的星曜外，還有 <b>' + allStarsInSanfang.join('、') + '</b> 從三方四正照入，一起組成這個宮位的完整格局。';
-    // 檢查是否有六吉星會照
-    var liuji = ['文昌','文曲','左輔','右弼','天魁','天鉞'];
-    var liusha = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
-    var allMinorInSanfang = [];
-    if (oppP) oppP.minor.forEach(function(s) { allMinorInSanfang.push(s); });
-    if (sanheP1) sanheP1.minor.forEach(function(s) { allMinorInSanfang.push(s); });
-    if (sanheP2) sanheP2.minor.forEach(function(s) { allMinorInSanfang.push(s); });
-    var jiCount = allMinorInSanfang.filter(function(s) { return liuji.indexOf(s) >= 0; }).length;
-    var shaCount = allMinorInSanfang.filter(function(s) { return liusha.indexOf(s) >= 0; }).length;
-    if (jiCount > 0 || shaCount > 0) {
-      html += '<br>';
-      if (jiCount > 0) html += '<span style="color:#4f4;">三方有 ' + jiCount + ' 顆吉星會照（加分）</span>';
-      if (jiCount > 0 && shaCount > 0) html += '，';
-      if (shaCount > 0) html += '<span style="color:#f55;">三方有 ' + shaCount + ' 顆煞星夾攻（留意挑戰）</span>';
-    }
-    html += '</div>';
-  }
-  html += '</div></div>';
+  html += '</div>'; // end main container
 
   var detailEl = document.getElementById('zw-detail');
   if (detailEl) {
