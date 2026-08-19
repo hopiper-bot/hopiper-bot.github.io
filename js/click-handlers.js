@@ -159,6 +159,27 @@ document.addEventListener('click', function(e) {
     html += '<div style="font-size:.8rem;color:var(--accent2);margin-bottom:8px;padding:4px 8px;background:rgba(123,108,246,.08);border-radius:4px;">' + d.palaceRole[p.name] + '</div>';
   }
 
+  // ★ 宮位關聯提示（告訴使用者相關宮位的連動關係）
+  var palaceRelations = {
+    '命宮': '命宮的「裡面」是福德宮（內心世界），命宮的「身體」是疾厄宮。三者合看才完整。',
+    '財帛': '財帛宮看「怎麼賺」，事業宮看「做什麼工作」，田宅宮看「存下多少」。三個一起看財務全貌。',
+    '事業': '事業宮看方向，財帛宮看收入，遷移宮看外出發展機會。三方連動。',
+    '夫妻': '夫妻宮看伴侶類型，福德宮看你內心想要什麼，子女宮看親密關係的延伸。',
+    '子女': '子女宮也代表創造力和投資運。跟財帛宮一起看投資方向，跟夫妻宮一起看後代。',
+    '疾厄': '疾厄宮看先天體質，福德宮看心理健康，命宮看整體生命力。三者交叉影響。',
+    '遷移': '遷移宮看外在世界的運勢，跟命宮形成「內外對比」— 有人在家好、有人出去好。',
+    '交友': '交友宮看「外面的人脈」，兄弟宮看「身邊的人」。兩個一起看人際全貌。',
+    '兄弟': '兄弟宮看平輩互動（同事、手足），交友宮看社會人脈。兩個一起看合作格局。',
+    '田宅': '田宅宮看居住和不動產，財帛宮看現金流，福德宮看居家安全感。三者連動。',
+    '福德': '福德宮是「內在的命宮」— 命宮給別人看的，福德是你自己感受的。也影響健康和壽命。',
+    '父母': '父母宮也代表學習運和文書運。跟事業宮一起看考證照/升遷，跟命宮一起看家庭背景影響。'
+  };
+  if (palaceRelations[p.name]) {
+    html += '<div style="font-size:.78rem;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:rgba(123,108,246,.04);border-radius:4px;border-left:2px solid var(--accent2);">';
+    html += '🔗 ' + palaceRelations[p.name];
+    html += '</div>';
+  }
+
   // 身宮標記
   if (d.shenPos !== undefined && pos === d.shenPos) {
     html += '<div style="font-size:.82rem;color:#e9a;margin-bottom:8px;padding:6px 8px;background:rgba(238,153,170,.08);border-radius:4px;border-left:3px solid #e9a;">\u{1F3E0} \u9019\u88E1\u662F\u4F60\u7684<b>\u8EAB\u5BAE</b>\uFF0C\u4EE3\u8868\u5F8C\u5929\u4EBA\u751F\u91CD\u5FC3\u3002\u4F60\u6700\u82B1\u5FC3\u529B\u3001\u6700\u5728\u610F\u7684\u9818\u57DF\u5C31\u662F\u9019\u500B\u5BAE\u4F4D\u4EE3\u8868\u7684\u4E8B\u60C5\u3002</div>';

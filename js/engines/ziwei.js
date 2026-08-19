@@ -764,9 +764,12 @@ function renderZiwei(data) {
       <div style="margin-top:4px;color:var(--muted);font-size:.82rem;">命宮 = 天生的你；身宮 = 後天發展的重心，你這輩子最花心力的地方。</div>
       <div style="margin-top:6px;">${shenInterp}</div>
     </div>
+    ${renderLifeStory(palaces, data.sihua, shenPalaceName)}
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含對宮分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
     ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng, data.boshi)}
     <div id="zw-detail" style="margin-top:12px;"></div>
+    <div class="divider"></div>
+    ${renderDaxianLiunianCross(data.daxian, data.liunian, palaces, data.birthYear, data.currentYear)}
     <div class="divider"></div>
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-daxian').style.display=document.getElementById('zw-daxian').style.display==='none'?'block':'none';">🚂 大限解說（十年大運）▼</h3>
     <div id="zw-daxian">
@@ -776,6 +779,131 @@ function renderZiwei(data) {
     <h3 style="cursor:pointer;" onclick="document.getElementById('zw-liunian').style.display=document.getElementById('zw-liunian').style.display==='none'?'block':'none';">📅 ${data.currentYear} 流年 ▼</h3>
     <div id="zw-liunian" style="display:none;">
       ${renderLiunian(data.liunian, palaces)}
+    </div>
+  `;
+}
+
+// === 人生劇本總覽 ===
+function renderLifeStory(palaces, sihua, shenPalaceName) {
+  // palaces[0]=命宮, [4]=財帛, [8]=事業, [2]=夫妻, [5]=疾厄, [10]=福德
+  const ming = palaces[0];
+  const caibo = palaces[4];
+  const shiye = palaces[8];
+  const fuqi = palaces[2];
+  const jie = palaces[5];
+  const fude = palaces[10];
+
+  function starNames(p) { return p.main.length > 0 ? p.main.map(s => s.name).join('、') : '無主星'; }
+  function briefInterp(p) {
+    if (p.main.length === 0) return '受外在環境影響，彈性大';
+    return p.main.map(function(s) {
+      var key = s.name + '_' + p.name;
+      var full = STAR_IN_PALACE[key] || STAR_INFO[s.name] || '';
+      // 取第一句（到句號）
+      var dot = full.indexOf('。');
+      return dot > 0 ? full.substring(0, dot) : full.substring(0, 20);
+    }).join('；');
+  }
+
+  // 四化重點
+  var sihuaHighlights = [];
+  palaces.forEach(function(p) {
+    p.main.forEach(function(s) {
+      if (s.name === sihua.lu) sihuaHighlights.push('化祿在' + p.name + '（好運方向）');
+      if (s.name === sihua.ji) sihuaHighlights.push('化忌在' + p.name + '（人生功課）');
+    });
+    p.minor.forEach(function(s) {
+      if (s === sihua.lu) sihuaHighlights.push('化祿在' + p.name + '（好運方向）');
+      if (s === sihua.ji) sihuaHighlights.push('化忌在' + p.name + '（人生功課）');
+    });
+  });
+
+  var story = '';
+  story += '你是<b>' + starNames(ming) + '</b>坐命的人，' + briefInterp(ming) + '。';
+  story += '事業方向適合<b>' + starNames(shiye) + '</b>型的工作，' + briefInterp(shiye) + '。';
+  story += '財運上，' + briefInterp(caibo) + '。';
+  story += '感情方面，' + briefInterp(fuqi) + '。';
+  story += '健康要留意<b>' + starNames(jie) + '</b>的弱點。';
+  story += '內心世界由<b>' + starNames(fude) + '</b>主導，' + briefInterp(fude) + '。';
+  if (sihuaHighlights.length > 0) {
+    story += '<br>四化重點：' + sihuaHighlights.join('、') + '。';
+  }
+  story += '<br>身宮在<b>' + shenPalaceName + '</b>，代表後天人生重心在此。';
+
+  return `
+    <details style="margin:10px 0;background:rgba(123,108,246,.06);border-radius:8px;border-left:4px solid var(--accent);overflow:hidden;">
+      <summary style="padding:12px;cursor:pointer;font-weight:700;color:var(--accent);font-size:.9rem;">📖 你的命盤故事（一鍵看懂人生劇本）</summary>
+      <div style="padding:8px 14px 14px;font-size:.83rem;line-height:1.8;color:var(--text);">${story}</div>
+    </details>
+  `;
+}
+
+// === 大限 × 流年交叉解讀 ===
+function renderDaxianLiunianCross(daxian, liunian, palaces, birthYear, currentYear) {
+  if (!daxian || !liunian) return '';
+
+  const currentAge = currentYear - birthYear;
+  const currentDx = daxian.find(d => currentAge >= d.age && currentAge <= d.ageEnd);
+  if (!currentDx) return '';
+
+  const dxPalace = palaces.find(p => p.pos === currentDx.pos);
+  const lnPalace = palaces.find(p => p.pos === liunian.branchIdx);
+
+  if (!dxPalace || !lnPalace) return '';
+
+  const dxStars = currentDx.main.length > 0 ? currentDx.main.map(s => s.name).join('、') : '無主星';
+  const lnStars = lnPalace.main.length > 0 ? lnPalace.main.map(s => s.name).join('、') : '無主星';
+
+  // 交叉解讀邏輯
+  var crossText = '';
+
+  // 大限宮位 + 流年宮位的組合意義
+  const dxTheme = {
+    '命宮': '自我重塑', '兄弟': '人際合作', '夫妻': '感情關係',
+    '子女': '創造投資', '財帛': '財運收入', '疾厄': '健康養生',
+    '遷移': '外出發展', '交友': '社交人脈', '事業': '事業衝刺',
+    '田宅': '居家置產', '福德': '精神修養', '父母': '長輩學習'
+  };
+  const lnTheme = Object.assign({}, dxTheme);
+
+  var dxT = dxTheme[dxPalace.name] || dxPalace.name;
+  var lnT = lnTheme[lnPalace.name] || lnPalace.name;
+
+  crossText += '你目前走<b>' + dxPalace.name + '</b>大限（' + currentDx.age + '-' + currentDx.ageEnd + '歲），十年主題是「' + dxT + '」，主星 ' + dxStars + '。';
+  crossText += '<br>今年（' + currentYear + '）流年命宮在<b>' + lnPalace.name + '</b>，年度主題是「' + lnT + '」，主星 ' + lnStars + '。';
+
+  // 交叉效應
+  crossText += '<br><br><b>🔗 交叉效應：</b>';
+  if (dxPalace.name === lnPalace.name) {
+    crossText += '大限和流年重疊在同一宮，今年是這十年最關鍵的一年！「' + dxT + '」方面會有明顯的事件發生或轉折。';
+  } else if (dxPalace.pos === (lnPalace.pos + 6) % 12) {
+    crossText += '大限和流年互為對宮，形成拉扯。十年大方向是「' + dxT + '」，但今年的注意力被「' + lnT + '」拉過去。兩邊都要兼顧。';
+  } else {
+    crossText += '十年基調在「' + dxT + '」上穩步前進，今年特別要在「' + lnT + '」方面多使力。兩個主題如果能串聯，效果加倍。';
+    // 具體建議
+    if (dxPalace.name === '事業' && lnPalace.name === '財帛') {
+      crossText += '<br>→ 大限衝事業 + 流年走財運 = 今年工作努力會直接反映在收入上。';
+    } else if (dxPalace.name === '財帛' && lnPalace.name === '事業') {
+      crossText += '<br>→ 大限走財運 + 流年衝事業 = 今年適合用工作表現來推動加薪或升遷。';
+    } else if (dxPalace.name === '事業' && lnPalace.name === '遷移') {
+      crossText += '<br>→ 大限衝事業 + 流年走外出 = 今年出差、外派、跨部門合作對事業有利。';
+    } else if (dxPalace.name === '夫妻' && lnPalace.name === '命宮') {
+      crossText += '<br>→ 大限走感情 + 流年回命宮 = 今年感情和自我認同密切相關，可能因伴侶而重新認識自己。';
+    } else if (lnPalace.name === '田宅') {
+      crossText += '<br>→ 今年跟「家」有關的事特別有感：搬家、買房、家庭關係變化。';
+    } else if (lnPalace.name === '疾厄') {
+      crossText += '<br>→ 今年健康是重點，建議安排體檢或建立運動習慣。';
+    }
+  }
+
+  // 流年四化簡報
+  crossText += '<br><br><b>📌 今年四化重點：</b>';
+  crossText += '化祿（' + liunian.sihua.lu + '）帶來好運、化忌（' + liunian.sihua.ji + '）需要留意。';
+
+  return `
+    <div style="margin:10px 0;padding:14px;background:rgba(245,197,66,.06);border-radius:8px;border-left:4px solid var(--accent);">
+      <div style="font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:8px;">🎯 現在的你：大限 × 流年交叉解讀</div>
+      <div style="font-size:.83rem;line-height:1.8;color:var(--text);">${crossText}</div>
     </div>
   `;
 }
