@@ -501,38 +501,42 @@ function calculateBranchRelations(pillars) {
 
   // 檢查六合
   for (let i = 0; i < branchList.length; i++) {
+    // 各柱位組合的差異化描述
+    const pillarHint = {
+      '年—月': { he: '長輩緣與家庭根基互相滋養，成長環境和諧。', chong: '外在大環境與家庭情感模式拉鋸，成長期容易有變動。', hai: '外在環境（年）與內心情感（月）之間暗中拉扯，容易在家庭與社會期待間感到矛盾。', po: '原生家庭的架構容易經歷重組，但也帶來新的可能。', xing: '社會環境與家庭教養之間的摩擦，是磨練的來源。', zixing: '兩個位置的同質能量過度集中，容易內耗。' },
+      '年—日': { he: '外在環境支持自我發展，社會資源容易為己所用。', chong: '大環境跟自己的本質方向對撞，需要找到平衡點。', hai: '外在環境（年）與自我核心（日）之間有隱性衝突，可能覺得大環境不支持自己的選擇。', po: '社會期待與自我定位之間的結構需要重建。', xing: '外在壓力直接考驗自我核心，壓力大但成長也大。', zixing: '兩個位置的同質能量過度集中，容易自我消耗。' },
+      '年—時': { he: '外在環境對晚年和子女發展有助力，長遠格局穩定。', chong: '大環境變動影響長遠規劃和下一代發展方向。', hai: '外在環境（年）與未來發展（時）之間存在暗傷，長遠計畫容易受外力干擾。', po: '未來計畫容易被外力打散再重組。', xing: '外在環境對未來發展施加壓力，需要耐心突破。', zixing: '兩端能量重疊累積，長期容易感到疲乏。' },
+      '月—日': { he: '情感根基與自我意志同頻，內外一致，做事順暢。', chong: '情感習慣和真實自我打架，需要整合內在矛盾。', hai: '情感根基（月）與自我意志（日）之間有摩擦，內心想要的和習慣的模式會打架。', po: '感情模式與自我認同之間需要打破重來。', xing: '內心期待跟現實自我有落差，學著接受不完美。', zixing: '內在能量循環封閉，容易自我設限。' },
+      '月—時': { he: '情感模式與晚年發展方向吻合，人生越走越順。', chong: '原生情感模式跟未來方向有衝突，轉型期會不舒服。', hai: '情感模式（月）與晚年發展（時）之間互相牽制，需注意情緒慣性對未來的影響。', po: '情緒慣性與未來目標之間的結構需調整。', xing: '情感包袱考驗未來發展，放下才能前進。', zixing: '情緒能量在兩端累積不散，需要找出口。' },
+      '日—時': { he: '自我與行動力互相配合，想到就能做到。', chong: '自我意志和實際行動方向對立，執行力容易卡住。', hai: '自我（日）與行動產出（時）之間有暗耗，想做的事容易被自己內在矛盾拖後腿。', po: '自我定位與產出方式之間需要重新建構。', xing: '自己給自己的壓力最大，用行動證明自己。', zixing: '自我與行動過度同質，反而陷入重複模式。' },
+    };
+
     for (let j = i + 1; j < branchList.length; j++) {
       const b1 = branchList[i].branch, b2 = branchList[j].branch;
       const p1 = posZh[branchList[i].pos], p2 = posZh[branchList[j].pos];
+      const pk = `${p1}—${p2}`;
 
       for (const [a, b, elem] of liuHe) {
         if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          const hint = (pillarHint[pk] && pillarHint[pk].he) || '這兩個人生領域互相支持。';
           results.push({ type: '合', subtype: '六合', pair: `${p1}${b1}—${p2}${b2}`, element: elem,
-            desc: `${b1}${b2}六合化${elem}：兩柱之間有吸引、親和的力量。代表這兩個人生領域互相支持。` });
+            desc: `${b1}${b2}六合化${elem}：兩柱之間有吸引、親和的力量。${hint}` });
         }
       }
 
       // 檢查六沖
       for (const [a, b] of liuChong) {
         if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          const hint = (pillarHint[pk] && pillarHint[pk].chong) || '這兩個人生領域之間有衝突或變動，但也帶來改變的動力。';
           results.push({ type: '沖', subtype: '六沖', pair: `${p1}${b1}—${p2}${b2}`,
-            desc: `${b1}${b2}相沖：兩股力量正面對撞。代表這兩個人生領域之間有衝突或變動，但也帶來改變的動力。` });
+            desc: `${b1}${b2}相沖：兩股力量正面對撞。${hint}` });
         }
       }
 
       // 檢查六害
-      const haiPillarHint = {
-        '年—月': '外在環境（年）與內心情感（月）之間暗中拉扯，容易在家庭與社會期待間感到矛盾。',
-        '年—日': '外在環境（年）與自我核心（日）之間有隱性衝突，可能覺得大環境不支持自己的選擇。',
-        '年—時': '外在環境（年）與未來發展（時）之間存在暗傷，長遠計畫容易受外力干擾。',
-        '月—日': '情感根基（月）與自我意志（日）之間有摩擦，內心想要的和習慣的模式會打架。',
-        '月—時': '情感模式（月）與晚年發展（時）之間互相牽制，需注意情緒慣性對未來的影響。',
-        '日—時': '自我（日）與行動產出（時）之間有暗耗，想做的事容易被自己內在矛盾拖後腿。',
-      };
       for (const [a, b] of liuHai) {
         if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
-          const pairKey = `${p1}—${p2}`;
-          const hint = haiPillarHint[pairKey] || '這兩個領域之間容易有誤會或被動的傷害，需要主動溝通化解。';
+          const hint = (pillarHint[pk] && pillarHint[pk].hai) || '這兩個領域之間容易有誤會或被動的傷害，需要主動溝通化解。';
           results.push({ type: '害', subtype: '六害', pair: `${p1}${b1}—${p2}${b2}`,
             desc: `${b1}${b2}相害：暗中的阻礙和損傷。${hint}` });
         }
@@ -541,8 +545,9 @@ function calculateBranchRelations(pillars) {
       // 檢查六破
       for (const [a, b] of liuPo) {
         if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+          const hint = (pillarHint[pk] && pillarHint[pk].po) || '這兩個領域可能要經歷解構再重建的過程。';
           results.push({ type: '破', subtype: '六破', pair: `${p1}${b1}—${p2}${b2}`,
-            desc: `${b1}${b2}相破：原有的結構被打破。代表這兩個領域可能要經歷解構再重建的過程。` });
+            desc: `${b1}${b2}相破：原有的結構被打破。${hint}` });
         }
       }
 
@@ -552,15 +557,17 @@ function calculateBranchRelations(pillars) {
           // 無禮之刑（子卯）等非自刑的兩支刑
           const [a, b] = xing.branches;
           if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
+            const hint = (pillarHint[pk] && pillarHint[pk].xing) || '刑代表被逼著成長——不舒服但會變強。';
             results.push({ type: '刑', subtype: xing.name, pair: `${p1}${b1}—${p2}${b2}`,
-              desc: `${b1}${b2}${xing.name}：帶有摩擦和考驗的互動。刑代表被逼著成長——不舒服但會變強。` });
+              desc: `${b1}${b2}${xing.name}：帶有摩擦和考驗的互動。${hint}` });
           }
         }
         // 自刑（辰辰、午午、酉酉、亥亥）
         if (xing.branches.length === 2 && xing.branches[0] === xing.branches[1]) {
           if (b1 === xing.branches[0] && b2 === xing.branches[0]) {
+            const hint = (pillarHint[pk] && pillarHint[pk].zixing) || '自己跟自己過不去，容易鑽牛角尖。學會放過自己是人生課題。';
             results.push({ type: '刑', subtype: '自刑', pair: `${p1}${b1}—${p2}${b2}`,
-              desc: `${b1}${b2}自刑：自己跟自己過不去，容易鑽牛角尖。學會放過自己是人生課題。` });
+              desc: `${b1}${b2}自刑：${hint}` });
           }
         }
       }
