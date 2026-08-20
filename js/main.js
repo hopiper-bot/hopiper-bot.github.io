@@ -15,7 +15,6 @@ import * as baziEngine from './engines/bazi.js';
 import * as ziweiEngine from './engines/ziwei.js';
 import * as hdEngine from './engines/human-design.js';
 import * as synthesisEngine from './engines/synthesis.js';
-import * as transitEngine from './engines/transit.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
 import { calculateDaily, renderDaily } from './engines/daily-energy.js';
@@ -158,7 +157,7 @@ function generateShareURL(formData) {
 function cacheResults(results) {
   try {
     const cache = {};
-    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'synthesis'];
     keys.forEach(k => {
       if (results[k]) {
         cache[k] = { status: results[k].status, html: results[k].html || '', error: results[k].error || '' };
@@ -184,7 +183,7 @@ function restoreCachedResults() {
 
     // 渲染 cached results
     ui.showResults();
-    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+    const keys = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'synthesis'];
     keys.forEach(k => {
       if (cache[k]?.status === 'ok' && cache[k].html) {
         ui.setViewContent(k, cache[k].html);
@@ -209,12 +208,12 @@ function restoreCachedResults() {
         try { reResults.hd = hdEngine.calculate(birthData); } catch(e) {}
         try { reResults.astro = astroEngine.calculate(birthData); } catch(e) {}
         try { reResults.maya = mayaEngine.calculate(birthData); } catch(e) {}
-        try { transitEngine.calculate(reResults); } catch(e) { console.warn('[cache-restore] transit re-calc failed:', e); }
+        try { synthesisEngine.calculate(reResults); } catch(e) { console.warn('[cache-restore] synthesis re-calc failed:', e); }
       }
     } catch(e) { console.warn('[cache-restore] re-calc failed:', e); }
 
-    // 綁定流年年份切換按鈕
-    try { transitEngine.attachYearSwitcher(); } catch(e) {}
+    // 綁定年份切換按鈕
+    try { synthesisEngine.attachYearSwitcher(); } catch(e) {}
 
     ui.switchTab('maya');
 
@@ -363,7 +362,7 @@ async function calculate() {
   attachShareHandlers();
 
   // 各 tab 先放 loading placeholder
-  const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'transit', 'synthesis'];
+  const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'synthesis'];
   engineTabs.forEach(k => ui.setViewContent(k, '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>'));
   // 合盤 tab 保留現有表單（不覆蓋）
 
@@ -416,21 +415,7 @@ async function calculate() {
     window.__lastMayaData = results.maya.data;
   }
 
-  // Phase 2: 流年分析（需要所有系統結果）
-  try {
-    results.transit = transitEngine.calculate(results);
-    if (results.transit?.status === 'ok') {
-      ui.setViewContent('transit', results.transit.html);
-    } else if (results.transit?.status === 'error') {
-      ui.setViewContent('transit', ui.renderError(results.transit.error));
-    }
-  } catch (err) {
-    console.error('流年計算錯誤:', err);
-    results.transit = { status: 'error', error: `流年計算時發生錯誤：${err.message}` };
-    ui.setViewContent('transit', ui.renderError(results.transit.error));
-  }
-
-  // Phase 3: 綜合分析（需要所有系統結果）
+  // Phase 2: 綜合分析（需要所有系統結果）
   try {
     results.synthesis = synthesisEngine.calculate(results);
     if (results.synthesis?.status === 'ok') {
@@ -447,22 +432,14 @@ async function calculate() {
   // 隱藏 loading
   ui.hideLoading();
 
-  // === 核心摘要卡片 + 跨系統共振 badge ===
-  try {
-    if (results.synthesis?.status === 'ok' && results.synthesis.categories) {
-      renderCoreSummary(results.synthesis.categories);
-      injectResonanceBadges(results.synthesis.categories, results.synthesis.allThemes);
-    }
-  } catch(e) { console.error('核心摘要/共振badge渲染錯誤:', e); }
-
   // 預設切換到第一個成功的 tab
   const firstOk = engineTabs.find(k => results[k]?.status === 'ok');
   if (firstOk) ui.switchTab(firstOk);
 
   // AI 解讀複製鈕改用 click-handlers.js 事件委派（連快取重開也能複製）
 
-  // 綁定流年年份切換按鈕（DOM 渲染後）
-  try { transitEngine.attachYearSwitcher(); } catch(e) {}
+  // 綁定年份切換按鈕（DOM 渲染後）
+  try { synthesisEngine.attachYearSwitcher(); } catch(e) {}
 
   // Cache results for next visit
   cacheResults(results);
@@ -480,77 +457,6 @@ function microYield() {
 }
 
 // ============ 核心摘要卡片 ============
-
-/**
- * 在 tabs 上方渲染一張摘要卡片，顯示 3~5 句「你這個人最核心的特質」
- */
-function renderCoreSummary(categories) {
-  const el = document.getElementById('core-summary');
-  if (!el) return;
-
-  const { core, support } = categories;
-  // 取前 5 個最強主題（core 優先，不足補 support）
-  const top = [...core, ...support].slice(0, 5);
-  if (top.length === 0) { el.style.display = 'none'; return; }
-
-  // 為每個主題產出一句精煉描述
-  const lines = top.map(t => {
-    const systemLabel = t.systemCount >= 3
-      ? `<span class="cs-badge-count">${t.systemCount}系統共振</span>`
-      : `<span class="cs-badge-count support">${t.systemCount}系統</span>`;
-    return `<div class="cs-line"><span class="cs-icon">${t.icon}</span><span class="cs-text"><b>${t.zh}</b> — ${t.desc || ''}</span>${systemLabel}</div>`;
-  });
-
-  el.innerHTML = `
-    <div class="cs-header">
-      <div class="cs-title">✦ 你的核心特質</div>
-      <div class="cs-subtitle">五大命理系統交叉比對，以下是最確定的你</div>
-    </div>
-    <div class="cs-body">${lines.join('')}</div>
-  `;
-  el.style.display = '';
-}
-
-// ============ 跨系統共振 Badge ============
-
-/**
- * 在各引擎 tab 的最上方注入共振 badge，
- * 告訴使用者哪些主題被 ≥3 個系統同時提到
- */
-function injectResonanceBadges(categories, allThemes) {
-  const { core } = categories;
-  if (!core || core.length === 0) return;
-
-  // 建立 system → themes 的對照（用於判斷哪個 tab 要顯示哪些 badge）
-  const systemMap = {
-    maya: '馬雅',
-    astro: '占星',
-    bazi: '八字',
-    ziwei: '紫微',
-    hd: '人類圖',
-  };
-
-  for (const [tabKey, systemName] of Object.entries(systemMap)) {
-    const viewEl = document.getElementById(`view-${tabKey}`);
-    if (!viewEl) continue;
-
-    // 找出本系統有貢獻的核心主題
-    const relevant = core.filter(t => t.systems.includes(systemName));
-    if (relevant.length === 0) continue;
-
-    // 建構 badge HTML
-    const badges = relevant.map(t =>
-      `<span class="resonance-badge">⚡ ${t.systemCount}系統共振：${t.zh}</span>`
-    ).join('');
-
-    const badgeBar = document.createElement('div');
-    badgeBar.className = 'resonance-bar';
-    badgeBar.innerHTML = badges;
-
-    // 插入到 view 最前面（在現有內容之前）
-    viewEl.insertBefore(badgeBar, viewEl.firstChild);
-  }
-}
 
 /** 儲存輸入到 localStorage */
 function saveInput(data) {

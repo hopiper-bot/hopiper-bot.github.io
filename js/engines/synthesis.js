@@ -1,1241 +1,704 @@
 ﻿/**
- * synthesis.js — 人生劇本大綱
+ * synthesis.js — 劇本大綱（時間軸版）
  * 
- * 從五個命理系統提取核心主題，交叉比對找出共振點，
- * 生成一份統一的「人生劇本」敘事。
+ * v4 重構：拿掉靜態「核心特質」（各 tab 已有），改為純時間軸敘事：
+ *   1. 年度劇情 — 五系統流年共振（原 transit.js 邏輯）
+ *   2. 本月節奏 — 流月干支 + 馬雅月能量 + 占星慢行星
+ *   3. 今日能量 — 個人化版（對日主的十神關係）
  * 
- * v2: 大幅增加文案變體，根據主題組合+來源系統產出差異化劇本
- * 
- * 核心邏輯：
- * 1. 每個系統抽出「主題標籤」(themes)
- * 2. 統計主題出現頻率（≥3 系統 = 核心主題、2 系統 = 支持主題）
- * 3. 根據主題組合+來源組合生成劇本大綱
+ * 另保留 AI Prompt 建構（複製貼 ChatGPT / Gemini / Claude 用）
  */
 
-// ============ 主題標籤定義 ============
+import { julianDay, sunLongitude, moonLongitude, northNodeLongitude } from '../lib/ephemeris.js';
+import { mercuryGeoLon, venusGeoLon, marsGeoLon, jupiterGeoLon, saturnGeoLon, uranusGeoLon, neptuneGeoLon, plutoGeoLon } from '../lib/planets.js';
+import { normalizeDeg, dateTimeToJD, mod, dateToJDN } from '../lib/utils.js';
+import { longitudeToGate, GATES } from '../data/hd-gates.js';
+import { findDefinedChannels, CHANNELS } from '../data/hd-channels.js';
+import { SEALS as MAYA_SEALS, TONES as MAYA_TONES } from '../data/maya-text.js';
 
-const THEME_DEFS = {
-  leadership:    { zh: '領導力', icon: '👑', desc: '你天生有帶領他人的能力' },
-  intuition:     { zh: '直覺力', icon: '🔮', desc: '你的第六感是你最可靠的指引' },
-  creativity:    { zh: '創造力', icon: '🎨', desc: '你需要透過創造來表達自己' },
-  communication: { zh: '溝通表達', icon: '🗣️', desc: '你的話語有影響力' },
-  caregiving:    { zh: '照顧滋養', icon: '🤲', desc: '照顧他人是你的天職' },
-  wealth:        { zh: '財富能量', icon: '💰', desc: '你與金錢有天生的緣分' },
-  independence:  { zh: '獨立自主', icon: '🦅', desc: '你需要自己的空間和自由' },
-  wisdom:        { zh: '智慧深度', icon: '📚', desc: '你透過學習和反思獲得力量' },
-  action:        { zh: '行動力', icon: '⚡', desc: '你有強大的執行和推動能力' },
-  emotional:     { zh: '情緒智慧', icon: '🌊', desc: '你的情緒波動是你的導航系統' },
-  transformation:{ zh: '轉化蛻變', icon: '🦋', desc: '你的人生有重大的轉折和重生' },
-  service:       { zh: '服務奉獻', icon: '🙏', desc: '你透過幫助他人找到人生意義' },
-  resilience:    { zh: '韌性毅力', icon: '💎', desc: '你越挫越勇，逆境是你的養分' },
-  magnetism:     { zh: '人際吸引', icon: '🧲', desc: '你天生吸引人靠近' },
-  authenticity:  { zh: '做自己', icon: '✨', desc: '你的人生功課就是忠於自己' },
-  patience:      { zh: '等待時機', icon: '⏳', desc: '正確的時機比行動更重要' },
-  strategy:      { zh: '策略思維', icon: '♟️', desc: '你善於規劃和佈局' },
-  family:        { zh: '家族責任', icon: '🏠', desc: '家庭和傳承是你的重要主題' },
+// ============ 常量 ============
+
+const STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const STEM_ELEMENT = {"甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水"};
+const STEM_YINYANG = {"甲":"陽","乙":"陰","丙":"陽","丁":"陰","戊":"陽","己":"陰","庚":"陽","辛":"陰","壬":"陽","癸":"陰"};
+const BRANCH_ELEMENT = {"子":"水","丑":"土","寅":"木","卯":"木","辰":"土","巳":"火","午":"火","未":"土","申":"金","酉":"金","戌":"土","亥":"水"};
+const ELEMENT_EMOJI = {"木":"🌳","火":"🔥","土":"🏔️","金":"⚙️","水":"💧"};
+const WUXING_SHENG = {"木":"火","火":"土","土":"金","金":"水","水":"木"};
+const WUXING_KE = {"木":"土","土":"水","水":"火","火":"金","金":"木"};
+
+const PALACE_NAMES = ['命宮','兄弟','夫妻','子女','財帛','疾厄','遷移','交友','事業','田宅','福德','父母'];
+const HOUSE_TOPICS = ['','自我/外表','金錢/資源','溝通/學習','家庭/根基','創造/戀愛','工作/健康','關係/合作','深層/共享','信念/遠方','事業/名聲','社群/理想','靈性/幕後'];
+
+// ============ 十神計算 ============
+
+function getTenGod(day, other) {
+  const de = STEM_ELEMENT[day], oe = STEM_ELEMENT[other];
+  const dy = STEM_YINYANG[day], oy = STEM_YINYANG[other];
+  const same = dy === oy;
+  if (de === oe) return same ? '比肩' : '劫財';
+  if (WUXING_SHENG[de] === oe) return same ? '食神' : '傷官';
+  if (WUXING_KE[de] === oe) return same ? '偏財' : '正財';
+  if (WUXING_KE[oe] === de) return same ? '七殺' : '正官';
+  if (WUXING_SHENG[oe] === de) return same ? '偏印' : '正印';
+  return '';
+}
+
+function tenGodRelation(selfEl, otherEl) {
+  if (selfEl === otherEl) return "比劫";
+  if (WUXING_SHENG[otherEl] === selfEl) return "印";
+  if (WUXING_SHENG[selfEl] === otherEl) return "食傷";
+  if (WUXING_KE[selfEl] === otherEl) return "財";
+  if (WUXING_KE[otherEl] === selfEl) return "官殺";
+  return "比劫";
+}
+
+// ============ 年干支 / 月干支 / 日干支 ============
+
+function getYearStemBranch(year) {
+  const sIdx = (year - 4) % 10;
+  const bIdx = (year - 4) % 12;
+  return { stem: STEMS[sIdx], branch: BRANCHES[bIdx], stemIdx: sIdx, branchIdx: bIdx };
+}
+
+/**
+ * 流月干支（以節氣為界，簡化版用固定日期近似）
+ * 月柱天干 = 年干 × 2 + 月支序
+ */
+function getMonthStemBranch(year, month) {
+  // 月支：寅月(1月)起，但農曆正月=寅，公曆近似：2月=寅,3月=卯...1月=丑
+  const monthToBranch = [null, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1]; // idx1=Jan→丑(1), idx2=Feb→寅(2)...
+  const branchIdx = monthToBranch[month];
+  // 月柱天干公式：(年干序×2 + 月支序) % 10
+  const yearStemIdx = (year - 4) % 10;
+  const stemIdx = (yearStemIdx * 2 + branchIdx) % 10;
+  return { stem: STEMS[stemIdx], branch: BRANCHES[branchIdx], stemIdx, branchIdx };
+}
+
+function dayPillar(y, m, d) {
+  const jdn = dateToJDN(y, m, d);
+  const base = dateToJDN(2000, 1, 7);
+  const diff = ((jdn - base) % 60 + 60) % 60;
+  return { stem: STEMS[diff % 10], branch: BRANCHES[diff % 12] };
+}
+
+// ============ 馬雅曆 ============
+
+const MONTH_OFF = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+function dreamspellKin(y, m, d) {
+  const yearVal = mod(217 + 105 * (y - 2013), 260);
+  return mod(yearVal + MONTH_OFF[m - 1] + d - 1, 260) + 1;
+}
+
+function kinToInfo(kin) {
+  const sealIdx = (kin - 1) % 20;
+  const toneIdx = (kin - 1) % 13;
+  return { kin, seal: MAYA_SEALS[sealIdx], tone: MAYA_TONES[toneIdx], sealIdx, toneIdx };
+}
+
+// ============ 流年計算（原 transit.js）============
+
+function baziTransit(year, baziData) {
+  if (!baziData) return null;
+  const yy = getYearStemBranch(year);
+  const dayMaster = baziData.dayMaster;
+  const god = getTenGod(dayMaster, yy.stem);
+  const yearElem = STEM_ELEMENT[yy.stem];
+  const dayElem = baziData.dayMasterElem;
+
+  let relation = '';
+  if (yearElem === dayElem) relation = '比和（平穩）';
+  else if (WUXING_SHENG[dayElem] === yearElem) relation = '我生（付出、耗洩）';
+  else if (WUXING_SHENG[yearElem] === dayElem) relation = '生我（得助、資源）';
+  else if (WUXING_KE[dayElem] === yearElem) relation = '我剋（求財、掌控）';
+  else if (WUXING_KE[yearElem] === dayElem) relation = '剋我（壓力、挑戰）';
+
+  const godDesc = {
+    '比肩': '同類能量加持——人脈擴展、合作機會增加。但也要注意競爭和分財。',
+    '劫財': '社交活躍、花錢慾望增加。適合拓展業務，但注意財務控管。',
+    '食神': '才華展現的一年——創意豐沛、表達順暢。適合創作、學習新技能。身體放鬆，胃口好。',
+    '傷官': '想法爆發、叛逆創新。對現狀不滿想突破。適合轉型，但注意跟上司/權威的關係。',
+    '正財': '穩定進財——薪資加、理財有成。適合經營、累積。感情穩定走向承諾。',
+    '偏財': '意外之財——投資、業績爆發、兼職收入。機會多但也來得快去得快。',
+    '正官': '升遷、認可、考試順利。適合走體制內路線。會感受到責任加重。',
+    '七殺': '壓力和挑戰——但也是突破舒適圈的動力。適合創業、轉換跑道、面對恐懼。',
+    '正印': '學習、進修、考證照的好年。有長輩/貴人相助。身心修復。',
+    '偏印': '靈感和直覺增強——適合研究、寫作、非主流技能。但注意鑽牛角尖。',
+  };
+
+  let dayunInfo = '';
+  if (baziData.dayun) {
+    const currentDayun = baziData.dayun.find(d => year >= d.yearStart && year <= d.yearEnd);
+    if (currentDayun) dayunInfo = `大運「${currentDayun.stem}${currentDayun.branch}」（${currentDayun.god}運）`;
+  }
+
+  return { stem: yy.stem, branch: yy.branch, god, relation, godDesc: godDesc[god] || '', dayunInfo, yearElem };
+}
+
+function hdTransit(year, hdData) {
+  if (!hdData) return null;
+  const jd = dateTimeToJD(year, 7, 1, 12, 0, 0);
+  const transitPlanets = [
+    { id: 'jupiter', fn: jupiterGeoLon },
+    { id: 'saturn', fn: saturnGeoLon },
+    { id: 'uranus', fn: uranusGeoLon },
+    { id: 'neptune', fn: neptuneGeoLon },
+    { id: 'pluto', fn: plutoGeoLon },
+  ];
+  const planetNames = { jupiter:'木星', saturn:'土星', uranus:'天王星', neptune:'海王星', pluto:'冥王星' };
+
+  const transitGates = [];
+  for (const p of transitPlanets) {
+    const lon = p.fn(jd);
+    const { gate, line } = longitudeToGate(lon);
+    transitGates.push({ planet: planetNames[p.id], gate, line });
+  }
+
+  const natalGates = new Set();
+  if (hdData.personalityPlanets) hdData.personalityPlanets.forEach(p => natalGates.add(p.gate));
+  if (hdData.designPlanets) hdData.designPlanets.forEach(p => natalGates.add(p.gate));
+
+  const tempChannels = [];
+  for (const tp of transitGates) {
+    for (const ch of CHANNELS) {
+      const otherGate = ch.gates[0] === tp.gate ? ch.gates[1] : ch.gates[1] === tp.gate ? ch.gates[0] : null;
+      if (otherGate && natalGates.has(otherGate)) {
+        const alreadyDefined = hdData.definedChannels?.some(dc => dc.gates.includes(tp.gate) && dc.gates.includes(otherGate));
+        if (!alreadyDefined) {
+          tempChannels.push({ planet: tp.planet, channel: ch, transitGate: tp.gate, natalGate: otherGate });
+        }
+      }
+    }
+  }
+
+  return { transitGates, tempChannels };
+}
+
+function astroTransit(year, astroData) {
+  if (!astroData) return null;
+  const jd = dateTimeToJD(year, 7, 1, 12, 0, 0);
+  const SIGNS_ZH = ['牡羊座','金牛座','雙子座','巨蟹座','獅子座','處女座','天秤座','天蠍座','射手座','摩羯座','水瓶座','雙魚座'];
+
+  const transitPositions = [
+    { id: 'jupiter', zh: '木星', fn: jupiterGeoLon },
+    { id: 'saturn', zh: '土星', fn: saturnGeoLon },
+    { id: 'uranus', zh: '天王星', fn: uranusGeoLon },
+    { id: 'neptune', zh: '海王星', fn: neptuneGeoLon },
+    { id: 'pluto', zh: '冥王星', fn: plutoGeoLon },
+  ].map(p => {
+    const lon = p.fn(jd);
+    const signIdx = Math.floor(lon / 30);
+    return { ...p, lon, sign: SIGNS_ZH[signIdx], signIdx };
+  });
+
+  const aspects = [];
+  const natalPlanets = astroData.planets || [];
+  const ASP = [
+    { name: '合', angle: 0, orb: 8 },
+    { name: '對沖', angle: 180, orb: 8 },
+    { name: '四分', angle: 90, orb: 6 },
+    { name: '三合', angle: 120, orb: 6 },
+  ];
+
+  for (const tp of transitPositions) {
+    for (const np of natalPlanets) {
+      let diff = Math.abs(tp.lon - np.longitude);
+      if (diff > 180) diff = 360 - diff;
+      for (const asp of ASP) {
+        if (Math.abs(diff - asp.angle) <= asp.orb) {
+          aspects.push({ transit: tp.zh, natal: np.zh, type: asp.name, exact: Math.abs(diff - asp.angle).toFixed(1) });
+          break;
+        }
+      }
+    }
+  }
+
+  const natalAscLon = astroData.ascendant?.longitude || 0;
+  const jupLon = transitPositions.find(p => p.id === 'jupiter')?.lon || 0;
+  const jupHouse = Math.floor(normalizeDeg(jupLon - natalAscLon) / 30) + 1;
+  const satLon = transitPositions.find(p => p.id === 'saturn')?.lon || 0;
+  const satHouse = Math.floor(normalizeDeg(satLon - natalAscLon) / 30) + 1;
+
+  return { transitPositions, aspects, jupHouse, satHouse };
+}
+
+function ziweiTransit(year, ziweiData) {
+  if (!ziweiData) return null;
+  const yb = (year - 4) % 12;
+  const liunianPos = (14 - yb) % 12;
+  const ys = (year - 4) % 10;
+  const SIHUA_TABLE = [
+    ['廉貞','破軍','武曲','太陽'],['天機','天梁','紫微','太陰'],
+    ['天同','天機','文昌','廉貞'],['太陰','天同','天機','巨門'],
+    ['貪狼','太陰','右弼','天機'],['武曲','貪狼','天梁','文曲'],
+    ['太陽','武曲','太陰','天同'],['巨門','太陽','文曲','文昌'],
+    ['天梁','紫微','左輔','武曲'],['破軍','巨門','太陰','貪狼'],
+  ];
+  const sh = SIHUA_TABLE[ys];
+  const sihua = { lu: sh[0], quan: sh[1], ke: sh[2], ji: sh[3] };
+
+  let sihuaPalaces = {};
+  if (ziweiData.palaces) {
+    for (const key of ['lu','quan','ke','ji']) {
+      const starName = sihua[key];
+      for (const p of ziweiData.palaces) {
+        const found = p.main?.some(s => (typeof s === 'string' ? s : s.name) === starName);
+        if (found) { sihuaPalaces[key] = p; break; }
+      }
+    }
+  }
+
+  return { liunianPos, sihua, sihuaPalaces, yearStem: STEMS[ys], yearBranch: BRANCHES[yb] };
+}
+
+function mayaTransit(year, mayaData) {
+  if (!mayaData) return null;
+  const ad = mayaData.annualDream;
+  const ds = mayaData.dreamspell;
+  if (!ad) return null;
+
+  function kinToName(kin) {
+    if (!kin) return null;
+    const sealIdx = (kin - 1) % 20;
+    const toneIdx = (kin - 1) % 13;
+    return { seal: MAYA_SEALS[sealIdx].zh, tone: MAYA_TONES[toneIdx].zh, kin };
+  }
+
+  return {
+    yearInfo: kinToName(ad.yearKin),
+    personalInfo: kinToName(ad.personalKin),
+    galacticYear: ad.galacticYear,
+    natalSeal: ds?.seal,
+  };
+}
+
+// ============ 流月計算（新增）============
+
+function baziMonth(year, month, baziData) {
+  if (!baziData) return null;
+  const mm = getMonthStemBranch(year, month);
+  const dayMaster = baziData.dayMaster;
+  const god = getTenGod(dayMaster, mm.stem);
+  const monthElem = STEM_ELEMENT[mm.stem];
+
+  const godDesc = {
+    '比肩': '本月能量跟你同頻——同事互助、交友活絡，但也有競爭壓力。',
+    '劫財': '本月花錢機會多、社交活躍。適合拓展人脈，但別衝動消費。',
+    '食神': '本月表達力和食慾都旺——適合創作、發表、享受美食。',
+    '傷官': '本月想法多、不想被管。適合創新，但注意跟主管的互動。',
+    '正財': '本月進財穩定，適合理財規劃、穩步推進計畫。',
+    '偏財': '本月有意外收入機會。投資運不錯，但見好就收。',
+    '正官': '本月責任加重、有正式場合或評估。適合表現紀律面。',
+    '七殺': '本月壓力感明顯，但也是突破的好時機。面對它。',
+    '正印': '本月適合學習、休息、找貴人。長輩緣好。',
+    '偏印': '本月直覺強、適合研究鑽研。但別想太多。',
+  };
+
+  return { stem: mm.stem, branch: mm.branch, god, monthElem, godDesc: godDesc[god] || '' };
+}
+
+function astroMonth(year, month, astroData) {
+  if (!astroData) return null;
+  // 用月中（15號）取樣慢行星位置
+  const jd = dateTimeToJD(year, month, 15, 12, 0, 0);
+  const SIGNS_ZH = ['牡羊座','金牛座','雙子座','巨蟹座','獅子座','處女座','天秤座','天蠍座','射手座','摩羯座','水瓶座','雙魚座'];
+
+  const planets = [
+    { id: 'jupiter', zh: '木星', fn: jupiterGeoLon },
+    { id: 'saturn', zh: '土星', fn: saturnGeoLon },
+  ].map(p => {
+    const lon = p.fn(jd);
+    return { ...p, lon, sign: SIGNS_ZH[Math.floor(lon / 30)] };
+  });
+
+  // 本月太陽進入的星座
+  const sunLon = sunLongitude(jd);
+  const sunSign = SIGNS_ZH[Math.floor(sunLon / 30)];
+
+  return { planets, sunSign };
+}
+
+function mayaMonth(year, month) {
+  // 取該月 1 號的 KIN 作為月能量代表
+  const kin = dreamspellKin(year, month, 1);
+  const info = kinToInfo(kin);
+  return info;
+}
+
+// ============ 今日（個人化）============
+
+function todayPersonal(baziData) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth() + 1, d = now.getDate();
+
+  // 日柱
+  const { stem, branch } = dayPillar(y, m, d);
+  const todayElem = STEM_ELEMENT[stem];
+
+  // 馬雅
+  const kin = dreamspellKin(y, m, d);
+  const mayaInfo = kinToInfo(kin);
+
+  // 個人化十神
+  let personal = null;
+  if (baziData?.dayMaster) {
+    const selfEl = STEM_ELEMENT[baziData.dayMaster];
+    const relation = tenGodRelation(selfEl, todayElem);
+    personal = { selfStem: baziData.dayMaster, selfEl, relation, todayElem };
+  }
+
+  const DAY_ADVICE = {
+    "甲": { good: "開始新計畫、拜訪新客戶", avoid: "結束或斷捨離", vibe: "開創" },
+    "乙": { good: "溝通協商、藝術創作", avoid: "激進變動", vibe: "柔和" },
+    "丙": { good: "展現自我、公開演講", avoid: "低調行事", vibe: "光芒" },
+    "丁": { good: "精細工作、學習研究", avoid: "大動作行銷", vibe: "溫暖" },
+    "戊": { good: "穩定推進、建立制度", avoid: "冒險投機", vibe: "穩重" },
+    "己": { good: "整理收納、照顧他人", avoid: "急躁催促", vibe: "包容" },
+    "庚": { good: "決斷執行、處理積壓", avoid: "猶豫不決", vibe: "果斷" },
+    "辛": { good: "談判簽約、精品選購", avoid: "粗枝大葉", vibe: "精緻" },
+    "壬": { good: "腦力激盪、旅行移動", avoid: "固守不變", vibe: "流動" },
+    "癸": { good: "冥想反省、深度對話", avoid: "過度社交", vibe: "沉靜" },
+  };
+
+  const RELATION_ADVICE = {
+    "比劫": { title: "兄弟日", icon: "🤝", text: "今天能量跟你同國。合作、競爭並存。" },
+    "印":   { title: "貴人日", icon: "🌱", text: "有資源和長輩緣靠近。適合學習和休息。" },
+    "食傷": { title: "才華日", icon: "🎨", text: "表達力爆發。適合創作、發表、秀點子。" },
+    "財":   { title: "財氣日", icon: "💰", text: "掌控力強、目標感清楚。適合談錢推計畫。" },
+    "官殺": { title: "考驗日", icon: "🛡️", text: "壓力責任較重。適合守規矩、按部就班。" },
+  };
+
+  return {
+    date: `${y}/${m}/${d}`,
+    weekday: ['日','一','二','三','四','五','六'][now.getDay()],
+    stem, branch, todayElem,
+    advice: DAY_ADVICE[stem],
+    maya: mayaInfo,
+    personal,
+    relationAdvice: personal ? RELATION_ADVICE[personal.relation] : null,
+  };
+}
+
+// ============ 流年綜合交叉比對（共振分析）============
+
+const YEAR_THEMES = {
+  money: { zh: '財運', icon: '💰' },
+  career: { zh: '事業', icon: '📈' },
+  growth: { zh: '成長', icon: '🌱' },
+  pressure: { zh: '壓力', icon: '🏋️' },
+  change: { zh: '變動', icon: '🔄' },
+  relationship: { zh: '關係', icon: '💕' },
+  creativity: { zh: '創造', icon: '🎨' },
+  lucky: { zh: '幸運', icon: '🍀' },
+  spiritual: { zh: '靈性', icon: '🔮' },
+  health: { zh: '身心', icon: '🧘' },
 };
 
-// ============ 各系統主題提取 ============
-
-/** 從八字提取主題 */
-function extractBaziThemes(data) {
-  if (!data) return [];
+function extractYearThemes(bazi, hd, astro, ziwei, maya) {
   const themes = [];
-  const { dayMasterElem, tenGods, shensha } = data;
-  
-  const elemTraits = {
-    '木': ['creativity', 'independence', 'action'],
-    '火': ['leadership', 'communication', 'action'],
-    '土': ['caregiving', 'patience', 'family'],
-    '金': ['independence', 'resilience', 'strategy'],
-    '水': ['wisdom', 'intuition', 'communication'],
-  };
-  if (elemTraits[dayMasterElem]) {
-    themes.push(...elemTraits[dayMasterElem].map(t => ({ theme: t, source: '八字日主', weight: 2 })));
-  }
-  
-  if (tenGods) {
-    const godThemes = {
-      '比肩': ['independence', 'resilience'],
-      '劫財': ['action', 'independence'],
-      '食神': ['creativity', 'communication'],
-      '傷官': ['creativity', 'independence', 'communication'],
-      '正財': ['wealth', 'patience'],
-      '偏財': ['wealth', 'magnetism'],
-      '正官': ['leadership', 'family'],
-      '七殺': ['action', 'transformation', 'resilience'],
-      '正印': ['wisdom', 'caregiving'],
-      '偏印': ['intuition', 'wisdom', 'independence'],
+
+  if (bazi) {
+    const godToTheme = {
+      '正財': ['money','career'], '偏財': ['money','lucky'],
+      '正官': ['career','pressure'], '七殺': ['pressure','change'],
+      '食神': ['creativity','lucky'], '傷官': ['creativity','change'],
+      '正印': ['growth','spiritual'], '偏印': ['spiritual','growth'],
+      '比肩': ['relationship'], '劫財': ['money','change'],
     };
-    for (const tg of tenGods) {
-      if (godThemes[tg.god]) {
-        themes.push(...godThemes[tg.god].map(t => ({ theme: t, source: `八字${tg.god}`, weight: 1 })));
-      }
+    if (godToTheme[bazi.god]) themes.push(...godToTheme[bazi.god].map(t => ({ theme: t, source: '八字' })));
+  }
+
+  if (astro) {
+    const houseTheme = { 1:'health', 2:'money', 3:'growth', 4:'relationship', 5:'creativity', 6:'health', 7:'relationship', 8:'change', 9:'spiritual', 10:'career', 11:'relationship', 12:'spiritual' };
+    if (houseTheme[astro.jupHouse]) themes.push({ theme: houseTheme[astro.jupHouse], source: '占星木星' }, { theme: 'lucky', source: '占星木星' });
+    if (houseTheme[astro.satHouse]) themes.push({ theme: houseTheme[astro.satHouse], source: '占星土星' }, { theme: 'pressure', source: '占星土星' });
+  }
+
+  if (hd && hd.tempChannels.length > 0) {
+    themes.push({ theme: 'change', source: '人類圖' });
+    for (const tc of hd.tempChannels) {
+      if (['金錢線','脈動','投降','蛻變'].includes(tc.channel.name)) themes.push({ theme: 'money', source: '人類圖' });
+      if (['創始者','發起'].includes(tc.channel.name)) themes.push({ theme: 'career', source: '人類圖' });
+      if (['啟發','無常','好奇心'].includes(tc.channel.name)) themes.push({ theme: 'creativity', source: '人類圖' });
     }
   }
-  
-  if (shensha) {
-    const shenshaThemes = {
-      '天乙貴人': ['magnetism'],
-      '文昌': ['wisdom', 'communication'],
-      '華蓋': ['intuition', 'independence', 'wisdom'],
-      '驛馬': ['action', 'independence'],
-      '桃花': ['magnetism'],
-      '將星': ['leadership'],
-      '天德': ['service'],
-      '月德': ['caregiving'],
-      '金輿': ['wealth'],
-      '天廚': ['wealth'],
-    };
-    for (const ss of shensha) {
-      if (shenshaThemes[ss.name]) {
-        themes.push(...shenshaThemes[ss.name].map(t => ({ theme: t, source: `八字${ss.name}`, weight: 1 })));
-      }
-    }
+
+  if (ziwei) {
+    const palaceTheme = { 0:'health', 1:'relationship', 2:'relationship', 3:'relationship', 4:'money', 5:'health', 6:'change', 7:'relationship', 8:'career', 9:'money', 10:'spiritual', 11:'relationship' };
+    if (ziwei.sihuaPalaces.lu) themes.push({ theme: palaceTheme[ziwei.sihuaPalaces.lu.pos] || 'lucky', source: '紫微化祿' }, { theme: 'lucky', source: '紫微化祿' });
+    if (ziwei.sihuaPalaces.ji) themes.push({ theme: palaceTheme[ziwei.sihuaPalaces.ji.pos] || 'pressure', source: '紫微化忌' }, { theme: 'pressure', source: '紫微化忌' });
+    if (ziwei.sihuaPalaces.quan) themes.push({ theme: 'career', source: '紫微化權' });
   }
-  
+
+  if (maya && maya.natalSeal) {
+    const sealTheme = { '紅龍':'relationship', '白風':'creativity', '藍夜':'money', '黃種子':'growth', '紅蛇':'change', '白世界橋':'change', '藍手':'creativity', '黃星':'creativity', '紅月':'spiritual', '白狗':'relationship', '藍猴':'creativity', '黃人':'growth', '紅天行者':'change', '白巫師':'spiritual', '藍鷹':'career', '黃戰士':'career', '紅地球':'health', '白鏡':'spiritual', '藍風暴':'change', '黃太陽':'lucky' };
+    const seal = maya.personalInfo?.seal || maya.natalSeal?.zh;
+    if (seal && sealTheme[seal]) themes.push({ theme: sealTheme[seal], source: '馬雅' });
+  }
+
   return themes;
 }
 
-/** 從紫微斗數提取主題 */
-function extractZiweiThemes(data) {
-  if (!data) return [];
-  const themes = [];
-  
-  if (data.palaces) {
-    const mingPalace = data.palaces.find(p => p.pos === data.mingPos);
-    if (mingPalace && mingPalace.main) {
-      const starThemes = {
-        '紫微': ['leadership', 'independence', 'magnetism'],
-        '天機': ['wisdom', 'strategy', 'intuition'],
-        '太陽': ['leadership', 'communication', 'service'],
-        '武曲': ['wealth', 'action', 'resilience'],
-        '天同': ['patience', 'emotional', 'caregiving'],
-        '廉貞': ['action', 'transformation', 'independence'],
-        '天府': ['wealth', 'leadership', 'family'],
-        '太陰': ['intuition', 'emotional', 'wisdom'],
-        '貪狼': ['magnetism', 'creativity', 'action'],
-        '巨門': ['communication', 'wisdom', 'independence'],
-        '天相': ['service', 'strategy', 'caregiving'],
-        '天梁': ['wisdom', 'caregiving', 'service'],
-        '七殺': ['action', 'independence', 'transformation'],
-        '破軍': ['transformation', 'action', 'resilience'],
-      };
-      for (const star of mingPalace.main) {
-        const name = (typeof star === 'string') ? star.replace(/[（(].+/, '').trim() : (star.name || '');
-        if (starThemes[name]) {
-          themes.push(...starThemes[name].map(t => ({ theme: t, source: `紫微命宮${name}`, weight: 2 })));
-        }
-      }
-    }
-    
-    const caiPos = (data.mingPos + 4) % 12;
-    const caiPalace = data.palaces.find(p => p.pos === caiPos);
-    if (caiPalace && caiPalace.main) {
-      for (const star of caiPalace.main) {
-        const name = (typeof star === 'string') ? star.replace(/[（(].+/, '').trim() : (star.name || '');
-        if (['武曲', '天府', '太陰', '貪狼'].includes(name)) {
-          themes.push({ theme: 'wealth', source: `紫微財帛宮${name}`, weight: 1 });
-        }
-      }
-    }
+function generateSpecificAdvice(bazi, hd, astro, ziwei, sorted) {
+  let adv = '';
+
+  if (sorted.some(t => t.key === 'money')) {
+    let d = [];
+    if (bazi && ['正財','偏財'].includes(bazi.god)) d.push(bazi.god === '偏財' ? '八字走偏財——意外收入型' : '八字走正財——穩定累積型');
+    if (hd?.tempChannels?.some(tc => ['金錢線','脈動','投降','蛻變'].includes(tc.channel.name))) d.push('人類圖有財富相關通道開通');
+    if (astro && astro.jupHouse === 2) d.push('木星過境財帛宮');
+    if (d.length > 0) adv += `<div style="margin-bottom:10px;">💰 <b>財運：</b>${d.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 今年跟錢有關的訊號是真的。${bazi?.god === '偏財' ? '把握機會但不梭哈。' : '穩紮穩打。'}</span></div>`;
   }
-  
-  if (data.sihua && data.palaces) {
-    // 四化只有落在命宮或福德宮才算個人特質
-    const mingPos = data.mingPos;
-    const fudePos = (mingPos + 10) % 12;  // 福德宮 = 命宮順數第11宮(index+10)
-    const personalPalaces = [mingPos, fudePos];
-    
-    // 找出四化星各落在哪個宮
-    function findStarPalace(starName) {
-      for (const p of data.palaces) {
-        if (p.main && p.main.some(s => (typeof s === 'string' ? s.replace(/[（(].+/,'').trim() : (s.name||'')) === starName)) return p.pos;
-        if (p.minor && p.minor.some(s => (typeof s === 'string' ? s : (s.name||s)) === starName)) return p.pos;
-      }
-      return -1;
-    }
-    
-    const luPos = findStarPalace(data.sihua.lu);
-    const quanPos = findStarPalace(data.sihua.quan);
-    const kePos = findStarPalace(data.sihua.ke);
-    const jiPos = findStarPalace(data.sihua.ji);
-    
-    // 只有落在命宮/福德宮的四化才算個人特質
-    if (data.sihua.lu && personalPalaces.includes(luPos)) {
-      themes.push({ theme: 'wealth', source: `紫微化祿(${data.sihua.lu})入命/福德`, weight: 1 });
-    }
-    if (data.sihua.quan && personalPalaces.includes(quanPos)) {
-      themes.push({ theme: 'leadership', source: `紫微化權(${data.sihua.quan})入命/福德`, weight: 1 });
-    }
-    if (data.sihua.ke && personalPalaces.includes(kePos)) {
-      themes.push({ theme: 'wisdom', source: `紫微化科(${data.sihua.ke})入命/福德`, weight: 1 });
-    }
-    if (data.sihua.ji && personalPalaces.includes(jiPos)) {
-      themes.push({ theme: 'transformation', source: `紫微化忌(${data.sihua.ji})入命/福德`, weight: 1 });
-    }
+
+  if (sorted.some(t => t.key === 'career')) {
+    let d = [];
+    if (bazi && ['正官','七殺'].includes(bazi.god)) d.push(bazi.god === '正官' ? '八字走正官——升遷認可' : '八字走七殺——壓力型突破');
+    if (astro && astro.jupHouse === 10) d.push('木星過境事業宮');
+    if (d.length > 0) adv += `<div style="margin-bottom:10px;">📈 <b>事業：</b>${d.join('；')}。</div>`;
   }
-  
-  return themes;
+
+  if (sorted.some(t => t.key === 'pressure')) {
+    let d = [];
+    if (bazi && ['七殺','正官'].includes(bazi.god)) d.push(`八字走${bazi.god}`);
+    if (astro?.satHouse) d.push(`土星在 ${astro.satHouse} 宮（${HOUSE_TOPICS[astro.satHouse]||''}）`);
+    if (ziwei?.sihuaPalaces?.ji) d.push(`化忌落${PALACE_NAMES[ziwei.sihuaPalaces.ji.pos]||''}`);
+    if (d.length > 0) adv += `<div style="margin-bottom:10px;">🏋️ <b>壓力點：</b>${d.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 壓力是升級的前奏。</span></div>`;
+  }
+
+  if (sorted.some(t => t.key === 'change')) {
+    let d = [];
+    if (bazi && ['傷官','七殺','劫財'].includes(bazi.god)) d.push(`八字走${bazi.god}——內在躁動`);
+    if (hd?.tempChannels?.length > 2) d.push(`人類圖開了 ${hd.tempChannels.length} 條臨時通道`);
+    if (d.length > 0) adv += `<div style="margin-bottom:10px;">🔄 <b>變動：</b>${d.join('；')}。<br><span style="color:var(--muted);font-size:.82rem;">→ 適合轉型，但等感覺對了再動。</span></div>`;
+  }
+
+  if (adv === '') adv = '今年能量分散，沒有壓倒性主題。保持本命策略，見機行事。';
+  return adv;
 }
 
-/** 從西洋占星提取主題 */
-function extractAstroThemes(data) {
-  if (!data) return [];
-  const themes = [];
-  
-  const signThemes = {
-    '牡羊座': ['action', 'leadership', 'independence'],
-    '金牛座': ['wealth', 'patience', 'resilience'],
-    '雙子座': ['communication', 'wisdom', 'strategy'],
-    '巨蟹座': ['caregiving', 'emotional', 'family'],
-    '獅子座': ['leadership', 'creativity', 'magnetism'],
-    '處女座': ['service', 'wisdom', 'strategy'],
-    '天秤座': ['magnetism', 'communication', 'strategy'],
-    '天蠍座': ['transformation', 'intuition', 'resilience'],
-    '射手座': ['wisdom', 'independence', 'action'],
-    '摩羯座': ['leadership', 'resilience', 'wealth'],
-    '水瓶座': ['independence', 'creativity', 'wisdom'],
-    '雙魚座': ['intuition', 'emotional', 'creativity'],
-  };
-  
-  if (data.sunSign && signThemes[data.sunSign.zh]) {
-    themes.push(...signThemes[data.sunSign.zh].map(t => ({ theme: t, source: `占星太陽${data.sunSign.zh}`, weight: 2 })));
-  }
-  if (data.moonSign && signThemes[data.moonSign.zh]) {
-    themes.push(...signThemes[data.moonSign.zh].map(t => ({ theme: t, source: `占星月亮${data.moonSign.zh}`, weight: 1 })));
-  }
-  if (data.risingSign && signThemes[data.risingSign.zh]) {
-    themes.push(...signThemes[data.risingSign.zh].map(t => ({ theme: t, source: `占星上升${data.risingSign.zh}`, weight: 1 })));
-  }
-  
-  if (data.aspects) {
-    for (const asp of data.aspects) {
-      if (asp.type === '合' || asp.type === '對衝') {
-        if (asp.planet1 === 'sun' || asp.planet2 === 'sun') {
-          if (['jupiter', 'venus'].includes(asp.planet1) || ['jupiter', 'venus'].includes(asp.planet2)) {
-            themes.push({ theme: 'wealth', source: `占星${asp.name}`, weight: 1 });
-            themes.push({ theme: 'magnetism', source: `占星${asp.name}`, weight: 1 });
-          }
-          if (['pluto', 'saturn'].includes(asp.planet1) || ['pluto', 'saturn'].includes(asp.planet2)) {
-            themes.push({ theme: 'transformation', source: `占星${asp.name}`, weight: 1 });
-            themes.push({ theme: 'resilience', source: `占星${asp.name}`, weight: 1 });
-          }
-        }
-      }
-    }
-  }
-  
-  return themes;
-}
+// ============ 渲染：年度 ============
 
-/** 從馬雅曆提取主題 */
-function extractMayaThemes(data) {
-  if (!data) return [];
-  const themes = [];
-  
-  const sealThemes = {
-    '紅龍': ['caregiving', 'family', 'action'],
-    '白風': ['communication', 'intuition', 'creativity'],
-    '藍夜': ['intuition', 'wealth', 'wisdom'],
-    '黃種子': ['patience', 'wisdom', 'service'],
-    '紅蛇': ['action', 'intuition', 'transformation'],
-    '白世界橋': ['transformation', 'service', 'magnetism'],
-    '藍手': ['creativity', 'action', 'service'],
-    '黃星': ['creativity', 'wisdom', 'authenticity'],
-    '紅月': ['emotional', 'intuition', 'transformation'],
-    '白狗': ['caregiving', 'family', 'magnetism'],
-    '藍猴': ['creativity', 'independence', 'wisdom'],
-    '黃人': ['independence', 'wisdom', 'authenticity'],
-    '紅天行者': ['independence', 'action', 'wisdom'],
-    '白巫師': ['intuition', 'patience', 'wisdom'],
-    '藍鷹': ['wisdom', 'strategy', 'creativity'],
-    '黃戰士': ['action', 'strategy', 'resilience'],
-    '紅地球': ['intuition', 'patience', 'service'],
-    '白鏡': ['authenticity', 'wisdom', 'independence'],
-    '藍風暴': ['transformation', 'action', 'independence'],
-    '黃太陽': ['leadership', 'authenticity', 'service'],
-  };
-  
-  if (data.dreamspell && data.dreamspell.seal) {
-    const seal = data.dreamspell.seal.zh || data.dreamspell.seal.name;
-    if (seal && sealThemes[seal]) {
-      themes.push(...sealThemes[seal].map(t => ({ theme: t, source: `馬雅主印記${seal}`, weight: 2 })));
-    }
-  }
-  
-  if (data.dreamspell && data.dreamspell.tone) {
-    const toneNum = data.dreamspell.tone.num || data.dreamspell.tone.number;
-    const toneThemes = {
-      1: ['leadership', 'independence'],
-      2: ['strategy', 'patience'],
-      3: ['action', 'creativity'],
-      4: ['strategy', 'family'],
-      5: ['leadership', 'action'],
-      6: ['magnetism', 'communication'],
-      7: ['intuition', 'communication'],
-      8: ['resilience', 'wisdom'],
-      9: ['action', 'service'],
-      10: ['authenticity', 'leadership'],
-      11: ['independence', 'transformation'],
-      12: ['caregiving', 'magnetism'],
-      13: ['intuition', 'transformation'],
-    };
-    if (toneNum && toneThemes[toneNum]) {
-      themes.push(...toneThemes[toneNum].map(t => ({ theme: t, source: `馬雅調性${toneNum}`, weight: 1 })));
-    }
-  }
-  
-  return themes;
-}
+function renderYear(year, bazi, hd, astro, ziwei, maya) {
+  const currentYear = new Date().getFullYear();
+  let html = '';
 
-/** 從人類圖提取主題 */
-function extractHDThemes(data) {
-  if (!data) return [];
-  const themes = [];
-  
-  const typeThemes = {
-    'MG': ['action', 'resilience', 'authenticity'],
-    'G': ['patience', 'action', 'authenticity'],
-    'M': ['leadership', 'action', 'independence'],
-    'P': ['wisdom', 'patience', 'strategy'],
-    'R': ['intuition', 'patience', 'wisdom'],
-  };
-  if (data.typeInfo && typeThemes[data.typeInfo.type]) {
-    themes.push(...typeThemes[data.typeInfo.type].map(t => ({ theme: t, source: `人類圖${data.typeInfo.zh}`, weight: 2 })));
+  // 年份切換按鈕
+  html += `<div style="display:flex;gap:8px;justify-content:center;margin:8px 0 16px;">`;
+  for (let y = currentYear - 1; y <= currentYear + 2; y++) {
+    const isActive = y === year;
+    html += `<button class="transit-year-btn${isActive ? ' active' : ''}" data-year="${y}" style="padding:6px 14px;border-radius:16px;border:1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,.12)'};background:${isActive ? 'var(--accent)' : 'transparent'};color:${isActive ? '#000' : 'var(--text)'};font-size:.82rem;cursor:pointer;font-weight:${isActive ? '700' : '400'};transition:all .2s;">${y}${y === currentYear ? '（今年）' : ''}</button>`;
   }
-  
-  const authThemes = {
-    '情緒權威': ['emotional', 'patience'],
-    '薦骨權威': ['intuition', 'action', 'authenticity'],
-    '直覺權威': ['intuition'],
-    '自我投射權威': ['independence', 'authenticity'],
-    '環境權威': ['intuition', 'wisdom'],
-    '月循環權威': ['patience', 'intuition'],
-  };
-  if (data.authority && authThemes[data.authority.zh]) {
-    themes.push(...authThemes[data.authority.zh].map(t => ({ theme: t, source: `人類圖${data.authority.zh}`, weight: 1 })));
-  }
-  
-  if (data.definedChannels) {
-    const channelThemeMap = {
-      '金錢線': ['wealth', 'leadership'],
-      '啟發': ['creativity', 'leadership'],
-      '魅力': ['action', 'magnetism'],
-      '力量原型': ['action', 'intuition'],
-      '探索': ['authenticity', 'action'],
-      '韻律': ['patience', 'authenticity'],
-      '脈動': ['wealth', 'intuition'],
-      '社群': ['family', 'caregiving'],
-      '才華': ['creativity', 'wisdom'],
-      '蛻變': ['transformation', 'wealth'],
-      '批判': ['service', 'wisdom'],
-      '掙扎': ['resilience', 'independence'],
-      '情緒': ['emotional', 'resilience'],
-      '親密': ['emotional', 'magnetism'],
-      '創始者': ['leadership', 'communication'],
-      '架構': ['wisdom', 'communication'],
-      '保存': ['caregiving', 'family'],
-      '突變': ['transformation', 'creativity'],
-      '專注': ['patience', 'resilience'],
-      '發現': ['action', 'resilience'],
-      '覺醒': ['authenticity', 'action'],
-      '開放': ['communication', 'emotional'],
-      '無常': ['action', 'creativity'],
-      '發起': ['leadership', 'transformation'],
-      '投降': ['strategy', 'wealth'],
-      '辨認': ['emotional', 'creativity'],
-      '浪子': ['wisdom', 'communication'],
-      '成熟': ['patience', 'transformation'],
-      '腦波': ['intuition', 'communication'],
-      '綜合': ['emotional', 'family'],
-      '抽象思維': ['wisdom', 'intuition'],
-      '覺察': ['intuition', 'wisdom'],
-      '邏輯': ['strategy', 'wisdom'],
-      '接受': ['communication', 'strategy'],
-      '好奇心': ['communication', 'creativity'],
-    };
-    for (const ch of data.definedChannels) {
-      if (channelThemeMap[ch.name]) {
-        themes.push(...channelThemeMap[ch.name].map(t => ({ theme: t, source: `人類圖${ch.name}通道`, weight: 1 })));
-      }
-    }
-  }
-  
-  if (data.profile) {
-    const profileThemes = {
-      '1/3': ['wisdom', 'resilience', 'independence'],
-      '1/4': ['wisdom', 'magnetism'],
-      '2/4': ['creativity', 'magnetism'],
-      '2/5': ['creativity', 'service'],
-      '3/5': ['resilience', 'service', 'transformation'],
-      '3/6': ['resilience', 'wisdom', 'transformation'],
-      '4/6': ['magnetism', 'wisdom'],
-      '4/1': ['magnetism', 'wisdom'],
-      '5/1': ['service', 'wisdom'],
-      '5/2': ['service', 'creativity'],
-      '6/2': ['wisdom', 'authenticity'],
-      '6/3': ['wisdom', 'resilience'],
-    };
-    if (profileThemes[data.profile.profile]) {
-      themes.push(...profileThemes[data.profile.profile].map(t => ({ theme: t, source: `人類圖Profile ${data.profile.profile}`, weight: 1 })));
-    }
-  }
-  
-  return themes;
-}
+  html += `</div>`;
 
-// ============ 主題統計與分析 ============
-
-function analyzeThemes(allThemes) {
+  // 流年共振分析
+  const themes = extractYearThemes(bazi, hd, astro, ziwei, maya);
   const stats = {};
-  for (const item of allThemes) {
-    if (!stats[item.theme]) {
-      stats[item.theme] = { count: 0, weight: 0, sources: [], systems: new Set() };
-    }
-    stats[item.theme].count++;
-    stats[item.theme].weight += item.weight;
-    stats[item.theme].sources.push(item.source);
-    const sys = item.source.match(/^(八字|紫微|占星|馬雅|人類圖)/)?.[1] || '';
-    stats[item.theme].systems.add(sys);
+  for (const t of themes) {
+    if (!stats[t.theme]) stats[t.theme] = { count: 0, sources: [] };
+    stats[t.theme].count++;
+    if (!stats[t.theme].sources.includes(t.source)) stats[t.theme].sources.push(t.source);
   }
   const sorted = Object.entries(stats)
-    .map(([key, val]) => ({
-      key,
-      ...THEME_DEFS[key],
-      systemCount: val.systems.size,
-      totalWeight: val.weight,
-      sources: val.sources,
-      systems: [...val.systems],
-    }))
-    .sort((a, b) => {
-      if (b.systemCount !== a.systemCount) return b.systemCount - a.systemCount;
-      return b.totalWeight - a.totalWeight;
-    });
-  return sorted;
-}
+    .map(([key, val]) => ({ key, ...YEAR_THEMES[key], systemCount: val.sources.length, sources: val.sources }))
+    .filter(t => t.systemCount >= 2)
+    .sort((a, b) => b.systemCount - a.systemCount);
 
-function categorizeThemes(sorted) {
-  const core = sorted.filter(t => t.systemCount >= 3);
-  const support = sorted.filter(t => t.systemCount === 2);
-  const single = sorted.filter(t => t.systemCount === 1 && t.totalWeight >= 2);
-  return { core, support, single };
-}
+  if (sorted.length > 0) {
+    const top3 = sorted.slice(0, 3).map(t => t.zh);
+    html += `<div style="padding:14px;background:rgba(245,197,66,.08);border-radius:10px;margin-bottom:14px;">`;
+    html += `<div style="font-size:1rem;font-weight:700;margin-bottom:6px;">⚡ ${year} 年度關鍵字：${top3.join('、')}</div>`;
+    html += `<div style="font-size:.8rem;color:var(--muted);">多個系統同時指向 = 今年的重點方向</div>`;
+    html += `</div>`;
 
-function has(list, key) { return list.some(t => t.key === key); }
-function find(list, key) { return list.find(t => t.key === key); }
-
-// ============ v2: 差異化文案系統 ============
-
-/**
- * 天賦描述：根據主題 key + 來源系統組合，選不同文案
- * 每個主題有 3~4 個變體，依據「哪些系統觸發了這個主題」選用
- */
-const GIFT_VARIANTS = {
-  leadership: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('紫微'), text: '你的領導力是與生俱來的氣場——人類圖給你發起的能量，紫微給你坐鎮中央的格局。你不用爭，站在那裡就會被推上去。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的官星和占星的太陽都指向同一件事：你的生命裡注定要扛責任。不是你想當頭，是事情到最後都會落到你手上。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你一種「照亮別人」的天賦——你的領導不是管人，是用你的存在讓別人看見方向。' },
-    { cond: () => true, text: '多個系統都指出你有帶頭的設計。你可能不覺得自己「想當領導」，但你會發現：團隊沒你就散了。' },
-  ],
-  intuition: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的直覺權威 + 八字的偏印，你的第六感不只是「感覺」——是一套完整的生存雷達。你就是知道，不需要理由。' },
-    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星的水象能量和馬雅的印記都在強化你的感知力。你接收訊息的方式跟大多數人不一樣——你是「整個身體在接收」。' },
-    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜給你一種「看穿表面」的能力。別人在分析數據的時候，你已經知道答案了。' },
-    { cond: () => true, text: '你的直覺是經過多個系統認證的硬體配備。問題不是「要不要信直覺」，而是「你有多常忽略它然後後悔」。' },
-  ],
-  creativity: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的食傷星和占星的配置同時亮燈——你的腦袋永遠在冒新想法。不創造你會憋死。你需要的不是靈感，是出口。' },
-    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('人類圖'), text: '馬雅印記 + 人類圖通道的組合：你的創造力帶有「通道」的特質——靈感不是你想出來的，是流經你的。你是管道，不是發明家。' },
-    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜組合帶有強烈的藝術性和不走尋常路的特質。你的創意不是「做不一樣的事」，是「你做什麼都跟別人不一樣」。' },
-    { cond: () => true, text: '你天生是創造者。可能不是畫畫寫歌那種——也可能是用全新的方式解決老問題、把兩個不相關的東西接起來。' },
-  ],
-  communication: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字的食傷星加上紫微命宮的配置，你的表達力是帶穿透力的。你說的話會在別人腦裡迴盪。這是天賦也是責任——你的話比你以為的有份量。' },
-    { cond: (t) => t.systems.includes('占星') && t.systems.includes('人類圖'), text: '占星的風象能量加上人類圖喉嚨中心的設計：你是天生的「轉譯器」，能把複雜的事講到誰都懂。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅白風的能量在你身上——你的溝通帶有「傳遞訊息」的使命感。你說的不只是自己的想法，有時候你是在替某種更大的東西發聲。' },
-    { cond: () => true, text: '你有話語的天賦。不只是「會說話」——是你的表達方式能真正改變別人的想法和行動。' },
-  ],
-  wealth: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字的財星 + 紫微財帛宮的配置：你跟錢的關係是「內建」的。不是說錢會從天上掉下來，是你天生知道怎麼讓價值流動。' },
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('占星'), text: '人類圖的金錢通道加上占星的木金配置——你的財富設計是「做對的事，錢就跟著來」。你越追錢越累，越做自己越有。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅藍夜的豐盛能量：你跟物質世界的關係是「吸引」而非「追逐」。你的富足感從內在開始，外在只是反映。' },
-    { cond: () => true, text: '多個系統都亮起財富訊號。你不缺賺錢的能力，關鍵是找到「讓你保持在正確頻率上」的那件事。' },
-  ],
-  independence: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的類型設計 + 八字比劫星的能量：你天生需要「自己的空間」。不是孤僻——是你在群體裡待太久會窒息。你需要獨處來充電。' },
-    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('占星'), text: '馬雅的印記和占星的配置都寫著自由。你無法在別人的框架裡活太久——你會一直想打破牆壁。' },
-    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有「一個人也能活得很好」的特質。你的獨立不是被迫的，是你享受的。' },
-    { cond: () => true, text: '你的設計需要自主權。被管太多、被限制太死，你的能量就會斷電。自由是你的氧氣。' },
-  ],
-  wisdom: [
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微命宮的星曜加上人類圖的設計——你的價值在「看懂」。你不需要做最多，你需要「看到別人沒看到的」。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字的印星加上占星的配置都強化了你的學習力和理解深度。你天生吃資訊的速度比別人快，而且能消化成自己的東西。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的印記給你「通往古老智慧的頻率」——你可能常覺得某些知識你「本來就知道」，只是被提醒了。' },
-    { cond: () => true, text: '你的盤寫著「深度」。你不是那種淺嚐即止的人——你需要把事情搞懂到底才罷休。這是你的力量來源。' },
-  ],
-  action: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的能量設計加上八字的行動星：你體內有一顆永不停歇的引擎。你不動會生病。但注意——你的行動力要用在「回應」而非「主動發起」。等待正確的訊號再全力出擊。' },
-    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星火象能量 + 馬雅的行動印記：你是「做了再說」型。你從行動中學到的東西比思考多十倍。' },
-    { cond: (t) => t.systems.includes('紫微'), text: '紫微命宮的星曜帶有衝勁。你不是安靜等待型——你是「看到機會就撲上去」的人。' },
-    { cond: () => true, text: '你有強大的執行力。別人還在想的時候你已經做了。你的風險是不會轉彎——動之前花三秒想方向。' },
-  ],
-  emotional: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('占星'), text: '人類圖的情緒中心 + 占星的水象配置：你的情緒不是弱點——是一套精密的感知系統。你的高低起伏裡藏著真正的智慧，但前提是你不在浪頭上做決定。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字和紫微都指向情緒的深度。你感受事情的強度是一般人的三倍——這讓你能共感他人，但也容易被拖進別人的情緒裡。' },
-    { cond: () => true, text: '你是情緒敏感體質。這不是需要「修復」的問題——這是你感知世界的方式。學會跟情緒共處，它就是你的超能力。' },
-  ],
-  transformation: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字七殺 + 占星冥王配置：你的人生劇本裡寫著「死而復生」。不是一次，可能好幾次。每一次你都會脫胎換骨成更強的版本。' },
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('人類圖'), text: '紫微破軍/廉貞的能量加人類圖的蛻變通道——你是「先破壞再重建」的設計。你人生中的崩塌都不是意外，是翻新工程。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅的蛻變能量在你身上。你的人生像是一連串的「版本更新」——每幾年你就不再是之前那個人了。' },
-    { cond: () => true, text: '你帶有強烈的轉化設計。人生不會是一條直線——你會經歷幾次「看起來全毀了」的時刻，然後發現那其實是升級。' },
-  ],
-  caregiving: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字印星 + 紫微天同/天梁：你天生會照顧人。不是學來的——是看到別人需要，你的身體就自動動了。你的課題不是「學會照顧」，是「學會有界線地照顧」。' },
-    { cond: (t) => t.systems.includes('馬雅') && t.systems.includes('人類圖'), text: '馬雅紅龍/白狗 + 人類圖的設計：你的照顧帶有「滋養」的品質——不是苦情犧牲型，是你的存在本身就讓人覺得被接住了。' },
-    { cond: (t) => t.systems.includes('占星'), text: '占星的月亮/巨蟹能量：你的照顧是帶著情緒智慧的。你能感受到別人需要什麼，甚至在他們開口之前。' },
-    { cond: () => true, text: '你是天生的照顧者。但記得：空了的杯子倒不出水。你的照顧能力跟「自己有沒有先被照顧好」直接相關。' },
-  ],
-  resilience: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('人類圖'), text: '八字七殺/比劫 + 人類圖的設計：你是打不死的。不是不會痛——是你痛完會站起來，而且每次站起來都比上次高。你的人生成就跟你「承受過多少」成正比。' },
-    { cond: (t) => t.systems.includes('占星') && t.systems.includes('紫微'), text: '占星土星/冥王的磨練加紫微的剛硬星曜——你被設計成「越壓越硬」。壓力是你的燃料，不是你的敵人。' },
-    { cond: (t) => t.systems.includes('馬雅'), text: '馬雅黃戰士的韌性能量：你不是不怕——你是怕了還是會做。你的勇氣不是「不恐懼」，是「帶著恐懼前進」。' },
-    { cond: () => true, text: '你的盤寫著「打不倒」。回顧你的人生——你已經撐過了多少你以為撐不過的事？那就是你的本事。' },
-  ],
-  magnetism: [
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('占星'), text: '紫微貪狼/紫微星 + 占星金星/木星的加持：人就是會靠近你。你可能覺得自己沒做什麼——但你的頻率天生讓人想待在你旁邊。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('人類圖'), text: '八字桃花/偏財 + 人類圖的磁性：你不只吸引人——你吸引「資源」。人脈、機會、錢，都是同一個頻率的不同顯化。' },
-    { cond: () => true, text: '你有天生的人際磁場。不需要刻意經營——做你自己，對的人就會被吸過來。你的挑戰反而是「太多人靠近」時怎麼篩選。' },
-  ],
-  authenticity: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖的內在權威 + 馬雅的印記都在說一件事：你這輩子最重要的功課就是「不裝」。你的盤沒有留空間給偽裝——你越假裝越痛。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('占星'), text: '八字傷官 + 占星的配置：你骨子裡就不是隨波逐流的人。你對「做真實的自己」有近乎固執的堅持——而這正是你的力量來源。' },
-    { cond: () => true, text: '做自己不是選項，是必要條件。你的盤寫得很清楚：偽裝=卡住，真實=通暢。就這麼直接。' },
-  ],
-  patience: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的策略 + 八字正財的穩定能量：你不是慢——你是「在等最好的時機出手」。你一出手的效率抵過別人十次亂衝。' },
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('馬雅'), text: '紫微天同 + 馬雅的耐心印記：你的速度不在表面看得到，是在底下默默累積。別人覺得你慢的時候，你在紮根。' },
-    { cond: () => true, text: '你的設計裡有一個清楚的訊息：急不得。不是叫你躺平——是你的正確節奏就是「等到對了再動」。' },
-  ],
-  strategy: [
-    { cond: (t) => t.systems.includes('紫微') && t.systems.includes('占星'), text: '紫微天機 + 占星的風象/土象配置：你是天生的棋手。你看三步以後的能力是本能——問題只是你願不願意用這份天賦。' },
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('八字'), text: '人類圖的策略設計 + 八字的策略星組合：你的優勢不在「做最多」，在「做最對的那一步」。少動、精準、一擊必中。' },
-    { cond: () => true, text: '你有佈局的天賦。不需要跟人家比衝勁——你的強項是「想清楚再動」，一動就到位。' },
-  ],
-  service: [
-    { cond: (t) => t.systems.includes('人類圖') && t.systems.includes('馬雅'), text: '人類圖的服務投射 + 馬雅的服務印記：你來這裡是帶著「解決問題」的任務的。別人的困難到你手上就有出路——你是天生的問題解決者。' },
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字天德/正印 + 紫微天相/天梁：你的存在感來自「被需要」。你在幫助別人的過程中找到自己的位置和價值。' },
-    { cond: () => true, text: '你有服務的天賦。不是卑微那種——是你天生有能力看到別人的需要，並且知道怎麼幫。' },
-  ],
-  family: [
-    { cond: (t) => t.systems.includes('八字') && t.systems.includes('紫微'), text: '八字正官/正印 + 紫微天府：家庭在你的盤裡佔了很重的位置。你可能覺得被綁住——但你的安全感和力量很大一部分來自「知道自己有根」。' },
-    { cond: (t) => t.systems.includes('占星') && t.systems.includes('馬雅'), text: '占星巨蟹/四宮能量 + 馬雅紅龍/白狗：你跟家族的連結很深。不一定是血緣——可能是你自己創造的「家」。' },
-    { cond: () => true, text: '家庭和歸屬感是你的重要主題。你需要一個「自己人」的圈子——那是你充電的地方。' },
-  ],
-};
-
-/** 取得天賦文案（根據來源系統選變體）
- * @param {object} themeItem - 主題項目（含 systems, key 等）
- * @param {object} results - 各系統計算結果（可選，用於動態替換類型描述）
- */
-function getGiftText(themeItem, results) {
-  const variants = GIFT_VARIANTS[themeItem.key];
-  if (!variants) return themeItem.desc;
-  for (const v of variants) {
-    if (v.cond(themeItem)) {
-      let text = v.text;
-      text = applyDynamicReplacements(text, results);
-      return text;
+    for (const t of sorted.slice(0, 4)) {
+      const barW = Math.min(t.systemCount * 25, 100);
+      html += `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;">`;
+      html += `<span style="width:70px;font-size:.82rem;white-space:nowrap;">${t.icon} ${t.zh}</span>`;
+      html += `<div style="flex:1;height:16px;background:rgba(255,255,255,.05);border-radius:8px;overflow:hidden;"><div style="width:${barW}%;height:100%;background:linear-gradient(90deg,var(--accent),#f5c542);border-radius:8px;display:flex;align-items:center;padding-left:6px;"><span style="font-size:.68rem;color:#000;font-weight:700;">${t.systemCount}系統</span></div></div>`;
+      html += `<span style="font-size:.7rem;color:var(--muted);">${t.sources.join('/')}</span>`;
+      html += `</div>`;
     }
+
+    html += `<div style="margin-top:14px;padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.88rem;line-height:2;">`;
+    html += `<b>💡 ${year} 操作建議：</b><br>`;
+    html += generateSpecificAdvice(bazi, hd, astro, ziwei, sorted);
+    html += `</div>`;
+  } else {
+    html += `<div class="meaning">各系統今年訊號分散，沒有壓倒性單一主題。保持開放、見機行事。</div>`;
   }
-  return themeItem.desc;
-}
 
-/**
- * 動態替換文案中的硬寫描述（人類圖類型 + 八字十神）
- * 讓文案根據實際命盤內容顯示正確的用詞
- */
-function applyDynamicReplacements(text, results) {
-  // 動態替換人類圖類型描述（避免硬寫「投射者」等錯誤）
-  if (results?.hd?.data?.typeInfo) {
-    const hdType = results.hd.data.typeInfo.zh;
-    text = text.replace(/人類圖的投射者特質/g, `人類圖${hdType}的特質`);
-    text = text.replace(/人類圖投射者的觀察力/g, `人類圖${hdType}的能量模式`);
+  // 各系統細節（可收合）
+  if (bazi) {
+    html += `<details class="transit-section" style="margin-top:14px;"><summary class="transit-summary"><span style="font-weight:600;">🀄 八字流年：${bazi.stem}${bazi.branch}年（${bazi.god}）</span></summary>`;
+    html += `<div class="transit-content"><div class="meaning" style="line-height:1.9;">${bazi.godDesc}</div>`;
+    if (bazi.dayunInfo) html += `<div style="font-size:.8rem;color:var(--muted);margin-top:4px;">目前${bazi.dayunInfo}</div>`;
+    html += `</div></details>`;
   }
-  // 動態替換八字十神描述（根據實際命盤中存在的十神選字）
-  if (results?.bazi?.data?.tenGods) {
-    const gods = [...new Set(results.bazi.data.tenGods.map(tg => tg.god))];
-    // 官殺類：官星 → 實際有正官/七殺
-    const guanSha = gods.filter(g => g === '正官' || g === '七殺');
-    if (guanSha.length > 0) {
-      text = text.replace(/八字的官星/g, `八字的${guanSha.join('・')}`);
-      text = text.replace(/八字官星/g, `八字${guanSha.join('・')}`);
-    }
-    // 食傷類：食傷星/食傷 → 實際有食神/傷官
-    const shiShang = gods.filter(g => g === '食神' || g === '傷官');
-    if (shiShang.length > 0) {
-      text = text.replace(/八字的食傷星/g, `八字的${shiShang.join('・')}`);
-      text = text.replace(/八字食傷星/g, `八字${shiShang.join('・')}`);
-      text = text.replace(/八字食傷/g, `八字${shiShang.join('・')}`);
-    }
-    // 財星類：財星 → 實際有正財/偏財
-    const caiXing = gods.filter(g => g === '正財' || g === '偏財');
-    if (caiXing.length > 0) {
-      text = text.replace(/八字的財星/g, `八字的${caiXing.join('・')}`);
-      text = text.replace(/八字財星/g, `八字${caiXing.join('・')}`);
-    }
-    // 印星類：印星 → 實際有正印/偏印
-    const yinXing = gods.filter(g => g === '正印' || g === '偏印');
-    if (yinXing.length > 0) {
-      text = text.replace(/八字印星/g, `八字${yinXing.join('・')}`);
-      text = text.replace(/八字的印星/g, `八字的${yinXing.join('・')}`);
-    }
-    // 比劫類：比劫星/比劫 → 實際有比肩/劫財
-    const biJie = gods.filter(g => g === '比肩' || g === '劫財');
-    if (biJie.length > 0) {
-      text = text.replace(/八字比劫星/g, `八字${biJie.join('・')}`);
-      text = text.replace(/八字的比劫/g, `八字的${biJie.join('・')}`);
-      text = text.replace(/八字比劫/g, `八字${biJie.join('・')}`);
-    }
-    // 單一十神直接提到的（七殺、傷官、正印等）——如果盤中沒有該神，替換為實際同類的
-    if (!gods.includes('七殺') && guanSha.length > 0) {
-      text = text.replace(/八字七殺/g, `八字${guanSha[0]}`);
-      text = text.replace(/八字的七殺/g, `八字的${guanSha[0]}`);
-    }
-    if (!gods.includes('傷官') && shiShang.length > 0) {
-      text = text.replace(/八字傷官/g, `八字${shiShang[0]}`);
-      text = text.replace(/八字的傷官/g, `八字的${shiShang[0]}`);
-    }
-    if (!gods.includes('正印') && yinXing.length > 0) {
-      text = text.replace(/八字正印/g, `八字${yinXing[0]}`);
-      text = text.replace(/八字的正印/g, `八字的${yinXing[0]}`);
-    }
-    if (!gods.includes('偏印') && yinXing.length > 0) {
-      text = text.replace(/八字偏印/g, `八字${yinXing[0]}`);
-      text = text.replace(/八字的偏印/g, `八字的${yinXing[0]}`);
-    }
-    if (!gods.includes('比肩') && biJie.length > 0) {
-      text = text.replace(/八字比肩/g, `八字${biJie[0]}`);
-      text = text.replace(/八字的比肩/g, `八字的${biJie[0]}`);
-    }
-    if (!gods.includes('劫財') && biJie.length > 0) {
-      text = text.replace(/八字劫財/g, `八字${biJie[0]}`);
-      text = text.replace(/八字的劫財/g, `八字的${biJie[0]}`);
-    }
-    if (!gods.includes('食神') && shiShang.length > 0) {
-      text = text.replace(/八字食神/g, `八字${shiShang[0]}`);
-      text = text.replace(/八字的食神/g, `八字的${shiShang[0]}`);
-    }
-    if (!gods.includes('正財') && caiXing.length > 0) {
-      text = text.replace(/八字正財/g, `八字${caiXing[0]}`);
-      text = text.replace(/八字的正財/g, `八字的${caiXing[0]}`);
-    }
-    if (!gods.includes('偏財') && caiXing.length > 0) {
-      text = text.replace(/八字偏財/g, `八字${caiXing[0]}`);
-      text = text.replace(/八字的偏財/g, `八字的${caiXing[0]}`);
-    }
-    if (!gods.includes('正官') && guanSha.length > 0) {
-      text = text.replace(/八字正官/g, `八字${guanSha[0]}`);
-      text = text.replace(/八字的正官/g, `八字的${guanSha[0]}`);
-    }
-  }
-  // 動態替換紫微星曜描述（根據實際命宮主星選字）
-  if (results?.ziwei?.data?.palaces) {
-    const zw = results.ziwei.data;
-    const mingPalace = zw.palaces.find(p => p.pos === zw.mingPos);
-    if (mingPalace && mingPalace.main && mingPalace.main.length > 0) {
-      const mainStars = mingPalace.main.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean);
-      const starStr = mainStars.join('、');
-      // 通用泛稱替換
-      text = text.replace(/紫微命宮的星曜/g, `紫微命宮${starStr}`);
-      text = text.replace(/紫微命宮的配置/g, `紫微命宮${starStr}的配置`);
-      // 所有硬寫的具體星曜 → 統一替換為實際命宮主星
-      const allStarNames = ['紫微','天機','太陽','武曲','天同','廉貞','天府','太陰','貪狼','巨門','天相','天梁','七殺','破軍'];
-      for (const star of allStarNames) {
-        if (!mainStars.includes(star)) {
-          text = text.replace(new RegExp(`紫微的${star}[/／]\\S+能量`, 'g'), `紫微命宮${starStr}的能量`);
-          text = text.replace(new RegExp(`紫微${star}[/／]\\S+的能量`, 'g'), `紫微${starStr}的能量`);
-          text = text.replace(new RegExp(`紫微${star}[/／]\\S+`, 'g'), `紫微${starStr}`);
-          text = text.replace(new RegExp(`紫微${star}`, 'g'), `紫微${starStr}`);
-        }
+
+  if (astro) {
+    html += `<details class="transit-section"><summary class="transit-summary"><span style="font-weight:600;">🪐 占星：木星 ${astro.jupHouse} 宮 / 土星 ${astro.satHouse} 宮</span></summary>`;
+    html += `<div class="transit-content">`;
+    html += `<div style="font-size:.85rem;margin-bottom:6px;"><b>♃ 木星 ${astro.jupHouse} 宮</b>（${HOUSE_TOPICS[astro.jupHouse]||''}）— ${getJupiterHouseDesc(astro.jupHouse)}</div>`;
+    html += `<div style="font-size:.85rem;"><b>♄ 土星 ${astro.satHouse} 宮</b>（${HOUSE_TOPICS[astro.satHouse]||''}）— ${getSaturnHouseDesc(astro.satHouse)}</div>`;
+    if (astro.aspects.length > 0) {
+      html += `<div style="margin-top:10px;font-size:.82rem;"><b>重要相位：</b></div>`;
+      for (const a of astro.aspects.slice(0, 6)) {
+        const emoji = a.type === '合' ? '☌' : a.type === '對沖' ? '☍' : a.type === '三合' ? '△' : '□';
+        html += `<div style="font-size:.82rem;padding:4px 0;">${emoji} 流年${a.transit} ${a.type} 本命${a.natal}</div>`;
       }
     }
-  }
-  return text;
-}
-
-// ============ 衝突張力（v2: 根據來源系統+核心/支持分類給不同版本） ============
-
-const CONFLICT_PAIRS = [
-  { a: 'independence', b: 'caregiving', variants: [
-    { cond: (all) => find(all,'independence')?.systems.includes('人類圖') && find(all,'caregiving')?.systems.includes('八字'), text: '人類圖要你「等待邀請、做自己」，八字說你天生帶著照顧人的基因——這兩個會打架。你不是那種犧牲式照顧者，你是「用自己的方式、在自己願意的時候」照顧人。區別在於：是你選擇的，不是被迫的。' },
-    { cond: (all) => find(all,'independence')?.systems.includes('占星'), text: '占星的獨立配置碰上照顧的天賦——你需要「有退路的付出」。你可以全心照顧某人，但你需要知道隨時可以回到自己的空間。沒有退路你會窒息。' },
-    { cond: () => true, text: '你同時有強烈的「我要自由」和「我要照顧人」——這不是bug，是feature。你的功課是「在自由中照顧、在照顧時保有自由」。你是用自己的方式守護你在乎的人。' },
-  ]},
-  { a: 'action', b: 'patience', variants: [
-    { cond: (all) => find(all,'action')?.systems.includes('人類圖') && find(all,'patience')?.systems.includes('人類圖'), text: '你的人類圖裡「行動力」和「等待」同時存在——引擎很強，但策略是等待正確的訊號。解法：不主動發起，但回應來了就全力衝。平常養精蓄銳，訊號來了一秒變閃電。' },
-    { cond: (all) => find(all,'action')?.systems.includes('八字'), text: '八字給你衝勁，但其他系統又說「等」。你的節奏是：觀察、觀察、觀察、然後——爆發。不是穩定輸出型，是脈衝式爆發型。' },
-    { cond: () => true, text: '你的油門和煞車一樣猛。秘訣不是「學平衡」——是認出「現在是衝的時候還是等的時候」。你的身體會告訴你。' },
-  ]},
-  { a: 'leadership', b: 'patience', variants: [
-    { cond: (all) => find(all,'leadership')?.systems.includes('人類圖'), text: '人類圖給你的領導力是「被邀請」型。你衝出去帶頭會碰壁——等人來問你「怎麼辦」的時候，你一句話就能定方向。你的權威是「別人認出來的」，不是「自己宣稱的」。' },
-    { cond: (all) => find(all,'leadership')?.systems.includes('紫微'), text: '紫微給你帝王的格局但配上等待的設計——你是那種「前面十年沒人認識你，一朝被發現就直接坐上高位」的劇本。別急，位子是留給你的。' },
-    { cond: () => true, text: '你有領導能量但不適合搶跑。你是「等所有人都亂了你站出來，一句話穩住全場」的類型。時機到了你會知道。' },
-  ]},
-  { a: 'wisdom', b: 'action', variants: [
-    { cond: (all) => find(all,'wisdom')?.systems.includes('紫微') && find(all,'action')?.systems.includes('人類圖'), text: '紫微讓你想研究透徹，人類圖讓你想馬上動——折衷方案：MVP思維。先做最小可行版本，邊做邊修。你的完美主義會害你永遠停在起跑線。' },
-    { cond: (all) => find(all,'action')?.systems.includes('八字'), text: '八字給你的行動力碰上深度思考的天賦——你需要「設定截止時間」。沒有 deadline 你會一直研究不動手。給自己一個時限，時間到了就衝。' },
-    { cond: () => true, text: '你的腦袋跟身體在賽跑。最好的平衡：快速原型、邊做邊學。「做一個小版本看結果再決定下一步」——這就是你的最佳模式。' },
-  ]},
-  { a: 'independence', b: 'family', variants: [
-    { cond: (all) => find(all,'family')?.systems.includes('八字'), text: '八字的家族責任壓在你身上，但你的靈魂需要自由。你不適合「犧牲自己成全家庭」的劇本——你需要在家庭責任裡保有獨立的空間。不是逃避，是「保持距離的深愛」。' },
-    { cond: (all) => find(all,'independence')?.systems.includes('馬雅'), text: '馬雅給你的自由印記很強烈，同時你又重視歸屬。你的解法是：創造一種「大家各自獨立但心在一起」的關係模式。物理距離不等於情感距離。' },
-    { cond: () => true, text: '你需要自由但也重視家人——這是你的深層拉扯。解法不是二選一，是找到「有自己空間又能守護家人」的結構。' },
-  ]},
-  { a: 'wealth', b: 'authenticity', variants: [
-    { cond: (all) => find(all,'wealth')?.systems.includes('人類圖'), text: '人類圖的金錢設計跟「做自己」直接掛鉤。你越「演」越窮。你發現沒有？你賺到最多錢的時候，都是在做「你覺得理所當然」的事的時候。那就是訊號。' },
-    { cond: (all) => find(all,'wealth')?.systems.includes('八字'), text: '八字的財星和你的做自己能量是正相關的。為了穩定去做你討厭的工作，那份薪水永遠不夠。走你的路，財來得比你預期的快。' },
-    { cond: () => true, text: '你的財富跟真實程度成正比。越做自己越有錢，越委屈自己越窮。你不是追錢的命——你是吸引錢的命，前提是你在正確的頻率上。' },
-  ]},
-  { a: 'intuition', b: 'wisdom', variants: [
-    { cond: (all) => find(all,'intuition')?.systems.includes('人類圖') && find(all,'wisdom')?.systems.includes('紫微'), text: '人類圖的直覺權威說「瞬間知道」，紫微天機說「需要分析」——正確用法：直覺負責「做不做」，分析負責「怎麼做」。不要用腦袋推翻直覺的第一個答案。' },
-    { cond: (all) => find(all,'intuition')?.systems.includes('占星'), text: '占星的水象直覺力加上學術型智慧——你有兩套系統在運作：一套是瞬間感知，一套是慢慢消化。兩套都要用，但順序很重要：先聽直覺，再用邏輯規劃。' },
-    { cond: () => true, text: '你同時有直覺和分析力。陷阱是用腦袋否定直覺。先聽直覺說什麼，再用邏輯想「怎麼執行」。不是用腦決定「做不做」。' },
-  ]},
-  { a: 'emotional', b: 'independence', variants: [
-    { cond: (all) => find(all,'emotional')?.systems.includes('人類圖'), text: '人類圖的情緒中心被定義，但你又需要獨立空間——你需要的是「可以安全感受情緒的私密空間」。你在別人面前會壓情緒，回到自己的空間才能真正處理。尊重這個需求。' },
-    { cond: (all) => find(all,'emotional')?.systems.includes('占星'), text: '占星給你的水象情緒深度加上獨立需求——你可能對自己的情緒需求覺得「煩」。不要。你的情緒是GPS，獨處是你讀取GPS的時間。兩者都不能省。' },
-    { cond: () => true, text: '情緒豐富卻又不想被情緒控制。你不是要消滅情緒——你需要學會「感受到但不被帶走」。情緒是情報來源，不是指揮官。' },
-  ]},
-  { a: 'magnetism', b: 'independence', variants: [
-    { cond: (all) => find(all,'magnetism')?.systems.includes('紫微'), text: '紫微的桃花/貪狼能量讓人不斷靠近你，但你又需要空間——你的解法是「有選擇性地靠近」。不是對所有人都敞開，而是精選你願意投入的關係。品質重於數量。' },
-    { cond: (all) => find(all,'magnetism')?.systems.includes('人類圖'), text: '人類圖的磁性吸引力加上獨立需求：你天生的氣場讓人想靠近，但你需要「被邀請後再選擇接受或拒絕」的節奏。你有權利說不。' },
-    { cond: () => true, text: '天生吸引人但又需要空間。人靠近了想退、退了又覺得孤單。你需要的不是「學社交」——是建立「有距離的親密」。' },
-  ]},
-  { a: 'resilience', b: 'caregiving', variants: [
-    { cond: (all) => find(all,'resilience')?.systems.includes('八字'), text: '八字給你的硬度加上照顧人的天賦——你的模式是「自己扛一切然後去照顧別人」。但你最大的成長不是變更強，是學會讓別人也照顧你。你不示弱不是因為沒弱點，是因為你不讓人看到。' },
-    { cond: () => true, text: '你自己能扛也習慣照顧別人——但你最大的盲點是不讓人照顧你。允許自己偶爾軟弱、被人接住，不會讓你變弱——反而能續航更久。' },
-  ]},
-  { a: 'creativity', b: 'strategy', variants: [
-    { cond: (all) => find(all,'creativity')?.systems.includes('馬雅'), text: '馬雅給你的創意能量碰上策略思維——你不是那種「衝動創作」型，你是「有計劃的創造者」。你的創意需要框架才能落地——但不要讓框架殺死靈感。先放飛再收斂。' },
-    { cond: () => true, text: '你的創造力和策略能力在拉鋸。一邊想天馬行空，一邊想有條有理。最佳模式：先發散不批判，然後用策略腦挑出最好的那個去執行。' },
-  ]},
-  { a: 'service', b: 'independence', variants: [
-    { cond: (all) => find(all,'service')?.systems.includes('人類圖'), text: '人類圖的服務設計加上獨立需求——你被設計來幫助別人，但你需要「在自己準備好的時候幫」。被強迫服務會讓你burn out。你的奉獻是有條件的——條件是你自己心甘情願。' },
-    { cond: () => true, text: '你想幫人但又不想被綁住。你的奉獻方式是「我來教你/給你工具/點你一下」，而不是「我全部幫你做完」。' },
-  ]},
-];
-
-// ============ 誤區（v2: 擴展到 20+ 條件） ============
-
-const PITFALL_RULES = [
-  { condition: (core, sup) => has(core,'wealth') && !has(core,'action') && has(core,'patience'), text: '你的財富設計是「等到對的時機出手一次抵十次」。你不適合每天衝業績——你適合等到看準了，一次大的。急躁是你最大的財務漏洞。' },
-  { condition: (core, sup) => has(core,'wealth') && !has(core,'action') && !has(core,'patience'), text: '你有財富能量但不是靠「做很多」來賺的。你的錢來自「做對的事」。你花力氣在不喜歡的事上，回報永遠不成正比。' },
-  { condition: (core, sup) => has(core,'wealth') && has(core,'action'), text: '你有行動力也有財運——風險是「什麼都想做」。你需要專注：同時做五件事不如把一件事做到極致。散焦是你最大的財富漏洞。' },
-  { condition: (core, sup) => has(core,'patience') && has(core,'action'), text: '「等」和「衝」同時亮燈——是叫你：平常養精蓄銳、時機到了全力爆發。不是龜速前進，是蓄力後一擊必中。你最忌諱「因為等太久煩了就隨便衝」。' },
-  { condition: (core, sup) => has(core,'leadership') && has(core,'patience'), text: '你有領導能量但不是「衝在前面」型。主動搶位置會碰壁——等人來邀請你、等事情明顯需要你出面的時候，你一站出來就能定局。' },
-  { condition: (core, sup) => has(core,'leadership') && has(core,'independence'), text: '你想帶頭但又不想管太多——你適合的不是「管理者」而是「方向指引者」。設方向，讓別人去執行細節。你管太細會把自己累死也把團隊逼瘋。' },
-  { condition: (core, sup) => has(core,'intuition') && has(sup,'wisdom'), text: '你直覺很準但會用邏輯推翻它。注意：是不是常「早就知道答案但說服自己走另一條路然後後悔」？以後試試直覺第一、邏輯第二。' },
-  { condition: (core, sup) => has(core,'intuition') && has(core,'emotional'), text: '你有直覺也有情緒波動——陷阱是「把情緒當成直覺」。區別方法：直覺是瞬間的、清晰的、平靜的；情緒是波動的、帶有重量的。在情緒高峰/低谷時做的決定，大概率是情緒，不是直覺。' },
-  { condition: (core, sup) => has(core,'caregiving') && !has(core,'authenticity') && !has(sup,'authenticity'), text: '你天生會照顧人，但小心「為了照顧別人把自己搞不見了」。你不是永動機。你空了誰都救不了。先養自己再養人。' },
-  { condition: (core, sup) => has(core,'caregiving') && has(core,'resilience'), text: '你能扛也願意照顧——最大的盲點是「覺得自己不需要被照顧」。你不是鋼鐵人。讓別人進來幫你，不是示弱——是智慧。' },
-  { condition: (core, sup) => has(core,'transformation') && has(core,'resilience'), text: '你帶有「重來」的設計——每次覺得完蛋了，那是正常劇情。你會重來得比之前更好。不要在谷底做永久的決定（辭職、分手、搬家），等浪過了再說。' },
-  { condition: (core, sup) => has(core,'transformation') && !has(core,'resilience'), text: '你帶有蛻變能量但不一定有「硬撐」的設計——你的轉化方式可能是「放下」而非「撐住」。該丟的丟，該結束的結束。你的重生在「放手」之後。' },
-  { condition: (core, sup) => has(core,'communication') && has(core,'emotional'), text: '你有表達天賦但情緒波動大——注意：不要在情緒最滿的時候說話。你情緒穩定時的表達能改變世界；情緒失控時的話會傷人比你想像的深。多給自己一個呼吸的時間。' },
-  { condition: (core, sup) => has(core,'magnetism') && has(core,'independence'), text: '你吸引人但又需要空間——你最容易犯的錯是「因為不想讓人失望而不設邊界」。結果：所有人都靠近你，你累到想消失。學會優雅地說「不」。' },
-  { condition: (core, sup) => has(core,'creativity') && has(core,'wisdom'), text: '你有創意也有深度——風險是「永遠在構思不動手」。你的完美主義會讓你錯過時機。80分就先出手，做了再調整。' },
-  { condition: (core, sup) => has(core,'strategy') && has(core,'action'), text: '你能想也能衝——但這兩個會搶主導權。想太多你焦慮，衝太快你後悔。設定一個簡單規則：想三分鐘，超過三分鐘還在想就直接動。' },
-  { condition: (core, sup) => has(core,'independence') && has(core,'magnetism') && has(sup,'family'), text: '你自由、有魅力、又有家族牽掛——這三重拉扯可能讓你「每條路都走不徹底」。你的解法不是三選一，是「設定每個面向各自的時間和空間」。' },
-  { condition: (core, sup) => has(core,'service') && has(core,'wealth'), text: '你想幫人又想賺錢——好消息：你的盤說這兩件事可以同時發生。你的財富來自「解決別人的問題」。壞消息：你很容易免費幫忙——學會開價。你的幫助有價值。' },
-  { condition: (core, sup) => has(core,'authenticity') && has(sup,'magnetism'), text: '你做自己會吸引人、但不是所有人。你最大的坑是「為了維持人氣而微調自己」——一旦開始裝，你的磁場就弱了。真實的你才有磁性。' },
-  { condition: (core, sup) => has(core,'emotional') && has(core,'patience'), text: '你的情緒有波動、決策需要等——雙重等待設計。你可能覺得自己「反應很慢」，但其實是你的決定需要時間發酵。急著在幾秒內回答「要不要」是你最大的決策失誤來源。' },
-];
-
-// ============ 一句話版本（v2: 大幅擴展組合） ============
-
-function oneLiner(core, support, results) {
-  const all = [...core, ...support];
-  const hd = results.hd?.data;
-  const bz = results.bazi?.data;
-  
-  // 嘗試根據前兩個核心主題的組合產出獨特句子
-  if (core.length >= 2) {
-    const k1 = core[0].key, k2 = core[1].key;
-    const combos = {
-      'intuition+authenticity': '「你的人生指南針只有一個：內心那個安靜但清楚的聲音。聽它的。」',
-      'intuition+action': '「你是閃電型的人——直覺來了就動，別人還在分析你已經到終點了。」',
-      'intuition+wisdom': '「你先知道答案，然後才找到理由。」',
-      'intuition+creativity': '「你的靈感從虛空中來——你不是在創造，你是在接收。」',
-      'intuition+independence': '「你天生知道自己要什麼——問題只是你願不願意忽略別人的意見。」',
-      'action+resilience': '「你是戰場上最後站著的那個人——不是因為最強，是因為你就是不停。」',
-      'action+authenticity': '「你做自己的方式就是——直接去做。想太多不是你的風格。」',
-      'action+independence': '「你需要一條沒人走過的路，然後用你的速度跑出一條痕跡。」',
-      'action+creativity': '「你是邊做邊創的人——你的創意不在腦袋裡，在手上。」',
-      'action+wealth': '「你的行動力就是你的提款機——你做的每一步都在累積價值。」',
-      'leadership+independence': '「你不是跟著別人走的人——你是那個走自己的路然後回頭發現一群人跟上來的人。」',
-      'leadership+action': '「你是先鋒型領導——不是坐鎮後方，是衝在第一個然後大家跟上。」',
-      'leadership+wisdom': '「你的領導力來自你看得比別人遠——你一句話就能讓混亂變清晰。」',
-      'leadership+magnetism': '「你站在那裡就是中心——不用開口，人已經在往你的方向看了。」',
-      'wisdom+patience': '「你是沉穩型的——別人在著急的時候你在思考，然後一出手就是最精準的。」',
-      'wisdom+creativity': '「你把深度變成創作——你的作品不只好看，有東西在裡面。」',
-      'wisdom+resilience': '「你從每次跌倒中撿起的不只是經驗，是看穿本質的眼力。」',
-      'wisdom+independence': '「你是獨行的思考者——你需要安靜、需要空間，然後回來給出別人想不到的答案。」',
-      'wealth+magnetism': '「你不追錢也不追人——兩者都是被你吸過來的。你的存在本身就是磁鐵。」',
-      'wealth+strategy': '「你不衝動花錢也不衝動投資——你是算準了再出手，一出手就到位。」',
-      'wealth+patience': '「你的財富是「慢慢變有錢」型——不是暴富，是越來越厚。時間是你最大的盟友。」',
-      'creativity+authenticity': '「你不模仿任何人——你的創造力來自「你就是你」這件事本身。」',
-      'creativity+magnetism': '「你創造的東西自帶吸引力——不用行銷，做出來就有人想看。」',
-      'resilience+transformation': '「你的人生是一部重生記——每次以為結束了，其實是新版本的開始。」',
-      'resilience+independence': '「你一個人扛過的那些，成就了別人打不倒的你。」',
-      'caregiving+emotional': '「你用情緒感知別人的需要，用行動去照顧——你是用心在看的人。」',
-      'caregiving+wisdom': '「你的照顧帶著智慧——不是溺愛，是精準地給對方真正需要的。」',
-      'emotional+creativity': '「你的情緒就是你的創作素材——感受越深，作品越動人。」',
-      'emotional+intuition': '「你的情緒和直覺交織在一起——學會分辨哪個是哪個，你就無敵了。」',
-      'independence+authenticity': '「你注定走自己的路——不是叛逆，是你的設計就是「不跟」。」',
-      'magnetism+communication': '「你一開口就改變氣場——你的聲音、你的表達，天生有穿透力。」',
-      'patience+authenticity': '「你的節奏跟別人不一樣——不是慢，是你有自己的時區。」',
-      'transformation+independence': '「你的人生每隔幾年就重來一次——每次重來你都更自由。」',
-      'service+wisdom': '「你的價值在於看到別人看不到的——然後用最少的力氣指出最關鍵的那一點。」',
-      'family+caregiving': '「你是家族的核心支柱——大家都知道有你在就有底氣。」',
-      'strategy+independence': '「你是獨立作戰的策略家——不需要團隊，你一個人就是一支軍隊。」',
-    };
-    const key = `${k1}+${k2}`;
-    const keyRev = `${k2}+${k1}`;
-    if (combos[key]) return combos[key];
-    if (combos[keyRev]) return combos[keyRev];
-  }
-  
-  // fallback: 拼接式（但更豐富）
-  const p = [];
-  if (has(all,'intuition') && has(all,'action')) p.push('直覺來了就衝');
-  else if (has(all,'intuition')) p.push('靠直覺走路');
-  else if (has(all,'wisdom') && has(all,'strategy')) p.push('想清楚再出手');
-  else if (has(all,'wisdom')) p.push('靠深度思考走路');
-  else if (has(all,'action')) p.push('靠行動力開路');
-  else if (has(all,'patience')) p.push('等到對的時機出手');
-  
-  if (has(all,'authenticity') || has(all,'independence')) p.push('走自己的路');
-  else if (has(all,'leadership')) p.push('帶著別人一起走');
-  
-  if (has(all,'caregiving') || has(all,'family')) p.push('守護你在乎的人');
-  else if (has(all,'service')) p.push('在幫助別人中找到意義');
-  
-  if (has(all,'wealth') && has(all,'magnetism')) p.push('錢和人都被你吸過來');
-  else if (has(all,'wealth')) p.push('順便把錢吸過來');
-  else if (has(all,'creativity')) p.push('用創造力養活自己');
-  else if (has(all,'magnetism')) p.push('走到哪裡都有人跟');
-  
-  if (has(all,'resilience') && has(all,'transformation')) p.push('每次重來都更強');
-  else if (has(all,'resilience')) p.push('越摔越強');
-  else if (has(all,'transformation')) p.push('不斷蛻變升級');
-  
-  if (p.length >= 2) return `「你是一個${p.join('、')}的人。」`;
-  if (hd?.typeInfo?.zh) return `「你是${hd.typeInfo.zh}，做自己就是最大的策略。」`;
-  return `「你的設計獨一無二。做自己，其他的會跟上。」`;
-}
-
-// ============ 結論（v2: 根據核心主題組合產出差異化結尾） ============
-
-function conclusion(core, support, results) {
-  const all = [...core, ...support];
-  const hd = results?.hd?.data;
-  let c = '🎯 ';
-  
-  // 根據核心主題的「前兩名組合」給不同結尾
-  if (core.length >= 2) {
-    const k1 = core[0].key, k2 = core[1].key;
-    const pair = new Set([k1, k2]);
-    
-    if (pair.has('authenticity') && pair.has('intuition')) {
-      c += `五個系統用五種語言說同一句話：<b>做自己、信直覺</b>。這不是雞湯——這是你的硬體規格。你每次違背直覺的決定，都在跟自己整張命盤作對。回來。`;
-      return c;
-    }
-    if (pair.has('action') && pair.has('resilience')) {
-      c += `你的設計是<b>行動 + 打不死</b>。你的人生不需要「想通了才動」——先動，撞牆了爬起來再動。你的智慧來自行動中的修正，不是書本上的理論。`;
-      return c;
-    }
-    if (pair.has('wisdom') && pair.has('patience')) {
-      c += `你的節奏是<b>慢工出細活</b>。所有催你的人都不懂你——你需要的是時間和深度。急了就錯了。給自己空間慢慢來，結果會好得超出所有人的預期。`;
-      return c;
-    }
-    if (pair.has('leadership') && pair.has('action')) {
-      c += `你是<b>帶頭衝的人</b>。你的能量適合開疆闢土，不適合守成。找到值得你衝的方向，然後別回頭。跟不上的人自然會掉隊，跟得上的才是你的戰友。`;
-      return c;
-    }
-    if (pair.has('creativity') && pair.has('independence')) {
-      c += `你需要<b>一個自己的舞台</b>。在別人的框架裡你會枯萎——你得自己創造遊戲規則。你不是打工仔的命，你是「做自己的事」的命。`;
-      return c;
-    }
-    if (pair.has('wealth') && pair.has('magnetism')) {
-      c += `你的盤寫著<b>「你不需要追——只需要在正確的位置上等」</b>。錢和人都會被你吸引。你的功課不是「如何得到更多」，是「如何選擇正確的」。`;
-      return c;
-    }
-    if (pair.has('intuition') && pair.has('action')) {
-      c += `你的最佳模式：<b>直覺閃過就動</b>。不要等、不要分析太久。你猶豫的每一秒都在消耗你的正確率。相信第一個念頭。`;
-      return c;
-    }
-    if (pair.has('caregiving') && pair.has('emotional')) {
-      c += `你是<b>用心在感知世界的人</b>。你的照顧帶著情緒智慧——但最重要的一課：先照顧自己的情緒，才有能量照顧別人。你空了，周圍的人也會感受到。`;
-      return c;
-    }
-    if (pair.has('transformation') && pair.has('independence')) {
-      c += `你的人生是<b>一連串的破繭</b>。每次覺得「卡住了」，就是要你脫掉舊殼的訊號。你不是在受苦——你是在進化。每次蛻變後的自由感，就是你的獎賞。`;
-      return c;
-    }
-    if (pair.has('wisdom') && pair.has('service')) {
-      c += `你的價值是<b>「看穿問題本質然後指出方向」</b>。你不需要做最多——你需要在對的時候說對的那句話。一句話就能改變別人的人生軌跡。那就是你的天賦。`;
-      return c;
-    }
-    if (pair.has('resilience') && pair.has('wisdom')) {
-      c += `你的智慧是<b>摔出來的</b>——不是書上讀來的。你每經歷一次谷底，就多一份「過來人」的深度。你的過去不是傷疤，是資產。用它去幫助還在路上的人。`;
-      return c;
-    }
-  }
-  
-  // 單一核心主題的結論
-  if (has(core,'authenticity')) {
-    c += `你不是「可以」做自己——你是<b>非做自己不可</b>。你的盤沒有留空間給「為了別人委屈自己」。越做自己越順，越裝越卡。就這麼簡單。`;
-  } else if (has(core,'intuition')) {
-    const hdType = hd?.typeInfo?.zh || '';
-    c += `你的直覺是最貴的資產。${hdType ? `身為${hdType}，你的內在權威比任何外在建議都準。` : ''}多個系統都寫著：<b>你就是知道</b>。你人生所有的後悔，大概都是「明明知道答案但選了另一條路」。信它。`;
-  } else if (has(core,'wealth') && has(all,'independence')) {
-    c += `你的盤寫著：<b>走自己的路，錢會追著你跑</b>。為了別人的期待去賺的錢，遲早讓你想掀桌。找到你的路，財務自由是副產品。`;
-  } else if (has(core,'leadership')) {
-    c += `你的設計裡有<b>帶領的能量</b>。不一定是「當主管」——可能是「成為某個領域的指引者」。人們需要方向的時候會看向你。準備好。`;
-  } else if (has(core,'action')) {
-    c += `你的正確模式是<b>動起來</b>。想太多反而卡住。你的智慧在行動中顯現——先做、發現問題、修正、再做。停下來對你來說才是最大的風險。`;
-  } else if (has(core,'caregiving')) {
-    c += `你天生是照顧者，但最重要那句：<b>先把自己顧好</b>。你空了誰都救不了。你的照顧是有邊界的、有力量的——不是無止盡的消耗。`;
-  } else if (has(core,'resilience')) {
-    c += `你被設計成<b>打不倒的人</b>。但這不代表你不能喊痛——你可以。痛過之後站起來，那才是你真正的模式。你已經證明過很多次了。`;
-  } else if (has(core,'wisdom')) {
-    c += `你的核心價值在<b>深度</b>。這個淺薄的世界需要你這種「把事情搞懂到底」的人。不要覺得自己「太慢」或「太深」——那正是你不可取代的地方。`;
-  } else if (has(core,'creativity')) {
-    c += `你來這裡是要<b>創造</b>的。不一定是藝術——可能是創造新的做事方式、新的關係模式、新的可能性。你不創造就會枯萎。給自己出口。`;
-  } else if (core.length > 0) {
-    c += `你的核心是「<b>${core[0].zh}</b>」${core.length>1?`和「<b>${core[1].zh}</b>」`:''}——出廠設定。接受它、善用它、活出它。其他的會到位。`;
-  } else {
-    c += `你的盤能量多元，沒有單一主軸壓倒性地突出——這代表<b>你的路不是別人能定義的</b>。你有很多種活法，關鍵是哪一種讓你「覺得對」。跟著那個感覺。`;
-  }
-  return c;
-}
-
-// ============ v3: 融合洞見系統 ============
-
-/** 產出交叉印證段落 — 找出不同系統指向同一件事的具體證據 */
-function crossValidation(categories, results) {
-  const { core } = categories;
-  if (core.length === 0) return '';
-  const hd = results.hd?.data;
-  const bz = results.bazi?.data;
-  const zw = results.ziwei?.data;
-  const astro = results.astro?.data;
-  const maya = results.maya?.data;
-
-  const evidences = [];
-
-  // 取核心主題第一名，列出哪些系統指向它（只列系統名，不列內部 source tag）
-  const top = core[0];
-  if (top && top.systemCount >= 3) {
-    // 用真實命盤元素組裝描述（只取每個系統最代表性的一個元素）
-    const systemDescs = [];
-    if (top.systems.includes('八字') && bz) {
-      systemDescs.push(`八字日主「${bz.dayMaster}」(${bz.dayMasterElem})`);
-    }
-    if (top.systems.includes('紫微') && zw) {
-      const ming = zw.palaces?.find(p => p.pos === zw.mingPos);
-      const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean) || [];
-      if (stars.length) systemDescs.push(`紫微命宮${stars.join('、')}`);
-      else systemDescs.push('紫微斗數');
-    }
-    if (top.systems.includes('占星') && astro) {
-      if (astro.sunSign) systemDescs.push(`占星太陽${astro.sunSign.zh}`);
-    }
-    if (top.systems.includes('馬雅') && maya) {
-      if (maya.dreamspell?.seal) systemDescs.push(`馬雅${maya.dreamspell.seal.zh}`);
-    }
-    if (top.systems.includes('人類圖') && hd) {
-      if (hd.typeInfo) systemDescs.push(`人類圖${hd.typeInfo.zh}`);
-    }
-    if (systemDescs.length >= 3) {
-      evidences.push(`<b>${top.icon} ${top.zh}</b>被 ${top.systemCount} 個系統同時印證：${systemDescs.join('、')}——不同的語言在說同一件事。`);
-    }
+    html += `</div></details>`;
   }
 
-  // 如果有第二個核心主題，看它跟第一個的關係
-  if (core.length >= 2) {
-    const t1 = core[0], t2 = core[1];
-    const shared = t1.systems.filter(s => t2.systems.includes(s));
-    if (shared.length >= 2) {
-      evidences.push(`「${t1.zh}」和「${t2.zh}」在 ${shared.join('、')} 中同時出現——這兩個特質不是分開的，它們在你身上是<b>同一股力量的兩個面向</b>。`);
+  if (hd && (hd.transitGates.length > 0 || hd.tempChannels.length > 0)) {
+    html += `<details class="transit-section"><summary class="transit-summary"><span style="font-weight:600;">△ 人類圖：${hd.tempChannels.length} 條臨時通道</span></summary>`;
+    html += `<div class="transit-content">`;
+    if (hd.tempChannels.length > 0) {
+      for (const tc of hd.tempChannels) {
+        html += `<div style="font-size:.82rem;padding:4px 0;"><b>${tc.planet}</b> → ${tc.channel.gates[0]}-${tc.channel.gates[1]}「${tc.channel.name}」</div>`;
+      }
+    } else {
+      html += `<div style="font-size:.82rem;color:var(--muted);">今年沒有臨時通道開通。</div>`;
     }
+    html += `</div></details>`;
   }
 
-  if (evidences.length === 0) return '';
-  let html = `<div class="script-section" style="border-left-color:#7b6cf6;"><div class="script-title">🔗 交叉印證</div><div class="script-body">`;
-  html += `<div style="font-size:.85rem;color:var(--muted);margin-bottom:10px;">以下不是推論——是多個獨立系統同時指出的事實：</div>`;
-  for (const e of evidences) {
-    html += `<div class="script-lesson" style="border-left-color:#7b6cf6;">${e}</div>`;
+  if (ziwei) {
+    const huaLabel = { lu:'祿', quan:'權', ke:'科', ji:'忌' };
+    html += `<details class="transit-section"><summary class="transit-summary"><span style="font-weight:600;">🌟 紫微：${ziwei.sihua.lu}化祿 / ${ziwei.sihua.ji}化忌</span></summary>`;
+    html += `<div class="transit-content">`;
+    for (const key of ['lu','quan','ke','ji']) {
+      const p = ziwei.sihuaPalaces[key];
+      if (p) {
+        const palaceName = PALACE_NAMES[p.pos] || `${p.pos}宮`;
+        html += `<div style="font-size:.82rem;padding:3px 0;"><b>${ziwei.sihua[key]}</b>化${huaLabel[key]} → ${palaceName}</div>`;
+      }
+    }
+    html += `</div></details>`;
   }
-  html += `</div></div>`;
+
+  if (maya && maya.yearInfo) {
+    html += `<details class="transit-section"><summary class="transit-summary"><span style="font-weight:600;">🌀 馬雅：${maya.yearInfo.tone}的${maya.yearInfo.seal}（KIN ${maya.yearInfo.kin}）</span></summary>`;
+    html += `<div class="transit-content">`;
+    const yiSealData = MAYA_SEALS.find(s => s.zh === maya.yearInfo.seal);
+    if (yiSealData) html += `<div style="font-size:.82rem;line-height:1.6;">${yiSealData.glyph}「${maya.yearInfo.seal}」：${yiSealData.text.split("。")[0]}。</div>`;
+    if (maya.personalInfo) {
+      html += `<div style="font-size:.82rem;margin-top:6px;">你今年個人 KIN = <b>${maya.personalInfo.tone}的${maya.personalInfo.seal}</b>（KIN ${maya.personalInfo.kin}）</div>`;
+    }
+    html += `</div></details>`;
+  }
+
   return html;
 }
 
-/** 產出融合人生洞見 — 條列式結構化呈現 */
-function lifeInsight(categories, results) {
-  const { core, support } = categories;
-  const all = [...core, ...support];
-  const hd = results.hd?.data;
-  const bz = results.bazi?.data;
-  const zw = results.ziwei?.data;
-  const astro = results.astro?.data;
-  const maya = results.maya?.data;
+// ============ 渲染：本月 ============
 
-  const hdType = hd?.typeInfo?.zh || '';
-  const hdStrategy = hd?.strategy?.desc?.split('。')[0] || '';
-  const hdAuthority = hd?.authority?.zh || '';
-  const hdProfile = hd?.profile?.profile || '';
-  const baziDM = bz ? `${bz.dayMaster}(${bz.dayMasterElem})` : '';
-  const baziGods = bz?.tenGods ? [...new Set(bz.tenGods.map(t => t.god))] : [];
-  const zwMingStars = [];
-  if (zw?.palaces) {
-    const ming = zw.palaces.find(p => p.pos === zw.mingPos);
-    if (ming?.main) {
-      for (const s of ming.main) {
-        const name = (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '');
-        if (name) zwMingStars.push(name);
-      }
-    }
-  }
-  const sunSign = astro?.sunSign?.zh || '';
-  const moonSign = astro?.moonSign?.zh || '';
-  const mayaSeal = maya?.dreamspell?.seal?.zh || '';
+function renderMonth(year, month, baziData, astroData) {
+  const MONTH_ZH = ['','一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  let html = '';
 
-  // === 條列式結構化輸出 ===
-  const elemAdvice = { '木': '需要成長空間，不能被壓制', '火': '需要舞台和被看見', '土': '先穩定根基再往外擴展', '金': '在挑戰中越磨越亮', '水': '需要流動和變化，不能被框住' };
+  const bm = baziMonth(year, month, baziData);
+  const am = astroMonth(year, month, astroData);
+  const mm = mayaMonth(year, month);
 
-  let html = `<div class="script-section" style="border-left-color:#4ecdc4;"><div class="script-title">💬 五大系統對你說的話</div><div class="script-body" style="line-height:2;font-size:.92rem;">`;
+  html += `<div style="font-size:.85rem;color:var(--muted);margin-bottom:8px;">${year} 年 ${MONTH_ZH[month]}</div>`;
 
-  // 🧭 核心頻率
-  html += `<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:.95rem;margin-bottom:8px;">🧭 核心頻率</div><ul style="margin:0;padding-left:20px;list-style:none;">`;
-  if (core.length >= 2) {
-    html += `<li style="margin-bottom:6px;">• 五份命盤共同指向：<b>${core[0].zh}</b> + <b>${core[1].zh}</b></li>`;
-  } else if (core.length === 1) {
-    html += `<li style="margin-bottom:6px;">• 壓倒性共識：<b>${core[0].zh}</b>（${core[0].systemCount} 系統同時指向）</li>`;
-  } else {
-    html += `<li style="margin-bottom:6px;">• 能量多元分佈，沒有單一壓倒性主題——你的彈性是你的特色</li>`;
-  }
-  if (hdType) html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 人類圖：${hdType}${hdAuthority ? `，${hdAuthority}` : ''}${hdProfile ? `，Profile ${hdProfile}` : ''}</li>`;
-  if (zwMingStars.length) html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 紫微：命宮 ${zwMingStars.join('、')}</li>`;
-  if (baziDM) html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 八字：日主 ${baziDM}${baziGods.length ? `，含 ${baziGods.slice(0,4).join('、')}` : ''}</li>`;
-  if (sunSign) html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 占星：太陽${sunSign}${moonSign ? `、月亮${moonSign}` : ''}</li>`;
-  if (mayaSeal) html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 馬雅：主印記 ${mayaSeal}</li>`;
-  html += `</ul></div>`;
-
-  // 🏠 最自在的活法
-  html += `<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:.95rem;margin-bottom:8px;">🏠 最自在的活法</div><ul style="margin:0;padding-left:20px;list-style:none;">`;
-  if (has(all, 'patience') && has(all, 'wisdom')) {
-    html += `<li style="margin-bottom:6px;">• 你的價值不在「做最多」，在<b>做最深</b></li>`;
-    if (hdType === '投射者' || hdType === '反映者') html += `<li style="margin-bottom:6px;">• ${hdType}：價值在洞見品質，不在產出量</li>`;
-  } else if (has(all, 'action') && has(all, 'independence')) {
-    html += `<li style="margin-bottom:6px;">• 真正讓你痛苦的不是工作量，是<b>沒有自主權</b></li>`;
-    if (hdType) html += `<li style="margin-bottom:6px;">• ${hdType}策略：${hdStrategy || '跟隨內在權威'}</li>`;
-  } else if (has(all, 'creativity') || has(all, 'authenticity')) {
-    html += `<li style="margin-bottom:6px;">• 走別人的路會特別痛苦——<b>你的設計是開新路的</b></li>`;
-  } else if (has(all, 'wealth') && (has(all, 'strategy') || has(all, 'patience'))) {
-    html += `<li style="margin-bottom:6px;">• 財富模式：不是衝業績型，是<b>「看準了一次大的」</b>型</li>`;
-  } else if (has(all, 'caregiving') || has(all, 'service')) {
-    html += `<li style="margin-bottom:6px;">• 天生照顧者——但空杯子倒不出水，<b>先顧自己</b></li>`;
-  } else if (has(all, 'leadership')) {
-    html += `<li style="margin-bottom:6px;">• 定位是<b>方向指引者</b>，不必事必躬親</li>`;
-  } else {
-    html += `<li style="margin-bottom:6px;">• 把命盤裡最強的特質放在<b>對的位置上</b></li>`;
-    if (hdType) html += `<li style="margin-bottom:6px;">• ${hdType}策略：${hdStrategy}</li>`;
-  }
-  if (bz?.dayMasterElem && elemAdvice[bz.dayMasterElem]) {
-    html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 日主屬${bz.dayMasterElem}：${elemAdvice[bz.dayMasterElem]}</li>`;
-  }
-  html += `</ul></div>`;
-
-  // ⚡ 內在張力
-  const conflicts2 = CONFLICT_PAIRS.filter(p => has(all,p.a) && has(all,p.b));
-  if (conflicts2.length > 0 && core.length >= 2) {
-    const c2 = conflicts2[0];
-    const verbMap = { 'independence': '追求自由', 'caregiving': '照顧身邊的人', 'action': '趕快行動', 'patience': '慢慢等', 'leadership': '帶頭衝', 'wisdom': '深入思考', 'creativity': '天馬行空', 'strategy': '有條有理', 'emotional': '感受一切', 'resilience': '硬撐到底', 'wealth': '賺錢', 'authenticity': '做真實的自己', 'magnetism': '跟人靠近', 'family': '守護家人', 'transformation': '打掉重練', 'service': '幫助別人', 'intuition': '跟著直覺走', 'communication': '表達出來' };
-    html += `<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:.95rem;margin-bottom:8px;">⚡ 內在張力</div><ul style="margin:0;padding-left:20px;list-style:none;">`;
-    html += `<li style="margin-bottom:6px;">• 一邊想<b>${verbMap[c2.a] || THEME_DEFS[c2.a]?.zh}</b>，一邊又想<b>${verbMap[c2.b] || THEME_DEFS[c2.b]?.zh}</b></li>`;
-    html += `<li style="margin-bottom:6px;">• 這不是 bug——是設計帶著張力，要<b>駕馭</b>不是解決</li>`;
-    html += `<li style="margin-bottom:4px;color:var(--muted);font-size:.85rem;">• 不用選邊站，找到你自己的平衡點</li>`;
-    html += `</ul></div>`;
-  }
-
-  // 💡 結論
-  html += `<div style="margin-bottom:10px;"><div style="font-weight:700;font-size:.95rem;margin-bottom:8px;">💡 最後一句</div>`;
-  html += `<div style="padding:10px 14px;background:rgba(245,197,66,.08);border-radius:8px;font-size:.9rem;">`;
-  html += conclusion(core, support, results);
-  html += `</div></div>`;
-
-  html += `</div></div>`;
-  return html;
-}
-
-// ============ 劇本生成（v3） ============
-
-function generateScript(categories, results) {
-  const { core, support } = categories;
-  const all = [...core, ...support];
-  let script = '';
-  
-  // === 一句話 ===
-  script += `<div class="script-section" style="border-left-color:#f5c542;"><div class="script-title">⚡ 一句話版本</div><div class="script-body" style="font-size:1rem;font-weight:600;line-height:1.8;">${oneLiner(core,support,results)}</div></div>`;
-
-  // === 核心設定 ===
-  script += `<div class="script-section"><div class="script-title">📖 第一章：你的核心設定</div><div class="script-body">`;
-  if (core.length > 0) {
-    script += `五個系統用五種語言說同一件事。你有 ${core.length} 個主題不斷出現：<div class="theme-badges" style="margin:10px 0;">`;
-    for (const t of core) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
-    script += `</div>這些不是「你可以選擇發展的方向」——這是你的出廠設定。回顧人生，它們一直都在。`;
-  } else if (support.length > 0) {
-    script += `你的能量分佈多元，沒有單一主題壓倒性出現——這代表你的設計不走極端。以下方向出現在兩個以上系統中：<div class="theme-badges" style="margin:10px 0;">`;
-    for (const t of support.slice(0,5)) script += `<span class="theme-badge core">${t.icon} ${t.zh} <small>(${t.systemCount}系統)</small></span>`;
-    script += `</div>你的人生會有更多彈性和選擇空間——好處是不容易被困住，挑戰是容易什麼都想要。`;
-  }
-  script += `</div></div>`;
-
-  // === 交叉印證（v3 新增） ===
-  script += crossValidation(categories, results);
-
-  // === 天賦（v2: 用差異化文案） ===
-  const giftKeys = ['creativity','intuition','communication','leadership','wisdom','magnetism','wealth','action','resilience','emotional'];
-  const gifts = core.filter(t => giftKeys.includes(t.key));
-  if (gifts.length > 0) {
-    script += `<div class="script-section"><div class="script-title">🎁 第二章：你帶來了什麼</div><div class="script-body">你這輩子「自帶」的——不用學、天生就有：`;
-    for (const t of gifts.slice(0,4)) {
-      const text = getGiftText(t, results);
-      script += `<div class="script-gift"><b>${t.icon} ${t.zh}</b>——${text}<br><span class="source-hint">${t.systems.join('、')}都指向這個。</span></div>`;
-    }
-    script += `</div></div>`;
-  }
-
-  // === 衝突（v2: 用變體文案） ===
-  const conflicts = CONFLICT_PAIRS.filter(p => has(all,p.a) && has(all,p.b));
-  if (conflicts.length > 0) {
-    script += `<div class="script-section" style="border-left-color:#e0556b;"><div class="script-title">⚔️ 第三章：你的內在拉扯</div><div class="script-body">你可能常覺得自己很矛盾——不是你有問題，是你的設計本來就有張力。這些張力要被「駕馭」而不是「解決」：`;
-    for (const c of conflicts.slice(0,3)) {
-      // 選變體
-      let text = c.variants[c.variants.length - 1].text; // default
-      for (const v of c.variants) {
-        if (v.cond(all)) { text = v.text; break; }
-      }
-      text = applyDynamicReplacements(text, results);
-      script += `<div class="script-lesson" style="border-left-color:#e0556b;">${text}</div>`;
-    }
-    script += `</div></div>`;
-  }
-  
-  // === 誤區 ===
-  const pitfalls = PITFALL_RULES.filter(r => r.condition(core,support)).map(r => applyDynamicReplacements(r.text, results));
-  if (pitfalls.length > 0) {
-    script += `<div class="script-section" style="border-left-color:#f5c542;"><div class="script-title">⚠️ 第四章：你可能踩的坑</div><div class="script-body">根據你的盤，以下是你最容易走偏的地方——大概你已經踩過了：`;
-    for (const p of pitfalls.slice(0,3)) script += `<div class="script-lesson" style="border-left-color:#f5c542;">${p}</div>`;
-    script += `</div></div>`;
-  }
-
-  // === 融合洞見（v3: 取代舊版第五章） ===
-  script += lifeInsight(categories, results);
-
-  return script;
-}
-
-// ============ 渲染 ============
-
-/** HTML escape（供 textarea 內容安全嵌入） */
-function escapeHtml(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function renderSynthesis(categories, script, results) {
-  const { core, support } = categories;
-  let html = `<div class="sig"><div class="kin">命理交叉比對</div><div class="big">人生劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">綜合八字、紫微斗數、西洋占星、馬雅曆、人類圖五大系統<br>找出你的生命中不斷重複出現的核心主題</div></div>`;
-  html += `<div class="divider"></div><h3>📊 主題共振分析</h3><div style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">出現在越多系統 = 越是你靈魂深處的基調</div>`;
-  if (core.length > 0) {
-    html += `<div style="margin-bottom:16px;"><div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:8px;">🔥 核心主題（3+ 系統共振）</div>`;
-    for (const t of core) { const w = Math.min(t.systemCount*20,100); html += `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><span style="width:90px;font-size:.82rem;white-space:nowrap;">${t.icon} ${t.zh}</span><div style="flex:1;height:18px;background:rgba(255,255,255,.05);border-radius:9px;overflow:hidden;"><div style="width:${w}%;height:100%;background:linear-gradient(90deg,var(--accent),#f5c542);border-radius:9px;display:flex;align-items:center;padding-left:6px;"><span style="font-size:.7rem;color:#000;font-weight:700;">${t.systemCount} 系統</span></div></div><span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span></div>`; }
+  // 月干支 + 十神
+  if (bm) {
+    html += `<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">`;
+    html += `<div style="text-align:center;padding:8px 14px;background:rgba(123,108,246,.1);border-radius:8px;"><div style="font-size:1.1rem;font-weight:700;">${bm.stem}${bm.branch}</div><div style="font-size:.72rem;color:var(--muted);">${STEM_ELEMENT[bm.stem]}月</div></div>`;
+    html += `<div><div style="font-size:.9rem;font-weight:600;color:var(--accent);">本月十神：${bm.god}</div>`;
+    html += `<div style="font-size:.82rem;color:var(--muted);margin-top:2px;">${bm.godDesc}</div></div>`;
     html += `</div>`;
   }
-  if (support.length > 0) {
-    html += `<div style="margin-bottom:16px;"><div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:8px;">💫 支持主題（2 系統共振）</div>`;
-    for (const t of support.slice(0,6)) html += `<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><span style="width:90px;font-size:.8rem;white-space:nowrap;">${t.icon} ${t.zh}</span><div style="flex:1;height:14px;background:rgba(255,255,255,.05);border-radius:7px;overflow:hidden;"><div style="width:40%;height:100%;background:rgba(123,108,246,.4);border-radius:7px;"></div></div><span style="font-size:.7rem;color:var(--muted);width:100px;text-align:right;">${t.systems.join('/')}</span></div>`;
+
+  // 馬雅月能量
+  if (mm && mm.seal) {
+    html += `<div style="font-size:.85rem;margin-bottom:8px;">🌀 馬雅月能量：<b>${mm.tone.zh}的${mm.seal.zh}</b>（KIN ${mm.kin}）`;
+    if (mm.seal.text) html += ` — ${mm.seal.text.split("。")[0]}。`;
     html += `</div>`;
   }
-  html += `<div class="divider"></div>${script}`;
 
-  // === AI 深度解讀區塊（複製 Prompt → 貼到任何 AI）===
-  const fullPrompt = (() => { try { return getFullPrompt(results || {}, categories); } catch (e) { return ''; } })();
-  html += `<div class="divider"></div>`;
-  html += `<div class="script-section" style="border-left-color:#4ecdc4;">`;
-  html += `<div class="script-title">🤖 想要更深、像真人聊天的解讀？</div>`;
-  html += `<div class="script-body">`;
-  html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:6px;">上面是規則引擎的分析。下面這顆按鈕會把你的<b>完整命盤 + 一份專業指令</b>打包好，複製後貼到任何一個 AI（ChatGPT、Gemini、Claude…），就能得到一份 2500 字以上、像老朋友跟你聊的深度融合解讀。</p>`;
-  html += `<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">💡 完全免費、不需要註冊、不用 API Key — 你手邊哪個 AI 順手就用哪個。</p>`;
-  html += `<button id="btn-ai-copy" type="button" style="width:100%;padding:12px 16px;background:var(--accent);color:var(--btn-text,#000);border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;">📋 複製完整解讀 Prompt</button>`;
-  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">`;
-  html += `<a href="https://chatgpt.com/" target="_blank" rel="noopener" class="ai-launch-link">開 ChatGPT ↗</a>`;
-  html += `<a href="https://gemini.google.com/app" target="_blank" rel="noopener" class="ai-launch-link">開 Gemini ↗</a>`;
-  html += `<a href="https://claude.ai/new" target="_blank" rel="noopener" class="ai-launch-link">開 Claude ↗</a>`;
-  html += `</div>`;
-  html += `<details style="margin-top:12px;"><summary style="font-size:.78rem;color:var(--muted);cursor:pointer;">預覽 / 手動複製這段 Prompt</summary>`;
-  html += `<textarea id="ai-prompt-text" readonly style="width:100%;height:160px;margin-top:8px;padding:10px;font-size:.75rem;line-height:1.5;border-radius:8px;border:1px solid var(--card-border);background:var(--chip-bg,rgba(0,0,0,.15));color:var(--text);resize:vertical;">${escapeHtml(fullPrompt)}</textarea>`;
-  html += `</details>`;
-  html += `</div></div>`;
+  // 占星太陽星座季節
+  if (am) {
+    html += `<div style="font-size:.85rem;margin-bottom:4px;">☀️ 太陽目前在 <b>${am.sunSign}</b>`;
+    for (const p of am.planets) {
+      html += ` ｜ ${p.zh} ${p.sign}`;
+    }
+    html += `</div>`;
+  }
 
-  html += `<div class="note" style="margin-top:16px;">💡 這份劇本大綱是五大系統的<b>交集</b>——它們用不同語言說同一件事。當你發現「每個系統都在講同一個主題」，那就是你的核心真相。<br><br>📋 <b>系統來源</b>：八字（天干地支＋十神＋神煞）、紫微斗數（命宮主星＋四化）、西洋占星（太陽/月亮/上升＋相位）、馬雅曆（主印記＋調性）、人類圖（類型＋權威＋通道＋Profile）</div>`;
   return html;
 }
 
-// ============ AI 解讀：Prompt 建構 + Groq 呼叫 ============
+// ============ 渲染：今日 ============
+
+function renderToday(baziData) {
+  const t = todayPersonal(baziData);
+  let html = '';
+
+  html += `<div style="font-size:.85rem;color:var(--muted);margin-bottom:8px;">${t.date}（${t.weekday}）</div>`;
+
+  // 個人化十神
+  if (t.personal && t.relationAdvice) {
+    html += `<div style="padding:12px;background:rgba(123,108,246,.08);border-radius:8px;margin-bottom:10px;">`;
+    html += `<div style="font-size:.95rem;font-weight:700;">${t.relationAdvice.icon} ${t.relationAdvice.title}</div>`;
+    html += `<div style="font-size:.82rem;color:var(--muted);margin-top:4px;">今日${t.stem}${t.branch}（${ELEMENT_EMOJI[t.todayElem]}${t.todayElem}）vs 你的日主${t.personal.selfStem}（${ELEMENT_EMOJI[t.personal.selfEl]}${t.personal.selfEl}）</div>`;
+    html += `<div style="font-size:.85rem;margin-top:6px;">${t.relationAdvice.text}</div>`;
+    html += `</div>`;
+  }
+
+  // 通用日能量
+  if (t.advice) {
+    html += `<div style="font-size:.82rem;">✅ 適合：${t.advice.good}</div>`;
+    html += `<div style="font-size:.82rem;">⚠️ 避免：${t.advice.avoid}</div>`;
+  }
+
+  // 馬雅日能量
+  if (t.maya && t.maya.seal) {
+    html += `<div style="font-size:.82rem;margin-top:6px;">🌀 ${t.maya.seal.glyph || ''} ${t.maya.tone.zh}的${t.maya.seal.zh}（KIN ${t.maya.kin}）</div>`;
+  }
+
+  return html;
+}
+
+// ============ 木星/土星宮位描述（精簡版）============
+
+function getJupiterHouseDesc(house) {
+  const d = { 1:'自信提升，形象發光', 2:'收入來源擴展', 3:'學習溝通活絡', 4:'家庭運好，適合置產', 5:'創造力和桃花旺', 6:'工作機會增加', 7:'合作關係擴展', 8:'可能有意外資源', 9:'適合進修、出國', 10:'事業擴展黃金期', 11:'社群人脈帶來機會', 12:'內在修復、靈性成長' };
+  return d[house] || '木星帶來擴展機會。';
+}
+
+function getSaturnHouseDesc(house) {
+  const d = { 1:'被要求重新定義自己', 2:'財務需要更有紀律', 3:'溝通學習需要耐心', 4:'家庭責任加重', 5:'創造力需要更認真', 6:'工作壓力大但能升級', 7:'關係面臨現實考驗', 8:'財務共享有壓力', 9:'信念被現實檢驗', 10:'事業有硬仗但值得', 11:'社群和目標需要篩選', 12:'清理內在積累的疲憊' };
+  return d[house] || '土星帶來紀律和考驗。';
+}
+
+// ============ AI Prompt 建構（保留）============
 
 const AI_SYSTEM_PROMPT = `你是一位同時精通五大命理系統（八字、紫微斗數、西洋占星、馬雅曆、人類圖）的資深分析師，也是一位擅長說人話的心理諮商者。
 
 你的任務：根據下方使用者的命盤 JSON 資料，寫一份「像是一位看完全部命盤的老朋友，坐下來慢慢跟你聊」的深度融合解讀。
 
 【核心手法】
-1. 不要逐系統解釋、不要說「你的八字是…你的紫微是…」。要把五個系統當成同一個人的不同側寫，交叉比對後說出「同一件事」。
-2. 特別注意資料裡的 coreThemes（跨系統共振主題）——這些是多個系統同時指向的核心真相，是整份解讀的主軸，請深入展開、舉例說明它在現實生活中會怎麼呈現。
-3. 每個論點都要「落地」：不要只給形容詞，要說出這個特質在工作、感情、日常決策裡的具體樣子，最好能舉一兩個生活化的情境。
+1. 不要逐系統解釋。把五個系統當成同一個人的不同側寫，交叉比對後說出「同一件事」。
+2. 特別注意 yearThemes（今年跨系統共振主題）——這些是多個系統同時指向的年度重點。
+3. 每個論點要「落地」：不只給形容詞，要說出在工作、感情、日常決策裡的具體樣子。
 
-【輸出結構】（每段都要有小標題，內容要飽滿，不要只寫一行）
-🧭 一句話核心人設 — 用一句精準的話定義這個人是誰
-🧬 你天生的作業系統 — 性格底層邏輯，2~3 段，說明你如何看世界、如何做決定
-🎁 你的天賦與才華 — 列 4~6 項，每項都說明「怎麼展現、能用在哪、別人會怎麼看到」
-⚔️ 你的內在矛盾 — 1~3 組最主要的拉扯，說明成因，以及怎麼和自己和解
-💞 感情與人際模式 — 你在關係裡的樣子、需要什麼、容易卡在哪
-💼 事業與金錢傾向 — 適合的工作型態、賺錢的方式、要避開的坑
-🌱 這輩子的功課 — 靈魂層面想學會的事、成長方向
-💡 給你的具體建議 — 5 條可以立刻執行的行動建議
-🎯 結語 — 一段溫暖、給力量的話
+【輸出結構】
+🧭 一句話定義今年的你
+🔥 年度主題展開（根據 yearThemes 深入分析）
+📅 本月具體建議
+💡 5 條可以立刻執行的行動建議
+🎯 一段溫暖給力量的結語
 
 【語氣與格式】
-- 自然、溫暖、精準，像朋友聊天，但有專業底氣；可以偶爾幽默、直接。
-- 全程繁體中文。
-- 用純文字 + emoji 分段，不要用 markdown 的 #、* 符號。
-- 篇幅放開來寫，目標 2500~4000 字，寧可深入也不要空泛。
-- 不要免責聲明、不要開場白客套，直接從核心人設開始寫。`;
+- 自然、溫暖、精準，像朋友聊天但有專業底氣。
+- 全程繁體中文。純文字 + emoji 分段。
+- 篇幅 1500~2500 字。不要免責聲明、不要客套。`;
 
-function buildPromptJSON(results, categories) {
+function buildPromptJSON(results) {
   const j = {};
-
-  // 跨系統共振主題（最重要，放最前面）
-  if (categories?.core?.length) {
-    j.coreThemes = categories.core.map(t => ({ theme: t.zh, appearsIn: t.systems, systemCount: t.systemCount }));
-  }
-  if (categories?.support?.length) {
-    j.supportThemes = categories.support.slice(0, 6).map(t => ({ theme: t.zh, appearsIn: t.systems }));
-  }
 
   const bz = results.bazi?.data;
   if (bz) {
@@ -1245,9 +708,6 @@ function buildPromptJSON(results, categories) {
       fourPillars: [pill(p.year), pill(p.month), pill(p.day), pill(p.hour)].filter(Boolean).join(' '),
       dayMaster: bz.dayMaster,
       dayMasterElement: bz.dayMasterElem,
-      fiveElements: bz.elements || undefined,
-      tenGods: bz.tenGods?.map(t => `${t.pillar}=${t.god}`) || [],
-      shensha: bz.shensha?.map(s => s.name) || [],
     };
   }
 
@@ -1255,64 +715,126 @@ function buildPromptJSON(results, categories) {
   if (zw) {
     const ming = zw.palaces?.find(p => p.pos === zw.mingPos);
     const stars = ming?.main?.map(s => (typeof s === 'string') ? s.replace(/[（(].+/, '').trim() : (s.name || '')).filter(Boolean) || [];
-    j.ziwei = { mingStars: stars, sihua: zw.sihua };
+    j.ziwei = { mingStars: stars };
   }
 
   const astro = results.astro?.data;
   if (astro) {
-    j.astro = {
-      sun: astro.sunSign?.zh,
-      moon: astro.moonSign?.zh,
-      rising: astro.risingSign?.zh,
-      aspects: astro.aspects?.slice(0, 8).map(a => a.name) || [],
-    };
+    j.astro = { sun: astro.sunSign?.zh, moon: astro.moonSign?.zh, rising: astro.risingSign?.zh };
   }
 
   const maya = results.maya?.data;
   if (maya) {
-    j.maya = {
-      seal: maya.dreamspell?.seal?.zh,
-      tone: maya.dreamspell?.tone?.num,
-      toneName: maya.dreamspell?.tone?.zh,
-      color: maya.dreamspell?.color?.zh || maya.dreamspell?.colorZh || undefined,
-    };
+    j.maya = { seal: maya.dreamspell?.seal?.zh, tone: maya.dreamspell?.tone?.num };
   }
 
   const hd = results.hd?.data;
   if (hd) {
-    j.humanDesign = {
-      type: hd.typeInfo?.zh,
-      strategy: hd.strategy?.zh,
-      authority: hd.authority?.zh,
-      profile: hd.profile?.profile,
-      channels: hd.definedChannels?.map(c => c.name) || [],
-      definedCenters: hd.definedCenters?.map(c => (typeof c === 'string' ? c : (c.name || c.zh))).filter(Boolean) || undefined,
-    };
+    j.humanDesign = { type: hd.typeInfo?.zh, strategy: hd.strategy?.zh, authority: hd.authority?.zh, profile: hd.profile?.profile };
   }
 
   return j;
 }
 
-function getFullPrompt(results, categories) {
-  const json = buildPromptJSON(results, categories);
-  return AI_SYSTEM_PROMPT + '\n\n---\n\n以下是這位使用者的命盤資料：\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```\n\n請依照上面的結構，開始寫這份深度融合解讀。';
+function getFullPrompt(results, yearThemes) {
+  const json = buildPromptJSON(results);
+  if (yearThemes) json.yearThemes = yearThemes;
+  return AI_SYSTEM_PROMPT + '\n\n---\n\n以下是這位使用者的命盤資料：\n\n```json\n' + JSON.stringify(json, null, 2) + '\n```\n\n請依照上面的結構，開始寫這份解讀。';
 }
 
-export function calculate(results) {
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============ 主渲染 ============
+
+function render(year, results) {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const baziData = results.bazi?.data;
+  const astroData = results.astro?.data;
+
+  const bazi = baziTransit(year, baziData);
+  const hd = hdTransit(year, results.hd?.data);
+  const astro = astroTransit(year, astroData);
+  const ziwei = ziweiTransit(year, results.ziwei?.data);
+  const maya = mayaTransit(year, results.maya?.data);
+
+  let html = `<div class="sig"><div class="kin">時間軸</div><div class="big">劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">你的年度劇情 × 本月節奏 × 今日能量</div></div>`;
+
+  // === 年度 ===
+  html += `<div class="divider"></div>`;
+  html += `<h3>📖 ${year} 年度劇情</h3>`;
+  html += renderYear(year, bazi, hd, astro, ziwei, maya);
+
+  // === 本月 ===
+  html += `<div class="divider"></div>`;
+  html += `<h3>📅 本月節奏</h3>`;
+  html += renderMonth(year, month, baziData, astroData);
+
+  // === 今日 ===
+  html += `<div class="divider"></div>`;
+  html += `<h3>✦ 今日能量</h3>`;
+  html += renderToday(baziData);
+
+  // === AI Prompt ===
+  const yearThemes = extractYearThemes(bazi, hd, astro, ziwei, maya)
+    .reduce((acc, t) => { acc[t.theme] = (acc[t.theme] || []).concat(t.source); return acc; }, {});
+  const fullPrompt = getFullPrompt(results, yearThemes);
+
+  html += `<div class="divider"></div>`;
+  html += `<div class="script-section" style="border-left-color:#4ecdc4;">`;
+  html += `<div class="script-title">🤖 想要更深的解讀？</div>`;
+  html += `<div class="script-body">`;
+  html += `<p style="font-size:.85rem;color:var(--muted);margin-bottom:8px;">下面這顆按鈕把你的命盤 + 流年資料打包成 Prompt，複製後貼到任何 AI 就能得到深度解讀。</p>`;
+  html += `<button id="btn-ai-copy" type="button" style="width:100%;padding:12px 16px;background:var(--accent);color:var(--btn-text,#000);border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;">📋 複製完整解讀 Prompt</button>`;
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">`;
+  html += `<a href="https://chatgpt.com/" target="_blank" rel="noopener" class="ai-launch-link">開 ChatGPT ↗</a>`;
+  html += `<a href="https://gemini.google.com/app" target="_blank" rel="noopener" class="ai-launch-link">開 Gemini ↗</a>`;
+  html += `<a href="https://claude.ai/new" target="_blank" rel="noopener" class="ai-launch-link">開 Claude ↗</a>`;
+  html += `</div>`;
+  html += `<details style="margin-top:12px;"><summary style="font-size:.78rem;color:var(--muted);cursor:pointer;">預覽 Prompt</summary>`;
+  html += `<textarea id="ai-prompt-text" readonly style="width:100%;height:140px;margin-top:8px;padding:10px;font-size:.75rem;line-height:1.5;border-radius:8px;border:1px solid var(--card-border);background:var(--chip-bg,rgba(0,0,0,.15));color:var(--text);resize:vertical;">${escapeHtml(fullPrompt)}</textarea>`;
+  html += `</details></div></div>`;
+
+  html += `<div class="note" style="margin-top:16px;">💡 流年是「暫時的天氣」，本命是你的硬體。天氣會影響體驗，但不會改變你是誰。各 tab 看你的本命設計，這裡看「現在在演什麼戲」。</div>`;
+
+  return html;
+}
+
+// ============ 主入口 ============
+
+let _cachedResults = null;
+let _cachedYear = null;
+
+export function calculate(results, targetYear) {
   try {
-    const allThemes = [
-      ...extractBaziThemes(results.bazi?.data),
-      ...extractZiweiThemes(results.ziwei?.data),
-      ...extractAstroThemes(results.astro?.data),
-      ...extractMayaThemes(results.maya?.data),
-      ...extractHDThemes(results.hd?.data),
-    ];
-    const sorted = analyzeThemes(allThemes);
-    const categories = categorizeThemes(sorted);
-    const script = generateScript(categories, results);
-    const html = renderSynthesis(categories, script, results);
-    return { status: 'ok', html, error: null, categories, allThemes };
+    const year = targetYear || new Date().getFullYear();
+    _cachedResults = results;
+    _cachedYear = year;
+    const html = render(year, results);
+    return { status: 'ok', html, error: null };
   } catch (err) {
-    return { status: 'error', html: `<div class="placeholder">綜合分析錯誤：${err.message}</div>`, error: err.message };
+    return { status: 'error', html: `<div class="placeholder">劇本大綱錯誤：${err.message}</div>`, error: err.message };
   }
+}
+
+export function recalculate(year) {
+  if (!_cachedResults) return null;
+  return calculate(_cachedResults, year);
+}
+
+export function attachYearSwitcher() {
+  const btns = document.querySelectorAll('.transit-year-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const year = parseInt(btn.dataset.year);
+      const result = recalculate(year);
+      if (result?.status === 'ok') {
+        const el = document.getElementById('view-synthesis');
+        if (el) el.innerHTML = result.html;
+        attachYearSwitcher();
+      }
+    });
+  });
 }
