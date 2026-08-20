@@ -1146,86 +1146,139 @@ function renderBranchRelations(relations) {
 /** 渲染納音・胎元・命宮・身宮 */
 function renderExtras(extras, pillars) {
   const { taiyuan, minggong, shengong, nayinPillars } = extras;
+  // eslint-disable-next-line no-undef
+  const NT = (typeof NAYIN_TEXT !== 'undefined') ? NAYIN_TEXT : {};
 
   let html = '';
 
-  // 納音表
-  html += `<div style="margin-bottom:14px;">
-    <div style="font-size:.82rem;color:var(--muted);margin-bottom:6px;">四柱納音（古法五行歸類）</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;">
-      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
-        <div style="font-size:.7rem;color:var(--muted);">年柱</div>
-        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.year}</div>
-      </div>
-      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
-        <div style="font-size:.7rem;color:var(--muted);">月柱</div>
-        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.month}</div>
-      </div>
-      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
-        <div style="font-size:.7rem;color:var(--muted);">日柱</div>
-        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.day}</div>
-      </div>
-      <div style="padding:8px;background:rgba(123,108,246,.04);border-radius:6px;">
-        <div style="font-size:.7rem;color:var(--muted);">時柱</div>
-        <div style="font-weight:600;font-size:.85rem;">${nayinPillars.hour}</div>
-      </div>
-    </div>
-    <div style="font-size:.78rem;color:var(--muted);margin-top:6px;">年柱納音「${nayinPillars.year}」是坊間常說的「你屬什麼命」的由來。</div>
+  // ===== 四柱納音 =====
+  const pillarLabels = ['year', 'month', 'day', 'hour'];
+  const pillarZh = { year: '年柱', month: '月柱', day: '日柱', hour: '時柱' };
+  const pillarMeaning = {
+    year: '早年環境・家族根基・對外第一印象',
+    month: '事業養成期・中年實力・社交定位',
+    day: '你的核心本質・內在真實性格',
+    hour: '晚年格局・最終成果・子女緣',
+  };
+
+  // 納音四格卡片
+  html += `<div style="margin-bottom:16px;">
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">四柱納音 — 人生不同階段的五行氣場</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;">`;
+  for (const p of pillarLabels) {
+    const ny = nayinPillars[p];
+    const info = NT[ny];
+    const sym = info ? info.symbol : '';
+    html += `<div style="padding:10px 6px;background:rgba(123,108,246,.04);border-radius:8px;">
+      <div style="font-size:.68rem;color:var(--muted);">${pillarZh[p]}</div>
+      <div style="font-weight:700;font-size:.9rem;margin:2px 0;">${ny}</div>
+      <div style="font-size:.65rem;color:var(--accent);line-height:1.3;">${sym}</div>
+    </div>`;
+  }
+  html += `</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-top:6px;">年柱納音「${nayinPillars.year}」是坊間常說的「你屬什麼命」的由來。</div>
   </div>`;
 
-  // 胎元命宮身宮解說
+  // 納音詳細解讀（每柱一段敘事，點擊展開）
+  html += `<div style="margin-bottom:18px;">`;
+  for (const p of pillarLabels) {
+    const ny = nayinPillars[p];
+    const info = NT[ny];
+    if (!info) continue;
+    const pillarDesc = info.pillar[p] || '';
+    const uid = 'nayin_' + p + '_' + Math.random().toString(36).slice(2, 8);
+    html += `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="(function(){var d=document.getElementById('${uid}');d.style.display=d.style.display==='none'?'block':'none';var a=this.querySelector('.arr');if(a)a.textContent=d.style.display==='none'?'▸':'▾'}).call(this)">
+        <span style="font-size:.75rem;color:var(--muted);width:32px;" class="arr">▸</span>
+        <span style="font-weight:600;font-size:.85rem;">${pillarZh[p]}「${ny}」</span>
+        <span style="font-size:.72rem;color:var(--muted);margin-left:auto;">${pillarMeaning[p]}</span>
+      </div>
+      <div style="font-size:.8rem;color:var(--text);margin-top:6px;padding-left:38px;line-height:1.7;">${pillarDesc}</div>
+      <div id="${uid}" style="display:none;margin-top:8px;padding:10px 12px 10px 38px;background:rgba(123,108,246,.03);border-radius:6px;font-size:.78rem;color:var(--text);line-height:1.8;">
+        <div style="margin-bottom:6px;color:var(--accent);font-weight:600;">🔍 ${ny}的本質</div>
+        <div>${info.nature}</div>
+      </div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // ===== 胎元・命宮・身宮 =====
   const stemTraits = {
-    '甲': '積極進取、有領導力', '乙': '柔韌適應、重人際',
-    '丙': '熱情開朗、有感染力', '丁': '細膩溫暖、重精神',
-    '戊': '穩重踏實、重信用', '己': '包容務實、善經營',
-    '庚': '果斷剛毅、重義氣', '辛': '精緻敏銳、重品味',
-    '壬': '聰慧靈活、不受拘束', '癸': '內斂深沉、直覺強',
+    '甲': '積極進取、有領導力、開創性強', '乙': '柔韌適應、重人際、感受力細膩',
+    '丙': '熱情開朗、有感染力、直率外放', '丁': '細膩溫暖、重精神追求、洞察力強',
+    '戊': '穩重踏實、重信用、承載力大', '己': '包容務實、善經營、接地氣',
+    '庚': '果斷剛毅、重義氣、行動力強', '辛': '精緻敏銳、重品味、觀察入微',
+    '壬': '聰慧靈活、不受拘束、格局寬', '癸': '內斂深沉、直覺極強、善於暗中觀察',
   };
   const branchTraits = {
-    '子': '機敏、善謀劃', '丑': '沉穩、能積累', '寅': '衝勁強、敢開創',
-    '卯': '溫和、重感受', '辰': '志大、有野心', '巳': '精明、善變通',
-    '午': '熱烈、行動力強', '未': '細緻、重情義', '申': '靈活、善交際',
-    '酉': '精準、重細節', '戌': '忠厚、有原則', '亥': '包容、想法多',
+    '子': '機敏善謀劃，腦子轉得快', '丑': '沉穩能積累，做事有耐心',
+    '寅': '衝勁強、敢開創，閒不住', '卯': '溫和重感受，不喜歡衝突',
+    '辰': '志大有野心，格局不小', '巳': '精明善變通，觀察力敏銳',
+    '午': '熱烈行動力強，說做就做', '未': '細緻重情義，念舊',
+    '申': '靈活善交際，點子多', '酉': '精準重細節，標準高',
+    '戌': '忠厚有原則，值得信任', '亥': '包容想法多，不設限',
   };
 
-  function getExtraDesc(label, obj) {
+  const extraDetailMap = {
+    胎元: {
+      title: '🌒 胎元',
+      subtitle: '先天稟賦 — 受胎月的干支，你來到這世界自帶的出廠設定',
+      explain: '胎元代表你在母胎中接收到的先天能量場。它不像日柱那樣是「你自己」，而是你「被設定好的底層程式」——不需要學習就自然表現出來的特質。',
+    },
+    命宮: {
+      title: '🏠 命宮',
+      subtitle: '真實底牌 — 不拿出來示人的性格底色',
+      explain: '命宮是你最不設防時會流露的真實樣子。社交中你可能展現日柱的特質，但獨處時、面對親密的人時，命宮的個性才會浮現。它是你的「內建反應模式」。',
+    },
+    身宮: {
+      title: '🚀 身宮',
+      subtitle: '後天走向 — 30歲後的行動模式與成就展現',
+      explain: '身宮代表你後天主動發展的方向。如果說命宮是「你是誰」，身宮就是「你會變成誰」。它反映了你30歲之後的動力來源和追求的成就形態。',
+    },
+  };
+
+  // 三宮卡片
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">`;
+  for (const [label, obj] of [['胎元', taiyuan], ['命宮', minggong], ['身宮', shengong]]) {
+    const info = NT[obj.nayin];
+    const sym = info ? info.symbol.split('，')[0] : '';
+    html += `<div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
+      <div style="font-size:.72rem;color:var(--muted);">${label}</div>
+      <div style="font-size:1.1rem;font-weight:700;">${obj.stem}${obj.branch}</div>
+      <div style="font-size:.72rem;color:var(--accent);">${obj.nayin}</div>
+      <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">${sym}</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // 三宮詳細敘事解讀
+  html += `<div style="margin-top:14px;">`;
+  for (const [label, obj] of [['胎元', taiyuan], ['命宮', minggong], ['身宮', shengong]]) {
+    const meta = extraDetailMap[label];
     const st = stemTraits[obj.stem] || '';
     const bt = branchTraits[obj.branch] || '';
-    return `${label}${obj.stem}${obj.branch}（${obj.nayin}）— ${st}，${bt}。`;
+    const nayinInfo = NT[obj.nayin];
+    const nayinNature = nayinInfo ? nayinInfo.nature : '';
+    const uid = 'extra_' + label + '_' + Math.random().toString(36).slice(2, 8);
+
+    html += `<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="(function(){var d=document.getElementById('${uid}');d.style.display=d.style.display==='none'?'block':'none';var a=this.querySelector('.arr');if(a)a.textContent=d.style.display==='none'?'▸':'▾'}).call(this)">
+        <span style="font-size:.75rem;color:var(--muted);width:24px;" class="arr">▸</span>
+        <span style="font-weight:700;font-size:.88rem;">${meta.title}</span>
+        <span style="font-size:.72rem;color:var(--muted);">${meta.subtitle}</span>
+      </div>
+      <div style="font-size:.8rem;color:var(--text);margin-top:6px;padding-left:30px;line-height:1.7;">
+        ${label}${obj.stem}${obj.branch}（${obj.nayin}）：天生具備${obj.stem}的${st}特質，搭配${obj.branch}的${bt}傾向。
+      </div>
+      <div id="${uid}" style="display:none;margin-top:8px;padding:10px 14px 10px 30px;background:rgba(123,108,246,.03);border-radius:6px;font-size:.78rem;line-height:1.8;color:var(--text);">
+        <div style="margin-bottom:8px;color:var(--muted);font-size:.72rem;">${meta.explain}</div>
+        <div style="margin-bottom:6px;"><b>天干「${obj.stem}」的能量：</b>${st}。這是你${label === '胎元' ? '先天自帶' : label === '命宮' ? '內心深處' : '後天追求'}的行事風格。</div>
+        <div style="margin-bottom:6px;"><b>地支「${obj.branch}」的特質：</b>${bt}。這決定了你${label === '胎元' ? '本能反應' : label === '命宮' ? '獨處時的狀態' : '行動時的節奏'}。</div>
+        ${nayinNature ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);"><b>納音「${obj.nayin}」：</b>${nayinNature}</div>` : ''}
+      </div>
+    </div>`;
   }
-
-  const taiyuanDesc = getExtraDesc('胎元', taiyuan);
-  const minggongDesc = getExtraDesc('命宮', minggong);
-  const shengongDesc = getExtraDesc('身宮', shengong);
-
-  // 胎元命宮身宮卡片
-  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
-    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
-      <div style="font-size:.72rem;color:var(--muted);">胎元</div>
-      <div style="font-size:1.1rem;font-weight:700;">${taiyuan.stem}${taiyuan.branch}</div>
-      <div style="font-size:.72rem;color:var(--muted);">${taiyuan.nayin}</div>
-    </div>
-    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
-      <div style="font-size:.72rem;color:var(--muted);">命宮</div>
-      <div style="font-size:1.1rem;font-weight:700;">${minggong.stem}${minggong.branch}</div>
-      <div style="font-size:.72rem;color:var(--muted);">${minggong.nayin}</div>
-    </div>
-    <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
-      <div style="font-size:.72rem;color:var(--muted);">身宮</div>
-      <div style="font-size:1.1rem;font-weight:700;">${shengong.stem}${shengong.branch}</div>
-      <div style="font-size:.72rem;color:var(--muted);">${shengong.nayin}</div>
-    </div>
-  </div>`;
-
-  // 白話解說
-  html += `<div style="font-size:.78rem;color:var(--text);margin-top:12px;line-height:1.7;padding:10px;background:rgba(123,108,246,.03);border-radius:8px;">
-    <div style="margin-bottom:6px;"><b>🌒 胎元</b>（先天稟賦，受胎月的干支）</div>
-    <div style="margin-bottom:8px;padding-left:8px;">${taiyuanDesc}</div>
-    <div style="margin-bottom:6px;"><b>🏠 命宮</b>（不拿出來示人的真實性格）</div>
-    <div style="margin-bottom:8px;padding-left:8px;">${minggongDesc}</div>
-    <div style="margin-bottom:6px;"><b>🚀 身宮</b>（後天努力的方向和成就）</div>
-    <div style="padding-left:8px;">${shengongDesc}</div>
-  </div>`;
+  html += `</div>`;
 
   return html;
 }
