@@ -746,6 +746,338 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ============ 人生共振主題（跨系統交叉驗證）============
+
+const LIFE_THEMES = {
+  leadership:    { zh: '領導力', icon: '👑' },
+  intuition:     { zh: '直覺力', icon: '🔮' },
+  creativity:    { zh: '創造力', icon: '🎨' },
+  communication: { zh: '溝通表達', icon: '🗣️' },
+  caregiving:    { zh: '照顧滋養', icon: '🤲' },
+  wealth:        { zh: '財富能量', icon: '💰' },
+  independence:  { zh: '獨立自主', icon: '🦅' },
+  wisdom:        { zh: '智慧深度', icon: '📚' },
+  action:        { zh: '行動力', icon: '⚡' },
+  emotional:     { zh: '情緒智慧', icon: '🌊' },
+  transformation:{ zh: '轉化蛻變', icon: '🦋' },
+  service:       { zh: '服務奉獻', icon: '🙏' },
+  resilience:    { zh: '韌性毅力', icon: '💎' },
+  magnetism:     { zh: '人際吸引', icon: '🧲' },
+  authenticity:  { zh: '做自己', icon: '✨' },
+  patience:      { zh: '等待時機', icon: '⏳' },
+  strategy:      { zh: '策略思維', icon: '♟️' },
+  family:        { zh: '家族責任', icon: '🏠' },
+};
+
+// 結論文案：根據主題 key 給出一句「人話翻譯」
+const THEME_CONCLUSION = {
+  leadership: '不管用什麼語言算，你就是有帶人的命。不一定要當老闆，但你在的地方，別人會自然看向你。',
+  intuition: '你的第六感不是玄學，是你的導航系統。所有系統都在說：相信你的直覺。',
+  creativity: '你需要創造才會活起來。不是「興趣」的層次，是靈魂等級的需要。',
+  communication: '你的話有份量。這不是讚美，是所有系統都看到的設計。用好它。',
+  caregiving: '照顧別人不是犧牲，是你本來就該做的事。你在做的時候反而最有力量。',
+  wealth: '你跟錢天生有緣。不是說躺著就有錢，是你對資源的敏感度比一般人高。',
+  independence: '你不需要變成別人。所有系統都在講同一句話：做你自己就夠了。',
+  wisdom: '你是靠「想通了」才能前進的人。別人靠行動，你靠理解。這不是慢，是深。',
+  action: '你是做了再說的人。所有系統都在催你動——想太多對你反而是阻力。',
+  emotional: '你的情緒不是弱點，是你最精密的感測器。學會讀懂它而不是壓抑它。',
+  transformation: '你的人生不走直線，而是一段一段地死去重生。每次蛻變後都升級。',
+  service: '你透過幫助別人找到自己的意義。這不是工具人，是你的人生劇本。',
+  resilience: '你越挫越勇——這不是雞湯，是你的盤寫死的。逆境是你的養分。',
+  magnetism: '你天生吸引人靠近。這是設計，不是努力的結果。好好用。',
+  authenticity: '不管哪個系統都在跟你說同一件事：做自己。你不需要符合任何人的期待。',
+  patience: '你的設計不是主動出擊型。等待正確時機比盲目行動有效一百倍。',
+  strategy: '你是佈局的人，不是衝鋒的人。先想清楚再動手，效率會好很多。',
+  family: '家庭和傳承是你的重要主題。不管你喜不喜歡，這是寫在盤裡的功課。',
+};
+
+/**
+ * 從各系統提取「人生主題」+ 每個系統的具體證據描述
+ */
+function extractLifeThemes(results) {
+  const themes = []; // { theme, system, evidence }
+
+  // === 八字 ===
+  const bz = results.bazi?.data;
+  if (bz) {
+    const elemTraits = {
+      '木': [['creativity','日主屬木——天生需要成長和創造'],['independence','木主仁、向上——獨立性強']],
+      '火': [['leadership','日主屬火——天生發光、有領袖氣質'],['communication','火主禮——表達能力強']],
+      '土': [['caregiving','日主屬土——包容、滋養、照顧'],['patience','土主信——穩重踏實']],
+      '金': [['independence','日主屬金——果斷、自主性強'],['resilience','金主義——越鍛越強']],
+      '水': [['wisdom','日主屬水——善思考、有深度'],['intuition','水主智——直覺敏銳']],
+    };
+    if (bz.dayMasterElem && elemTraits[bz.dayMasterElem]) {
+      for (const [theme, evidence] of elemTraits[bz.dayMasterElem]) {
+        themes.push({ theme, system: '八字', evidence });
+      }
+    }
+
+    // 十神
+    if (bz.tenGods) {
+      const godThemes = {
+        '食神': [['creativity','命帶食神——才華橫溢、創意源源不絕']],
+        '傷官': [['creativity','命帶傷官——叛逆創新、不走尋常路'],['independence','傷官——不服管、要走自己的路']],
+        '正印': [['wisdom','命帶正印——好學、有長輩緣'],['caregiving','正印——有照顧人的天性']],
+        '偏印': [['intuition','命帶偏印——第六感強、思維獨特'],['independence','偏印——想法跟主流不一樣']],
+        '正官': [['leadership','命帶正官——有管理能力、受人敬重']],
+        '七殺': [['action','命帶七殺——行動力爆發、敢衝'],['resilience','七殺——壓力下反而更強']],
+        '比肩': [['independence','命帶比肩——自主性強、不依賴人']],
+        '正財': [['wealth','命帶正財——理財能力好、穩定進財']],
+        '偏財': [['wealth','命帶偏財——財路廣、機會多'],['magnetism','偏財——人緣好、社交能力強']],
+      };
+      for (const tg of bz.tenGods) {
+        if (godThemes[tg.god]) {
+          for (const [theme, evidence] of godThemes[tg.god]) {
+            themes.push({ theme, system: '八字', evidence });
+          }
+        }
+      }
+    }
+
+    // 神煞
+    if (bz.shensha) {
+      const shMap = {
+        '天乙貴人': [['magnetism','天乙貴人——天生有貴人緣']],
+        '文昌': [['wisdom','文昌——讀書考試運好'],['communication','文昌——文字表達有天分']],
+        '華蓋': [['intuition','華蓋——靈感強、適合研究和藝術'],['authenticity','華蓋——孤高、做自己']],
+        '驛馬': [['action','驛馬——閒不住、適合動態生活']],
+        '將星': [['leadership','將星——有將帥之才']],
+        '天德': [['service','天德——有服務精神、積德']],
+        '月德': [['caregiving','月德——心地善良、照顧人']],
+      };
+      for (const sh of bz.shensha) {
+        if (shMap[sh.name]) {
+          for (const [theme, evidence] of shMap[sh.name]) {
+            themes.push({ theme, system: '八字', evidence });
+          }
+        }
+      }
+    }
+  }
+
+  // === 紫微斗數 ===
+  const zw = results.ziwei?.data;
+  if (zw && zw.palaces) {
+    const ming = zw.palaces.find(p => p.pos === zw.mingPos);
+    if (ming?.main) {
+      const starThemes = {
+        '紫微': [['leadership','命宮紫微——帝王星、天生有氣場']],
+        '天機': [['wisdom','命宮天機——聰明善變、腦子轉很快'],['strategy','天機——善於規劃佈局']],
+        '太陽': [['leadership','命宮太陽——發光發熱、喜歡照顧人'],['caregiving','太陽——照亮他人']],
+        '武曲': [['wealth','命宮武曲——財星、對錢有天分'],['action','武曲——果斷執行力強']],
+        '天同': [['emotional','命宮天同——感受力強、重感情'],['caregiving','天同——溫和包容']],
+        '廉貞': [['action','命宮廉貞——衝勁十足、不服輸']],
+        '天府': [['wealth','命宮天府——庫星、善於累積和管理']],
+        '太陰': [['intuition','命宮太陰——直覺力強、內心細膩'],['creativity','太陰——有藝術天分']],
+        '貪狼': [['magnetism','命宮貪狼——桃花星、人見人愛'],['creativity','貪狼——多才多藝']],
+        '巨門': [['communication','命宮巨門——口才好、適合表達類工作']],
+        '天相': [['service','命宮天相——印星、適合輔佐和服務']],
+        '天梁': [['caregiving','命宮天梁——蔭星、天生照顧人'],['wisdom','天梁——老成持重、有智慧']],
+        '七殺': [['action','命宮七殺——敢衝敢闖、開創格'],['resilience','七殺——壓力下反彈力強']],
+        '破軍': [['transformation','命宮破軍——破舊立新、人生多轉折'],['independence','破軍——不走尋常路']],
+      };
+      for (const star of ming.main) {
+        const name = (typeof star === 'string') ? star.replace(/[（(].+/, '').trim() : (star.name || '');
+        if (starThemes[name]) {
+          for (const [theme, evidence] of starThemes[name]) {
+            themes.push({ theme, system: '紫微', evidence });
+          }
+        }
+      }
+    }
+  }
+
+  // === 西洋占星 ===
+  const astro = results.astro?.data;
+  if (astro) {
+    const signThemes = {
+      '牡羊座': [['action','主星落牡羊——行動派、衝第一'],['leadership','牡羊能量——天生的開創者']],
+      '金牛座': [['patience','主星落金牛——穩定踏實'],['wealth','金牛能量——對物質有天分']],
+      '雙子座': [['communication','主星落雙子——溝通達人'],['wisdom','雙子能量——資訊吸收力強']],
+      '巨蟹座': [['caregiving','主星落巨蟹——照顧人是本能'],['emotional','巨蟹能量——情緒敏感度高'],['family','巨蟹——家庭是核心']],
+      '獅子座': [['leadership','主星落獅子——天生的舞台主角'],['creativity','獅子能量——創造力和表現慾強']],
+      '處女座': [['service','主星落處女——完美主義、樂於服務'],['strategy','處女能量——分析規劃能力強']],
+      '天秤座': [['magnetism','主星落天秤——人際和諧大師'],['creativity','天秤能量——審美天分']],
+      '天蠍座': [['transformation','主星落天蠍——深度轉化、死而復生'],['intuition','天蠍能量——看穿本質']],
+      '射手座': [['wisdom','主星落射手——追求意義和真理'],['independence','射手能量——自由靈魂']],
+      '摩羯座': [['resilience','主星落摩羯——越挫越勇'],['leadership','摩羯能量——長期經營、最終登頂']],
+      '水瓶座': [['authenticity','主星落水瓶——做自己、不隨波逐流'],['independence','水瓶能量——獨立思考']],
+      '雙魚座': [['intuition','主星落雙魚——直覺和靈感超強'],['emotional','雙魚能量——同理心深厚'],['creativity','雙魚——藝術和靈性天分']],
+    };
+
+    // 太陽星座（核心自我）
+    if (astro.sunSign?.zh && signThemes[astro.sunSign.zh]) {
+      for (const [theme, evidence] of signThemes[astro.sunSign.zh]) {
+        themes.push({ theme, system: '占星', evidence: `太陽${astro.sunSign.zh} — ${evidence.split('——')[1] || evidence}` });
+      }
+    }
+    // 月亮星座（內在需求）
+    if (astro.moonSign?.zh && signThemes[astro.moonSign.zh]) {
+      for (const [theme, evidence] of signThemes[astro.moonSign.zh]) {
+        themes.push({ theme, system: '占星', evidence: `月亮${astro.moonSign.zh} — ${evidence.split('——')[1] || evidence}` });
+      }
+    }
+    // 上升星座（外在形象）
+    if (astro.risingSign?.zh && signThemes[astro.risingSign.zh]) {
+      for (const [theme] of signThemes[astro.risingSign.zh]) {
+        themes.push({ theme, system: '占星', evidence: `上升${astro.risingSign.zh}` });
+      }
+    }
+  }
+
+  // === 馬雅曆 ===
+  const maya = results.maya?.data;
+  if (maya?.dreamspell?.seal) {
+    const sealThemes = {
+      '紅龍': [['caregiving','紅龍——滋養、誕生、照顧']],
+      '白風': [['communication','白風——溝通、靈感、傳遞訊息']],
+      '藍夜': [['wealth','藍夜——豐盛、夢想、直覺'],['intuition','藍夜——夢境和潛意識']],
+      '黃種子': [['patience','黃種子——耐心等待、向下扎根'],['wisdom','黃種子——開花需要時間']],
+      '紅蛇': [['action','紅蛇——本能、行動力、身體智慧']],
+      '白世界橋': [['transformation','白世界橋——放下、跨越、連結兩端']],
+      '藍手': [['creativity','藍手——實作、療癒、把想法做出來']],
+      '黃星': [['creativity','黃星——美感、藝術、和諧']],
+      '紅月': [['emotional','紅月——情緒流動、淨化'],['intuition','紅月——跟著感覺走']],
+      '白狗': [['caregiving','白狗——愛、忠誠、照顧'],['family','白狗——重視親密關係']],
+      '藍猴': [['creativity','藍猴——玩耍、幽默、打破框架']],
+      '黃人': [['independence','黃人——自由意志、做自己的選擇'],['authenticity','黃人——智慧和自主']],
+      '紅天行者': [['independence','紅天行者——探索、移動、不被框住']],
+      '白巫師': [['intuition','白巫師——超時空、魔法、直覺']],
+      '藍鷹': [['strategy','藍鷹——全局觀、看見大圖'],['wisdom','藍鷹——高維度視角']],
+      '黃戰士': [['resilience','黃戰士——無懼、質問、面對挑戰'],['action','黃戰士——勇氣和行動']],
+      '紅地球': [['patience','紅地球——跟著地球節奏、導航'],['authenticity','紅地球——回到中心']],
+      '白鏡': [['authenticity','白鏡——面對真相、映照自己'],['wisdom','白鏡——無盡的清澈']],
+      '藍風暴': [['transformation','藍風暴——催化、蛻變、打破重來']],
+      '黃太陽': [['leadership','黃太陽——照亮、開悟、無條件的光']],
+    };
+    const sealZh = maya.dreamspell.seal.zh;
+    if (sealThemes[sealZh]) {
+      for (const [theme, evidence] of sealThemes[sealZh]) {
+        themes.push({ theme, system: '馬雅', evidence: `主印記${sealZh} — ${evidence.split('——')[1] || evidence}` });
+      }
+    }
+  }
+
+  // === 人類圖 ===
+  const hd = results.hd?.data;
+  if (hd) {
+    // 類型
+    const typeThemes = {
+      'G': [['patience','生產者——等待回應再行動'],['action','薦骨動力——做對的事時能量無限']],
+      'MG': [['action','顯示生產者——快速回應 + 執行力'],['independence','MG——多重興趣、不走直線']],
+      'M': [['leadership','顯示者——發起者、開創者'],['independence','顯示者——不需要等待許可']],
+      'P': [['wisdom','投射者——看見別人看不到的'],['patience','投射者——等待邀請'],['authenticity','投射者——被正確看見時才發揮']],
+      'R': [['wisdom','反映者——感知環境的智慧'],['patience','反映者——等待月循環']],
+    };
+    if (hd.typeInfo?.type && typeThemes[hd.typeInfo.type]) {
+      for (const [theme, evidence] of typeThemes[hd.typeInfo.type]) {
+        themes.push({ theme, system: '人類圖', evidence: `${hd.typeInfo.zh} — ${evidence.split('——')[1] || evidence}` });
+      }
+    }
+
+    // 通道
+    if (hd.definedChannels) {
+      const chThemes = {
+        '抽象思維': ['wisdom','在混亂中找到意義'],
+        '邏輯': ['strategy','找出規律和公式'],
+        '創始者': ['leadership','帶領方向'],
+        '啟發': ['creativity','活出獨特性就是貢獻'],
+        '金錢線': ['wealth','掌控資源的天分'],
+        '覺察': ['intuition','突然的洞見和頓悟'],
+        '好奇心': ['communication','分享和探索'],
+        '開放': ['emotional','情緒表達觸動人心'],
+        '探索': ['authenticity','透過行動找到自己'],
+        '保存': ['caregiving','負責任的照顧和保護'],
+        '社群': ['service','在群體中付出和回收'],
+        '魅力': ['action','即知即行的執行力'],
+        '力量原型': ['intuition','身體的直覺最可靠'],
+        '專注': ['resilience','持續投入的耐力'],
+        '蛻變': ['transformation','為更好的未來而改變'],
+        '突變': ['transformation','能量的開關切換'],
+      };
+      for (const ch of hd.definedChannels) {
+        if (chThemes[ch.name]) {
+          const [theme, desc] = chThemes[ch.name];
+          themes.push({ theme, system: '人類圖', evidence: `${ch.gates[0]}-${ch.gates[1]}「${ch.name}」— ${desc}` });
+        }
+      }
+    }
+
+    // Profile
+    if (hd.profile) {
+      const pLines = hd.profile.profile; // e.g. "5/1"
+      if (pLines?.includes('5')) themes.push({ theme: 'magnetism', system: '人類圖', evidence: `人生角色 ${pLines} — 5 爻自帶投射場` });
+      if (pLines?.includes('1')) themes.push({ theme: 'wisdom', system: '人類圖', evidence: `人生角色 ${pLines} — 1 爻需要研究到底` });
+      if (pLines?.includes('3')) themes.push({ theme: 'resilience', system: '人類圖', evidence: `人生角色 ${pLines} — 3 爻從跌倒中學習` });
+      if (pLines?.includes('4')) themes.push({ theme: 'magnetism', system: '人類圖', evidence: `人生角色 ${pLines} — 4 爻人脈是一切` });
+      if (pLines?.includes('6')) themes.push({ theme: 'wisdom', system: '人類圖', evidence: `人生角色 ${pLines} — 6 爻人生三階段` });
+    }
+  }
+
+  return themes;
+}
+
+/**
+ * 分析主題頻率，回傳按系統數排序的結果
+ */
+function analyzeLifeThemes(themes) {
+  const map = {};
+  for (const t of themes) {
+    if (!map[t.theme]) map[t.theme] = { systems: {}, evidences: [] };
+    if (!map[t.theme].systems[t.system]) map[t.theme].systems[t.system] = [];
+    // 避免同系統重複證據
+    if (!map[t.theme].systems[t.system].includes(t.evidence)) {
+      map[t.theme].systems[t.system].push(t.evidence);
+    }
+    map[t.theme].evidences.push(t);
+  }
+
+  return Object.entries(map)
+    .map(([key, val]) => {
+      const systemCount = Object.keys(val.systems).length;
+      const info = LIFE_THEMES[key] || { zh: key, icon: '•' };
+      return { key, ...info, systemCount, systems: val.systems };
+    })
+    .filter(t => t.systemCount >= 3) // 只保留 3 系統以上的
+    .sort((a, b) => b.systemCount - a.systemCount);
+}
+
+/**
+ * 渲染「你的人生一直在說同一件事」區塊
+ */
+function renderLifeThemes(results) {
+  const themes = extractLifeThemes(results);
+  const analyzed = analyzeLifeThemes(themes);
+
+  if (analyzed.length === 0) return '';
+
+  let html = `<h3>✦ 你的人生一直在說同一件事</h3>`;
+  html += `<div style="font-size:.8rem;color:var(--muted);margin-bottom:14px;">五個完全不同的系統，用不同的語言，卻指向同一個結論。</div>`;
+
+  for (const t of analyzed.slice(0, 4)) {
+    html += `<div style="margin-bottom:18px;padding:14px;background:rgba(123,108,246,.04);border-radius:10px;border-left:3px solid var(--accent);">`;
+    html += `<div style="font-size:1rem;font-weight:700;margin-bottom:8px;">${t.icon} ${t.zh}（${t.systemCount} 系統共振）</div>`;
+
+    // 各系統證據
+    for (const [sys, evidences] of Object.entries(t.systems)) {
+      const label = { '八字':'🀄', '紫微':'🌟', '占星':'🪐', '馬雅':'🌀', '人類圖':'△' }[sys] || '';
+      // 只取每系統第一條最有代表性的
+      html += `<div style="font-size:.82rem;padding:3px 0;color:var(--text);">${label} <b>${sys}</b>：${evidences[0]}</div>`;
+    }
+
+    // 結論
+    const conclusion = THEME_CONCLUSION[t.key] || '';
+    if (conclusion) {
+      html += `<div style="margin-top:8px;font-size:.85rem;font-style:italic;color:var(--accent);line-height:1.6;">→ ${conclusion}</div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  return html;
+}
+
 // ============ 主渲染 ============
 
 function render(year, results) {
@@ -760,7 +1092,11 @@ function render(year, results) {
   const ziwei = ziweiTransit(year, results.ziwei?.data);
   const maya = mayaTransit(year, results.maya?.data);
 
-  let html = `<div class="sig"><div class="kin">時間軸</div><div class="big">劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">你的年度劇情 × 本月節奏 × 今日能量</div></div>`;
+  let html = `<div class="sig"><div class="kin">時間軸</div><div class="big">劇本大綱</div><div style="font-size:.85rem;color:var(--muted);margin-top:8px;">五大系統交叉驗證你的人生主題，再看今年、本月、今天在演什麼</div></div>`;
+
+  // === 人生共振主題 ===
+  html += `<div class="divider"></div>`;
+  html += renderLifeThemes(results);
 
   // === 年度 ===
   html += `<div class="divider"></div>`;
