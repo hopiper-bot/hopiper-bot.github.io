@@ -538,14 +538,15 @@ function calculateBranchRelations(pillars) {
 
       // 檢查三刑（兩支先記錄，後面再查三支）
       for (const xing of sanXing) {
-        if (xing.branches.length === 2) {
+        if (xing.branches.length === 2 && xing.branches[0] !== xing.branches[1]) {
+          // 無禮之刑（子卯）等非自刑的兩支刑
           const [a, b] = xing.branches;
           if ((b1 === a && b2 === b) || (b1 === b && b2 === a)) {
             results.push({ type: '刑', subtype: xing.name, pair: `${p1}${b1}—${p2}${b2}`,
               desc: `${b1}${b2}${xing.name}：帶有摩擦和考驗的互動。刑代表被逼著成長——不舒服但會變強。` });
           }
         }
-        // 自刑
+        // 自刑（辰辰、午午、酉酉、亥亥）
         if (xing.branches.length === 2 && xing.branches[0] === xing.branches[1]) {
           if (b1 === xing.branches[0] && b2 === xing.branches[0]) {
             results.push({ type: '刑', subtype: '自刑', pair: `${p1}${b1}—${p2}${b2}`,
@@ -1155,7 +1156,32 @@ function renderExtras(extras, pillars) {
     <div style="font-size:.78rem;color:var(--muted);margin-top:6px;">年柱納音「${nayinPillars.year}」是坊間常說的「你屬什麼命」的由來。</div>
   </div>`;
 
-  // 胎元命宮身宮
+  // 胎元命宮身宮解說
+  const stemTraits = {
+    '甲': '積極進取、有領導力', '乙': '柔韌適應、重人際',
+    '丙': '熱情開朗、有感染力', '丁': '細膩溫暖、重精神',
+    '戊': '穩重踏實、重信用', '己': '包容務實、善經營',
+    '庚': '果斷剛毅、重義氣', '辛': '精緻敏銳、重品味',
+    '壬': '聰慧靈活、不受拘束', '癸': '內斂深沉、直覺強',
+  };
+  const branchTraits = {
+    '子': '機敏、善謀劃', '丑': '沉穩、能積累', '寅': '衝勁強、敢開創',
+    '卯': '溫和、重感受', '辰': '志大、有野心', '巳': '精明、善變通',
+    '午': '熱烈、行動力強', '未': '細緻、重情義', '申': '靈活、善交際',
+    '酉': '精準、重細節', '戌': '忠厚、有原則', '亥': '包容、想法多',
+  };
+
+  function getExtraDesc(label, obj) {
+    const st = stemTraits[obj.stem] || '';
+    const bt = branchTraits[obj.branch] || '';
+    return `${label}${obj.stem}${obj.branch}（${obj.nayin}）— ${st}，${bt}。`;
+  }
+
+  const taiyuanDesc = getExtraDesc('胎元', taiyuan);
+  const minggongDesc = getExtraDesc('命宮', minggong);
+  const shengongDesc = getExtraDesc('身宮', shengong);
+
+  // 胎元命宮身宮卡片
   html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
     <div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
       <div style="font-size:.72rem;color:var(--muted);">胎元</div>
@@ -1174,8 +1200,14 @@ function renderExtras(extras, pillars) {
     </div>
   </div>`;
 
-  html += `<div style="font-size:.78rem;color:var(--muted);margin-top:10px;line-height:1.6;">
-    <b>胎元</b>：受胎月的干支，看先天稟賦。<b>命宮</b>：不拿出來示人的真實性格（月支+時支推算）。<b>身宮</b>：後天努力的方向和成就。
+  // 白話解說
+  html += `<div style="font-size:.78rem;color:var(--text);margin-top:12px;line-height:1.7;padding:10px;background:rgba(123,108,246,.03);border-radius:8px;">
+    <div style="margin-bottom:6px;"><b>🌒 胎元</b>（先天稟賦，受胎月的干支）</div>
+    <div style="margin-bottom:8px;padding-left:8px;">${taiyuanDesc}</div>
+    <div style="margin-bottom:6px;"><b>🏠 命宮</b>（不拿出來示人的真實性格）</div>
+    <div style="margin-bottom:8px;padding-left:8px;">${minggongDesc}</div>
+    <div style="margin-bottom:6px;"><b>🚀 身宮</b>（後天努力的方向和成就）</div>
+    <div style="padding-left:8px;">${shengongDesc}</div>
   </div>`;
 
   return html;
