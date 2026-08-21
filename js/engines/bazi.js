@@ -623,7 +623,7 @@ function getNayin(stemIdx, branchIdx) {
   const s = stemIdx % 10;
   const b = branchIdx % 12;
   const n = (6 * s + 5 * b) % 60;
-  return NAYIN_TABLE[Math.floor(n / 2)] || '';
+  return NAYIN_TABLE[n] || '';
 }
 
 /**
