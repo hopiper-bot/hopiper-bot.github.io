@@ -76,7 +76,7 @@
         </div>
         <div id="error-date" class="error-msg" role="alert"></div>
 
-        <label>出生時間</label>
+        <label>出生時間<span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（選填，不知道可以留空）</span></label>
         <div class="form-row">
           <div class="form-group">
             <input type="number" id="birth-hour" placeholder="時（0-23）" min="0" max="23" aria-label="出生小時">
@@ -87,7 +87,7 @@
         </div>
         <div id="error-time" class="error-msg" role="alert"></div>
 
-        <label>出生地點</label>
+        <label>出生地點<span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（有填時間時建議填入）</span></label>
         <div class="form-row">
           <div class="form-group wide">
             <input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度（如：25.03, 121.56）" aria-label="出生地點" maxlength="100" list="city-list" autocomplete="off">
@@ -109,6 +109,9 @@
         <div class="form-row" style="margin-top:18px;">
           <button type="submit" class="btn-primary">開始解讀 ✦</button>
 
+        </div>
+        <div style="text-align:center;margin-top:12px;">
+          <a href="#meihua-container" style="font-size:.82rem;color:var(--muted);text-decoration:none;border-bottom:1px dashed var(--muted);">🎲 不用生日也能占 → 梅花易數</a>
         </div>
       </form>
     </div>
@@ -275,7 +278,7 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=13"></script>
+  <script type="module" src="js/main.js?v=14"></script>
   <script src="js/data/nayin-text.js"></script>
   <script src="js/data/ziwei-narrative.js"></script>
   <script type="module" src="js/click-handlers.js"></script>

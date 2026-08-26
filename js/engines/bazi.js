@@ -688,23 +688,27 @@ export function calculate(birthData) {
   const { year, month, day, hour, minute, utcOffset } = birthData;
 
   try {
-    const hourDecimal = hour + minute / 60;
+    const timeUnknown = (hour === -1 || hour === undefined || hour === null);
+    const effectiveHour = timeUnknown ? 12 : hour;
+    const effectiveMinute = timeUnknown ? 0 : (minute || 0);
+    const hourDecimal = effectiveHour + effectiveMinute / 60;
 
     // 年柱
-    const yp = yearPillar(year, month, day, hour, minute, utcOffset);
+    const yp = yearPillar(year, month, day, effectiveHour, effectiveMinute, utcOffset);
     // 月柱
-    const mp = monthPillar(year, month, day, hour, minute, utcOffset, yp.stemIdx);
+    const mp = monthPillar(year, month, day, effectiveHour, effectiveMinute, utcOffset, yp.stemIdx);
     // 日柱
-    const dp = dayPillar(year, month, day, hour);
-    // 時柱
-    const hp = hourPillar(hourDecimal, dp.stemIdx);
+    const dp = dayPillar(year, month, day, effectiveHour);
+    // 時柱（時間未知時標記為 null）
+    const hp = timeUnknown ? null : hourPillar(hourDecimal, dp.stemIdx);
 
     const pillars = {
       year: { stem: STEMS[yp.stemIdx], branch: BRANCHES[yp.branchIdx], hidden: HIDDEN_STEMS[BRANCHES[yp.branchIdx]] },
       month: { stem: STEMS[mp.stemIdx], branch: BRANCHES[mp.branchIdx], hidden: HIDDEN_STEMS[BRANCHES[mp.branchIdx]] },
       day: { stem: STEMS[dp.stemIdx], branch: BRANCHES[dp.branchIdx], hidden: HIDDEN_STEMS[BRANCHES[dp.branchIdx]] },
-      hour: { stem: STEMS[hp.stemIdx], branch: BRANCHES[hp.branchIdx], hidden: HIDDEN_STEMS[BRANCHES[hp.branchIdx]] },
+      hour: hp ? { stem: STEMS[hp.stemIdx], branch: BRANCHES[hp.branchIdx], hidden: HIDDEN_STEMS[BRANCHES[hp.branchIdx]] } : { stem: '？', branch: '？', hidden: [], unknown: true },
     };
+    pillars._timeUnknown = timeUnknown;
 
     // 日主
     const dayMaster = pillars.day.stem;
@@ -712,17 +716,22 @@ export function calculate(birthData) {
 
     // 五行統計
     const elements = { 木:0, 火:0, 土:0, 金:0, 水:0 };
-    const allStems = [pillars.year.stem, pillars.month.stem, pillars.day.stem, pillars.hour.stem];
-    const allBranches = [pillars.year.branch, pillars.month.branch, pillars.day.branch, pillars.hour.branch];
+    const allStems = timeUnknown
+      ? [pillars.year.stem, pillars.month.stem, pillars.day.stem]
+      : [pillars.year.stem, pillars.month.stem, pillars.day.stem, pillars.hour.stem];
+    const allBranches = timeUnknown
+      ? [pillars.year.branch, pillars.month.branch, pillars.day.branch]
+      : [pillars.year.branch, pillars.month.branch, pillars.day.branch, pillars.hour.branch];
 
-    allStems.forEach(s => elements[STEM_ELEMENT[s]]++);
-    allBranches.forEach(b => elements[BRANCH_ELEMENT[b]]++);
+    allStems.forEach(s => { if (STEM_ELEMENT[s]) elements[STEM_ELEMENT[s]]++; });
+    allBranches.forEach(b => { if (BRANCH_ELEMENT[b]) elements[BRANCH_ELEMENT[b]]++; });
     // 藏干也計入
-    allBranches.forEach(b => HIDDEN_STEMS[b].forEach(s => elements[STEM_ELEMENT[s]]++));
+    allBranches.forEach(b => { if (HIDDEN_STEMS[b]) HIDDEN_STEMS[b].forEach(s => elements[STEM_ELEMENT[s]]++); });
 
     // 十神
     const tenGods = [];
-    ['year','month','hour'].forEach(p => {
+    const tenGodPillars = timeUnknown ? ['year','month'] : ['year','month','hour'];
+    tenGodPillars.forEach(p => {
       tenGods.push({ pillar: p, stem: pillars[p].stem, god: getTenGod(dayMaster, pillars[p].stem) });
     });
 

@@ -654,6 +654,15 @@ function calculateLiunian(currentYear, mingPos) {
 export function calculate(birthData) {
   const { year, month, day, hour, gender } = birthData;
   try {
+    // 紫微斗數需要出生時辰才能定命宮
+    if (hour === -1 || hour === undefined || hour === null) {
+      return {
+        status: 'ok',
+        data: null,
+        html: '<div class="placeholder">⏰ 紫微斗數需要出生時辰才能排盤（用來定命宮位置）。<br>如果知道大概時段也可以填入，不需要精確到分鐘。</div>'
+      };
+    }
+
     const lunar = solarToLunar(year, month, day);
     if (!lunar) return { status:'error', data:null, html:'', error:'無法轉換農曆日期' };
 
@@ -1051,7 +1060,7 @@ function renderZiwei(data) {
     ${renderLifeStory(palaces, data.sihua, shenPalaceName)}
     <div class="note" style="margin-bottom:12px;">💡 點擊各宮格查看星曜解讀（含三方四正完整格局分析）｜⏳ = 大限年齡（★ = 當前大限）</div>
     ${renderGrid(palaces, lunar, ju, data.sihua, data.daxian, data.birthYear, shenPos, data.changsheng, data.boshi)}
-    <div id="zw-detail" style="margin-top:12px;"></div>
+    <div id="zw-detail" style="margin-top:12px;" aria-live="polite"></div>
     <div class="divider"></div>
     ${renderDaxianLiunianCross(data.daxian, data.liunian, palaces, data.birthYear, data.currentYear)}
     <div class="divider"></div>
@@ -1244,7 +1253,7 @@ function renderGrid(palaces, lunar, ju, sihua, daxian, birthYear, shenPos, chang
     const bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
     const bsColor = bsJi.includes(bsLabel) ? '#f77' : '#ad8';
     const bsDisplay = bsLabel ? `<span style="font-size:.55rem;color:${bsColor};">${bsLabel}</span>` : '';
-    return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}">
+    return `<div class="zw-cell" style="padding:5px;background:var(--input-bg);${border}border-radius:4px;min-height:60px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;" data-zw-pos="${branchIdx}" role="button" tabindex="0" aria-label="${p.name}（點擊展開詳細解讀）">
       ${palaceLabel}${mainStr}${minorStr}
       <div style="display:flex;justify-content:space-between;align-items:flex-end;">
         ${dxLabel}

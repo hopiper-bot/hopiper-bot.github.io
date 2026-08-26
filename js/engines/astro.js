@@ -69,6 +69,21 @@ export function calculate(birthData) {
   userAge = birthData.age || 0;
 
   try {
+    // 時間未知：只能算太陽星座（不精確的月亮、無上升/宮位）
+    if (hour === -1 || hour === undefined || hour === null) {
+      const jdNoon = julianDay(year, month, day, 12, 0, utcOffset || 8);
+      const sunLon = PLANETS[0].calcFn(jdNoon); // Sun
+      const sunSignIdx = longitudeToSign(sunLon);
+      const sunSign = SIGNS[sunSignIdx];
+      let html = '<div class="sig" style="margin-bottom:12px;">';
+      html += '<div class="kin">太陽星座</div>';
+      html += `<div class="big" style="font-size:1.5rem;">${sunSign.emoji} ${sunSign.zh}座</div>`;
+      html += `<div style="font-size:.85rem;color:var(--muted);margin-top:6px;">${sunSign.en}</div>`;
+      html += '</div>';
+      html += '<div class="placeholder">⏰ 月亮星座、上升星座和宮位需要出生時間才能計算。<br>填入出生時間後可看到完整星盤。</div>';
+      return { status: 'ok', data: { sunSign }, html };
+    }
+
     // 計算 Julian Day
     const jd = julianDay(year, month, day, hour, minute, utcOffset);
 

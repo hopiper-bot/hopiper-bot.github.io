@@ -11,19 +11,11 @@
 import { dateToJDN } from '../lib/utils.js';
 import { getLiChunJD, getMonthByJD } from '../lib/solar-terms.js';
 import { julianDay } from '../lib/ephemeris.js';
-
-// === 基礎資料（跟 bazi.js 相同，但獨立一份避免 circular） ===
-const STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
-const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
-const STEM_ELEMENT = { "甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水" };
-const STEM_YINYANG = { "甲":"陽","乙":"陰","丙":"陽","丁":"陰","戊":"陽","己":"陰","庚":"陽","辛":"陰","壬":"陽","癸":"陰" };
-const BRANCH_ELEMENT = { "子":"水","丑":"土","寅":"木","卯":"木","辰":"土","巳":"火","午":"火","未":"土","申":"金","酉":"金","戌":"土","亥":"水" };
-const HIDDEN_STEMS = {
-  "子":["癸"], "丑":["己","癸","辛"], "寅":["甲","丙","戊"], "卯":["乙"],
-  "辰":["戊","乙","癸"], "巳":["丙","庚","戊"], "午":["丁","己"], "未":["己","丁","乙"],
-  "申":["庚","壬","戊"], "酉":["辛"], "戌":["戊","辛","丁"], "亥":["壬","甲"],
-};
-const ELEMENT_CYCLE = ["木","火","土","金","水"];
+import {
+  STEMS, BRANCHES, STEM_ELEMENT, STEM_YINYANG, BRANCH_ELEMENT,
+  HIDDEN_STEMS, ELEMENT_CYCLE, getRelation, getTenGod,
+  dayPillar as _dayPillar
+} from '../lib/bazi-core.js';
 
 // === LOGO 色 → 五行對照 ===
 const COLOR_ELEMENT = {
@@ -50,40 +42,10 @@ const INDUSTRY_ELEMENT = {
 
 // === 四柱計算（精簡版，不需大運/神煞） ===
 
-function getRelation(elemA, elemB) {
-  const iA = ELEMENT_CYCLE.indexOf(elemA);
-  const iB = ELEMENT_CYCLE.indexOf(elemB);
-  if (iA === iB) return "same";
-  if ((iA + 1) % 5 === iB) return "iGive";
-  if ((iA + 2) % 5 === iB) return "iControl";
-  if ((iA + 3) % 5 === iB) return "controlMe";
-  if ((iA + 4) % 5 === iB) return "giveMe";
-  return "same";
-}
-
-function getTenGod(dayStem, otherStem) {
-  const dayElem = STEM_ELEMENT[dayStem];
-  const dayYY = STEM_YINYANG[dayStem];
-  const otherElem = STEM_ELEMENT[otherStem];
-  const otherYY = STEM_YINYANG[otherStem];
-  const sameYY = (dayYY === otherYY);
-  const rel = getRelation(dayElem, otherElem);
-  switch(rel) {
-    case "same": return sameYY ? "比肩" : "劫財";
-    case "iGive": return sameYY ? "食神" : "傷官";
-    case "iControl": return sameYY ? "偏財" : "正財";
-    case "controlMe": return sameYY ? "七殺" : "正官";
-    case "giveMe": return sameYY ? "偏印" : "正印";
-    default: return "";
-  }
-}
-
+// 本地 wrapper：保持原有 API（只回傳 stemIdx/branchIdx）
 function dayPillar(year, month, day, hour) {
-  let jdn = dateToJDN(year, month, day);
-  if (hour >= 23) jdn += 1;
-  const base = dateToJDN(2000, 1, 7);
-  const diff = ((jdn - base) % 60 + 60) % 60;
-  return { stemIdx: diff % 10, branchIdx: diff % 12 };
+  const r = _dayPillar(year, month, day, hour);
+  return { stemIdx: r.stemIdx, branchIdx: r.branchIdx };
 }
 
 function hourPillar(hour, dayStemIdx) {

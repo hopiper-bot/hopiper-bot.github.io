@@ -273,17 +273,19 @@ function validateInput(data) {
     }
   }
 
-  // 時間驗證
-  if (data.hour === -1 || data.hour < 0 || data.hour > 23) {
-    errors.push({ field: 'time', msg: '請輸入出生時間（小時 0-23）' });
-  }
-  if (data.minute < 0 || data.minute > 59) {
-    errors.push({ field: 'time', msg: '分鐘需為 0-59' });
+  // 時間驗證（選填 — 沒填視為「時間未知」）
+  if (data.hour !== -1) {
+    if (data.hour < 0 || data.hour > 23) {
+      errors.push({ field: 'time', msg: '小時需為 0-23（留空 = 時間未知）' });
+    }
+    if (data.minute < 0 || data.minute > 59) {
+      errors.push({ field: 'time', msg: '分鐘需為 0-59' });
+    }
   }
 
-  // 地點驗證
-  if (!data.location) {
-    errors.push({ field: 'location', msg: '請輸入出生地點（城市名稱或經緯度）' });
+  // 地點驗證（有填時間時建議填地點，沒時間時完全選填）
+  if (!data.location && data.hour !== -1) {
+    errors.push({ field: 'location', msg: '請輸入出生地點（城市名稱或經緯度）。不知道出生時間可以留空。' });
   }
 
   return errors;
@@ -324,10 +326,17 @@ async function calculate() {
   }
 
   // 解析地點
-  const geo = await resolveLocation(formData.location);
-  if (!geo) {
-    ui.showError('location', '無法辨識此地點，請輸入城市名稱（如「台北」）或經緯度（如「25.03, 121.56」）');
-    return;
+  // 解析地點（時間未知 + 沒填地點時用台北預設）
+  let geo;
+  if (formData.location) {
+    geo = await resolveLocation(formData.location);
+    if (!geo) {
+      ui.showError('location', '無法辨識此地點，請輸入城市名稱（如「台北」）或經緯度（如「25.03, 121.56」）');
+      return;
+    }
+  } else {
+    // 時間未知且沒填地點 → 用台北預設（影響不大，因為精確時間的引擎會顯示提示）
+    geo = { lat: 25.03, lng: 121.56, utcOffset: 8 };
   }
 
   // 計算年齡

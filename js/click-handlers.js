@@ -7,6 +7,19 @@
  * 4. AI Prompt 複製
  */
 
+// === 鍵盤 Enter/Space 觸發 click（accessibility）===
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var el = e.target;
+  if (!el) return;
+  // 只處理有互動 data 屬性的元素
+  if (el.hasAttribute('data-zw-pos') || el.hasAttribute('data-hd-channel') ||
+      el.hasAttribute('data-hd-center') || el.hasAttribute('data-hd-info')) {
+    e.preventDefault();
+    el.click();
+  }
+});
+
 // ========== 人類圖 ==========
 document.addEventListener('click', function(e) {
   // 資訊標籤點擊（策略/權威/角色/定義/非自己）

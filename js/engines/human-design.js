@@ -264,6 +264,15 @@ export function calculate(birthData) {
   const { year, month, day, hour, minute, lat, lng, utcOffset } = birthData;
 
   try {
+    // 人類圖需要精確出生時間
+    if (hour === -1 || hour === undefined || hour === null) {
+      return {
+        status: 'ok',
+        data: null,
+        html: '<div class="placeholder">⏰ 人類圖需要精確出生時間（甚至分鐘都會影響閘門位置）。<br>如果能確認大概時段，填入後再算會更準確。</div>'
+      };
+    }
+
     // 1. 計算出生時間的 JD（Personality）
     const personalityJD = julianDay(year, month, day, hour, minute, utcOffset);
     
@@ -360,16 +369,16 @@ function renderHD(data) {
       </div>
       <div style="font-size:.9rem;color:var(--muted);margin-top:4px;">${typeInfo.en}</div>
       <div style="display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        <span class="tag tag-yellow" data-hd-info="profile" style="cursor:pointer;">${profile.profile} ${profile.zh}</span>
-        <span class="tag tag-blue" data-hd-info="authority" style="cursor:pointer;">${authority.zh}</span>
-        <span class="tag tag-white" data-hd-info="definition" style="cursor:pointer;">${defTypeZh}</span>
+        <span class="tag tag-yellow" data-hd-info="profile" style="cursor:pointer;" role="button" tabindex="0">${profile.profile} ${profile.zh}</span>
+        <span class="tag tag-blue" data-hd-info="authority" style="cursor:pointer;" role="button" tabindex="0">${authority.zh}</span>
+        <span class="tag tag-white" data-hd-info="definition" style="cursor:pointer;" role="button" tabindex="0">${defTypeZh}</span>
       </div>
       <div style="display:flex;justify-content:center;gap:12px;margin-top:8px;font-size:.82rem;color:var(--muted);">
-        <span data-hd-info="strategy" style="cursor:pointer;">策略：${strategy.zh}</span><span>｜</span><span data-hd-info="notself" style="cursor:pointer;">非自己：${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感' : typeInfo.type === 'M' ? '憤怒' : typeInfo.type === 'P' ? '苦澀' : '失望'}</span>
+        <span data-hd-info="strategy" style="cursor:pointer;" role="button" tabindex="0">策略：${strategy.zh}</span><span>｜</span><span data-hd-info="notself" style="cursor:pointer;" role="button" tabindex="0">非自己：${typeInfo.type === 'G' || typeInfo.type === 'MG' ? '挫敗感' : typeInfo.type === 'M' ? '憤怒' : typeInfo.type === 'P' ? '苦澀' : '失望'}</span>
       </div>
     </div>
 
-    <div id="hd-detail" style="margin:12px 0;"></div>
+    <div id="hd-detail" style="margin:12px 0;" aria-live="polite"></div>
 
     ${renderBodyGraph(data)}
 
@@ -503,18 +512,18 @@ function renderBodyGraph(data) {
     let shape = '';
     if (id === 'head') {
       const pts = `${pos.x},${pos.y - size} ${pos.x - size},${pos.y + size} ${pos.x + size},${pos.y + size}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;" tabindex="0" role="button" aria-label="${label}中心"/>`;
     } else if (id === 'ajna') {
       const pts = `${pos.x - size},${pos.y - size} ${pos.x + size},${pos.y - size} ${pos.x},${pos.y + size}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;" tabindex="0" role="button" aria-label="${label}中心"/>`;
     } else if (id === 'throat' || id === 'g') {
-      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="6" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;" tabindex="0" role="button" aria-label="${label}中心"/>`;
     } else if (id === 'heart') {
       const s = 30;
       const pts = `${pos.x},${pos.y - s} ${pos.x - s},${pos.y + s} ${pos.x + s},${pos.y + s}`;
-      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;" tabindex="0" role="button" aria-label="${label}中心"/>`;
     } else {
-      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;"/>`;
+      shape = `<rect x="${pos.x - size}" y="${pos.y - size}" width="${size * 2}" height="${size * 2}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="${opacity}" data-hd-center="${id}" style="cursor:pointer;" tabindex="0" role="button" aria-label="${label}中心"/>`;
     }
 
     return `${shape}
