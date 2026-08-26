@@ -3,14 +3,11 @@
  * 比對兩個人的八字＋馬雅＋星座，分析關係
  */
 
-import { mod, dateToJDN } from '../lib/utils.js';
 import { SEALS, TONES } from '../data/maya-text.js';
+import { dreamspellKin } from '../lib/maya-core.js';
+import { STEMS, BRANCHES, STEM_ELEMENT, STEM_YINYANG, dayPillar as getDayPillar, getTenGod } from '../lib/bazi-core.js';
 
-// === 八字相關常量 ===
-const STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
-const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
-const STEM_ELEMENT = {"甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水"};
-const STEM_YINYANG = {"甲":"陽","乙":"陰","丙":"陽","丁":"陰","戊":"陽","己":"陰","庚":"陽","辛":"陰","壬":"陽","癸":"陰"};
+// === 八字相關常量（僅保留本模組特有的） ===
 const WUXING_SHENG = {"木":"火","火":"土","土":"金","金":"水","水":"木"};
 const WUXING_KE = {"木":"土","土":"水","水":"火","火":"金","金":"木"};
 const ELEMENT_ZH = {"木":"🌳 木","火":"🔥 火","土":"🏔️ 土","金":"⚙️ 金","水":"💧 水"};
@@ -24,34 +21,6 @@ const SANHE = [["申","子","辰"],["亥","卯","未"],["寅","午","戌"],["巳
 
 // 天干合
 const TIANHE = {"甲":"己","乙":"庚","丙":"辛","丁":"壬","戊":"癸","己":"甲","庚":"乙","辛":"丙","壬":"丁","癸":"戊"};
-
-// === 馬雅 ===
-const MONTH_OFF = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-function dreamspellKin(y, m, d) {
-  const yearVal = mod(217 + 105 * (y - 2013), 260);
-  return mod(yearVal + MONTH_OFF[m - 1] + d - 1, 260) + 1;
-}
-
-// === 日柱計算 ===
-function getDayPillar(y, m, d) {
-  const jdn = dateToJDN(y, m, d);
-  const base = dateToJDN(2000, 1, 7);
-  const diff = ((jdn - base) % 60 + 60) % 60;
-  return { stemIdx: diff % 10, branchIdx: diff % 12, stem: STEMS[diff % 10], branch: BRANCHES[diff % 12] };
-}
-
-// === 十神 ===
-function getTenGod(dayStem, otherStem) {
-  const de = STEM_ELEMENT[dayStem], oe = STEM_ELEMENT[otherStem];
-  const dy = STEM_YINYANG[dayStem], oy = STEM_YINYANG[otherStem];
-  const same = dy === oy;
-  if (de === oe) return same ? '比肩' : '劫財';
-  if (WUXING_SHENG[de] === oe) return same ? '食神' : '傷官';
-  if (WUXING_KE[de] === oe) return same ? '偏財' : '正財';
-  if (WUXING_KE[oe] === de) return same ? '七殺' : '正官';
-  if (WUXING_SHENG[oe] === de) return same ? '偏印' : '正印';
-  return '';
-}
 
 // 十神與關係的解讀
 const TENGOD_RELATION = {

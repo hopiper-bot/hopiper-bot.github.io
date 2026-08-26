@@ -100,8 +100,8 @@
         <div class="form-row">
           <div class="form-group">
             <select id="birth-gender" aria-label="性別">
-              <option value="female">女</option>
               <option value="male">男</option>
+              <option value="female">女</option>
             </select>
           </div>
         </div>
@@ -122,6 +122,7 @@
     <!-- Result Container -->
     <div id="result-container" class="panel result-container">
       <!-- Tabs -->
+      <div class="tabs-wrapper">
       <nav class="tabs" role="tablist" aria-label="命理系統切換">
         <div class="tab active" data-view="maya" role="tab" aria-selected="true" aria-controls="view-maya" id="tab-maya" tabindex="0">馬雅曆</div>
         <div class="tab" data-view="astro" role="tab" aria-selected="false" aria-controls="view-astro" id="tab-astro" tabindex="0">星座</div>
@@ -132,6 +133,7 @@
         <div class="tab" data-view="company-compat" role="tab" aria-selected="false" aria-controls="view-company-compat" id="tab-company-compat" tabindex="0">公司合盤</div>
         <div class="tab" data-view="person-compat" role="tab" aria-selected="false" aria-controls="view-person-compat" id="tab-person-compat" tabindex="0">雙人合盤</div>
       </nav>
+      </div>
 
       <!-- Share Toolbar -->
       <div id="share-toolbar-slot"></div>
@@ -273,10 +275,10 @@
 
   </div>
 
-  <script type="module" src="js/main.js?v=12"></script>
+  <script type="module" src="js/main.js?v=13"></script>
   <script src="js/data/nayin-text.js"></script>
   <script src="js/data/ziwei-narrative.js"></script>
-  <script src="js/click-handlers.js"></script>
+  <script type="module" src="js/click-handlers.js"></script>
   <script>
     // Service Worker 註冊（強制更新）
     if ('serviceWorker' in navigator) {

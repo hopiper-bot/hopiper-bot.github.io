@@ -1,8 +1,10 @@
 /**
- * click-handlers.js — 全域事件委派（非 ES module）
- * 從 index.html inline <script> 搬出，負責：
+ * click-handlers.js — ES module 版全域事件委派
+ * 負責：
  * 1. 人類圖通道/中心/資訊標籤點擊
- * 2. 紫微宮格點擊
+ * 2. 紫微宮格點擊（使用 CSS classes 取代 inline styles）
+ * 3. 公司合盤 / 雙人合盤
+ * 4. AI Prompt 複製
  */
 
 // ========== 人類圖 ==========
@@ -26,10 +28,10 @@ document.addEventListener('click', function(e) {
     var ch = window._hdAllChannels[idx];
     if (!ch) return;
     var g1 = ch.gates[0], g2 = ch.gates[1];
-    var html2 = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:8px;font-size:.85rem;line-height:1.9;">';
-    html2 += '<div style="font-size:1rem;font-weight:700;color:var(--accent);">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
-    html2 += '<div style="color:var(--muted);margin-bottom:8px;">' + ch.keyword + '</div>';
-    html2 += '<div style="padding:10px;background:rgba(245,197,66,.08);border-radius:6px;white-space:pre-line;line-height:1.8;">' + window._hdChannelDesc(g1, g2) + '</div></div>';
+    var html2 = '<div class="zw-panel">';
+    html2 += '<div class="zw-palace-name">\u{1F517} ' + g1 + '-' + g2 + '\uFF1A' + ch.name + '</div>';
+    html2 += '<div class="zw-palace-info">' + ch.keyword + '</div>';
+    html2 += '<div class="zw-narrative">' + window._hdChannelDesc(g1, g2) + '</div></div>';
     var el2 = document.getElementById('hd-detail');
     if (el2) { el2.innerHTML = html2; el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
     return;
@@ -57,7 +59,7 @@ document.addEventListener('click', function(e) {
   var oppositePos = (pos + 6) % 12;
   var oppP = d.posMap[oppositePos];
 
-  // === 評分邏輯（不變，但結果用法不同） ===
+  // === 評分邏輯 ===
   function generateSummary(palace, pos, oppPalace, data) {
     var points = [];
     palace.main.forEach(function(s) {
@@ -93,28 +95,27 @@ document.addEventListener('click', function(e) {
     points.forEach(function(pt) { totalScore += pt.score; });
     var good = points.filter(function(pt) { return pt.score > 0; });
     var bad = points.filter(function(pt) { return pt.score < 0; });
-    var summaryColor, summaryEmoji, summaryLevel;
-    if (totalScore >= 2) { summaryEmoji = '🟢'; summaryColor = '#4f4'; summaryLevel = 'great'; }
-    else if (totalScore >= 0) { summaryEmoji = '🟡'; summaryColor = '#fc0'; summaryLevel = 'ok'; }
-    else { summaryEmoji = '🟠'; summaryColor = '#f84'; summaryLevel = 'challenge'; }
-    return { emoji: summaryEmoji, color: summaryColor, level: summaryLevel, good: good, bad: bad, totalScore: totalScore };
+    var summaryLevel;
+    if (totalScore >= 2) { summaryLevel = 'great'; }
+    else if (totalScore >= 0) { summaryLevel = 'ok'; }
+    else { summaryLevel = 'challenge'; }
+    var emojiMap = { great: '🟢', ok: '🟡', challenge: '🟠' };
+    return { emoji: emojiMap[summaryLevel], level: summaryLevel, good: good, bad: bad, totalScore: totalScore };
   }
 
   var summary = generateSummary(p, pos, oppP, d);
 
-  // === 產生「綜合敘述」（從 STAR_NARRATIVE 字典取用） ===
+  // === 產生「綜合敘述」 ===
   function generateNarrative(palace, pos, data, summary, oppP) {
     var parts = [];
     var palaceName = palace.name;
 
-    // 優先查字典
     if (palace.main.length > 0) {
-      var mainStar = palace.main[0]; // 取第一顆主星
+      var mainStar = palace.main[0];
       var key = mainStar.name + '_' + palaceName;
       if (typeof STAR_NARRATIVE !== 'undefined' && STAR_NARRATIVE[key]) {
         parts.push(STAR_NARRATIVE[key]);
       } else {
-        // fallback: 用 STAR_PERSONA
         var STAR_PERSONA = {
           '紫微': '帝王星 — 天生有領袖氣場，做事大器但自尊心高',
           '天機': '軍師星 — 聰明善謀、反應快，但想太多容易猶豫',
@@ -134,7 +135,6 @@ document.addEventListener('click', function(e) {
         parts.push((STAR_PERSONA[mainStar.name] || mainStar.name + '坐守此宮') + '。');
       }
 
-      // 亮度修飾
       if (typeof STAR_NARRATIVE_BRIGHTNESS !== 'undefined') {
         var bKey = mainStar.brightness;
         if (STAR_NARRATIVE_BRIGHTNESS[bKey]) {
@@ -148,13 +148,12 @@ document.addEventListener('click', function(e) {
       }
     }
 
-    // 吉煞星插入語
     if (typeof STAR_NARRATIVE_AUX !== 'undefined' && palace.minor.length > 0) {
       var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
       var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
       var auxAdded = 0;
       palace.minor.forEach(function(s) {
-        if (auxAdded >= 2) return; // 最多加兩句
+        if (auxAdded >= 2) return;
         if ((jiStars.indexOf(s) >= 0 || shaStars.indexOf(s) >= 0) && STAR_NARRATIVE_AUX[s]) {
           parts.push(STAR_NARRATIVE_AUX[s]);
           auxAdded++;
@@ -168,77 +167,66 @@ document.addEventListener('click', function(e) {
   var narrativeText = generateNarrative(p, pos, d, summary, oppP);
 
   // ============================
-  // 開始組裝 HTML — 新版分層結構
+  // 組裝 HTML — 使用 CSS classes
   // ============================
-  var html = '<div style="padding:14px;background:rgba(123,108,246,.06);border-radius:10px;font-size:.85rem;line-height:1.8;">';
+  var html = '<div class="zw-panel">';
 
-  // ═══════════════════════════════════════
-  // 第一層：標題 + 人設結論 + 評分展開
-  // ═══════════════════════════════════════
+  // 第一層：標題 + 白話總結 + 評分
   html += '<div style="margin-bottom:12px;">';
-  // 標題行
-  html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">';
-  html += '<span style="font-size:1.1rem;font-weight:700;color:var(--accent);">' + p.name + '</span>';
-  html += '<span style="font-size:.8rem;color:var(--muted);">（' + p.branch + '宮）</span>';
+  html += '<div class="zw-panel-header">';
+  html += '<span class="zw-palace-name">' + p.name + '</span>';
+  html += '<span class="zw-palace-branch">（' + p.branch + '宮）</span>';
   if (d.shenPos !== undefined && pos === d.shenPos) {
-    html += '<span style="font-size:.72rem;padding:1px 6px;background:#e9a;color:#000;border-radius:3px;font-weight:600;">身宮</span>';
+    html += '<span class="zw-badge-shen">身宮</span>';
   }
   html += '</div>';
-  // 宮位一句話定位
-  html += '<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">' + (d.palaceInfo[p.name]||'') + '</div>';
-  // 綜合敘述（多句段落，跟第二層的逐星解讀不重複）
-  html += '<div style="font-size:.9rem;color:var(--text);margin-bottom:8px;line-height:1.7;padding:10px 12px;background:rgba(245,197,66,.06);border-radius:8px;border-left:4px solid ' + summary.color + ';">';
-  html += '<div style="font-weight:700;margin-bottom:4px;">' + summary.emoji + ' 白話總結</div>';
+  html += '<div class="zw-palace-info">' + (d.palaceInfo[p.name]||'') + '</div>';
+  html += '<div class="zw-narrative level-' + summary.level + '">';
+  html += '<div class="zw-narrative-title">' + summary.emoji + ' 白話總結</div>';
   html += narrativeText;
   html += '</div>';
-  // 評分理由（條列，但簡短）
-  html += '<div style="padding:6px 10px;background:var(--input-bg);border-radius:6px;font-size:.78rem;">';
+  // 評分理由
+  html += '<div class="zw-score-box">';
   if (summary.good.length > 0) {
-    html += '<span style="color:#4f4;">';
-    summary.good.forEach(function(g, i) {
-      html += (i > 0 ? '｜' : '▲ ') + g.text;
-    });
+    html += '<span class="zw-score-good">';
+    summary.good.forEach(function(g, i) { html += (i > 0 ? '｜' : '▲ ') + g.text; });
     html += '</span>';
   }
   if (summary.good.length > 0 && summary.bad.length > 0) html += '<br>';
   if (summary.bad.length > 0) {
-    html += '<span style="color:#f84;">';
-    summary.bad.forEach(function(b, i) {
-      html += (i > 0 ? '｜' : '▼ ') + b.text;
-    });
+    html += '<span class="zw-score-bad">';
+    summary.bad.forEach(function(b, i) { html += (i > 0 ? '｜' : '▼ ') + b.text; });
     html += '</span>';
   }
   html += '</div>';
   html += '</div>';
 
-  // ═══════════════════════════════════════
-  // 第二層：主星完整解讀 + 四化 + 吉煞星
-  // ═══════════════════════════════════════
-  html += '<div style="margin-bottom:12px;border-top:1px solid var(--card-border);padding-top:10px;">';
+  // 第二層：主星解讀 + 四化 + 吉煞星
+  html += '<div class="zw-section">';
 
   if (p.main.length > 0) {
     p.main.forEach(function(s) {
-      var bColor = (s.brightness === '廟' || s.brightness === '旺') ? 'var(--accent)' : s.brightness === '陷' ? '#f55' : 'var(--muted)';
+      var bClass = (s.brightness === '廟' || s.brightness === '旺') ? 'bright' : s.brightness === '陷' ? 'dim' : 'neutral';
       var interpKey = s.name + '_' + p.name;
       var interp = (d.starInPalace && d.starInPalace[interpKey]) || d.starInfo[s.name] || '';
-      html += '<div style="margin-bottom:8px;padding:8px 10px;background:var(--input-bg);border-radius:6px;">';
-      html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">';
-      html += '<span style="font-size:.92rem;font-weight:700;color:var(--accent);">' + s.name + '</span>';
-      html += '<span style="font-size:.72rem;padding:1px 5px;border-radius:3px;background:' + bColor + ';color:#fff;font-weight:600;">' + s.brightness + '</span>';
-      // 四化標記（如果這顆星有四化）
+      html += '<div class="zw-star-card">';
+      html += '<div class="zw-star-header">';
+      html += '<span class="zw-star-name">' + s.name + '</span>';
+      html += '<span class="zw-star-brightness ' + bClass + '">' + s.brightness + '</span>';
+      // 四化標記
       var sihuaHere2 = d.sihuaPalaces[p.name];
       if (sihuaHere2) {
         sihuaHere2.forEach(function(item) {
           var starInItem = item.split('→')[1];
           if (starInItem === s.name) {
             var type = item.charAt(0);
-            var huaColor = type === '祿' ? '#4f4' : type === '權' ? '#f84' : type === '科' ? '#8cf' : type === '忌' ? '#f55' : 'var(--muted)';
-            html += '<span style="font-size:.7rem;padding:1px 4px;border-radius:3px;background:' + huaColor + ';color:#000;font-weight:700;">化' + type + '</span>';
+            var huaClass = type === '祿' ? 'hua-lu' : type === '權' ? 'hua-quan' : type === '科' ? 'hua-ke' : 'hua-ji';
+            html += '<span class="zw-star-hua ' + huaClass + '">化' + type + '</span>';
           }
         });
       }
       html += '</div>';
-      html += '<div style="font-size:.82rem;color:var(--text);line-height:1.7;">' + interp + '</div>';
+      html += '<div class="zw-star-interp">' + interp + '</div>';
       html += '</div>';
     });
     // 雙星組合
@@ -247,35 +235,35 @@ document.addEventListener('click', function(e) {
       var key2 = p.main[1].name + '+' + p.main[0].name;
       var combo = d.starCombos[key1] || d.starCombos[key2];
       if (combo) {
-        html += '<div style="padding:8px 10px;background:rgba(245,197,66,.08);border-radius:6px;border-left:3px solid var(--accent);margin-bottom:8px;">';
-        html += '<div style="font-size:.8rem;font-weight:700;color:var(--accent);margin-bottom:2px;">⚡ 組合效應</div>';
-        html += '<div style="font-size:.82rem;color:var(--text);line-height:1.6;">' + combo + '</div>';
+        html += '<div class="zw-combo">';
+        html += '<div class="zw-combo-title">⚡ 組合效應</div>';
+        html += '<div class="zw-combo-text">' + combo + '</div>';
         html += '</div>';
       }
     }
   } else {
-    html += '<div style="padding:8px 10px;background:var(--input-bg);border-radius:6px;color:var(--muted);font-size:.83rem;line-height:1.6;">此宮無主星 — 借對宮星力。你在這個面向比較「看情況」，受環境和對宮影響大。彈性是優點，但方向感較弱。</div>';
+    html += '<div class="zw-no-star">此宮無主星 — 借對宮星力。你在這個面向比較「看情況」，受環境和對宮影響大。彈性是優點，但方向感較弱。</div>';
   }
 
-  // 四化落此宮（獨立於主星卡片之外）
+  // 四化落此宮
   var sihuaHere = d.sihuaPalaces[p.name];
   if (sihuaHere) {
-    html += '<div style="padding:8px 10px;background:rgba(123,108,246,.05);border-radius:6px;margin-bottom:8px;">';
-    html += '<div style="font-size:.8rem;font-weight:700;color:var(--accent2);margin-bottom:3px;" title="四化 = 祿權科忌，代表今生被激活的能量方向">🔮 此宮四化</div>';
+    html += '<div class="zw-sihua-box">';
+    html += '<div class="zw-sihua-title" title="四化 = 祿權科忌，代表今生被激活的能量方向">🔮 此宮四化</div>';
     sihuaHere.forEach(function(item) {
       var type = item.charAt(0);
       var interp = '';
       if (type === '祿' && d.sihuaPalaceInterp['祿']) interp = d.sihuaPalaceInterp['祿'][p.name] || '';
       if (type === '忌' && d.sihuaPalaceInterp['忌']) interp = d.sihuaPalaceInterp['忌'][p.name] || '';
-      var color = type === '祿' ? '#4f4' : type === '權' ? '#f84' : type === '科' ? '#8cf' : type === '忌' ? '#f55' : 'var(--text)';
-      html += '<div style="margin-bottom:3px;"><span style="color:' + color + ';font-weight:700;">' + item + '</span>';
-      if (interp) html += '<span style="font-size:.8rem;color:var(--muted);margin-left:6px;">' + interp + '</span>';
+      var huaClass = type === '祿' ? 'hua-lu' : type === '權' ? 'hua-quan' : type === '科' ? 'hua-ke' : 'hua-ji';
+      html += '<div class="zw-sihua-item"><span class="hua-text ' + huaClass + '">' + item + '</span>';
+      if (interp) html += '<span class="zw-sihua-interp">' + interp + '</span>';
       html += '</div>';
     });
     html += '</div>';
   }
 
-  // 吉星 / 煞星 — 用標籤+一句話形式（比舊版緊湊但資訊不少）
+  // 吉星 / 煞星
   if (p.minor.length > 0) {
     var jiStars = ['文昌','文曲','左輔','右弼','天魁','天鉞','祿存','天馬'];
     var shaStars = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
@@ -286,72 +274,60 @@ document.addEventListener('click', function(e) {
       else otherList.push(s);
     });
     if (jiList.length > 0) {
-      html += '<div style="padding:6px 10px;background:rgba(79,255,79,.05);border-radius:6px;margin-bottom:4px;border-left:3px solid #4f4;">';
-      html += '<span style="font-size:.78rem;font-weight:700;color:#4f4;">✨ 吉星：</span>';
+      html += '<div class="zw-minor-box ji-stars">';
+      html += '<span class="zw-minor-label ji">✨ 吉星：</span>';
       jiList.forEach(function(s, i) {
-        html += '<span style="font-size:.8rem;color:var(--text);">' + (i > 0 ? '、' : '') + s + '</span>';
+        html += '<span class="zw-minor-star">' + (i > 0 ? '、' : '') + s + '</span>';
         var info = d.starInfo[s] || '';
-        if (info) {
-          var short = info.split('。')[0];
-          html += '<span style="font-size:.75rem;color:var(--muted);">（' + short + '）</span>';
-        }
+        if (info) { html += '<span class="zw-minor-desc">（' + info.split('。')[0] + '）</span>'; }
       });
       html += '</div>';
     }
     if (shaList.length > 0) {
-      html += '<div style="padding:6px 10px;background:rgba(255,85,85,.05);border-radius:6px;margin-bottom:4px;border-left:3px solid #f55;">';
-      html += '<span style="font-size:.78rem;font-weight:700;color:#f55;">⚡ 煞星：</span>';
+      html += '<div class="zw-minor-box sha-stars">';
+      html += '<span class="zw-minor-label sha">⚡ 煞星：</span>';
       shaList.forEach(function(s, i) {
-        html += '<span style="font-size:.8rem;color:var(--text);">' + (i > 0 ? '、' : '') + s + '</span>';
+        html += '<span class="zw-minor-star">' + (i > 0 ? '、' : '') + s + '</span>';
         var info = d.starInfo[s] || '';
-        if (info) {
-          var short = info.split('。')[0];
-          html += '<span style="font-size:.75rem;color:var(--muted);">（' + short + '）</span>';
-        }
+        if (info) { html += '<span class="zw-minor-desc">（' + info.split('。')[0] + '）</span>'; }
       });
       html += '</div>';
     }
     if (otherList.length > 0) {
-      html += '<div style="padding:4px 10px;font-size:.78rem;color:var(--muted);">其他：' + otherList.join('、') + '</div>';
+      html += '<div class="zw-other-minor">其他：' + otherList.join('、') + '</div>';
     }
   }
   html += '</div>';
 
-  // ═══════════════════════════════════════
-  // 第三層：三方四正 — 表格式（緊湊）
-  // ═══════════════════════════════════════
+  // 第三層：三方四正
   var sanhePos1 = (pos + 4) % 12;
   var sanhePos2 = (pos + 8) % 12;
   var sanheP1 = d.posMap[sanhePos1];
   var sanheP2 = d.posMap[sanhePos2];
 
-  html += '<div style="margin-bottom:12px;border-top:1px solid var(--card-border);padding-top:10px;">';
-  html += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
-  html += '<span style="font-size:.88rem;font-weight:700;color:var(--accent2);">🔮 三方四正</span>';
-  html += '<span style="font-size:.7rem;color:var(--muted);cursor:help;" title="三方四正 = 本宮 + 對宮 + 兩個三合宮，四個位置的星曜互相會照構成完整格局。對宮影響力約60-70%，三合宮約30-40%。">ⓘ</span>';
+  html += '<div class="zw-section">';
+  html += '<div class="zw-sanfang-title">';
+  html += '<span class="title-text">🔮 三方四正</span>';
+  html += '<span class="title-help" title="三方四正 = 本宮 + 對宮 + 兩個三合宮，四個位置的星曜互相會照構成完整格局。對宮影響力約60-70%，三合宮約30-40%。">ⓘ</span>';
   html += '</div>';
 
-  // 表格
-  html += '<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:2px;font-size:.78rem;">';
-  // header
-  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">方位</div>';
-  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">宮位 / 主星</div>';
-  html += '<div style="padding:4px 6px;font-weight:600;color:var(--muted);">一句話</div>';
+  html += '<div class="zw-sanfang-grid">';
+  html += '<div class="grid-header">方位</div><div class="grid-header">宮位 / 主星</div><div class="grid-header">一句話</div>';
   // 對宮
-  html += '<div style="padding:4px 6px;color:var(--accent2);font-weight:600;">對宮</div>';
-  html += '<div style="padding:4px 6px;">' + (oppP ? oppP.name : '') + '：' + (oppP && oppP.main.length > 0 ? oppP.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
-  html += '<div style="padding:4px 6px;color:var(--muted);">' + (oppP && oppP.main.length > 0 ? (d.starInfo[oppP.main[0].name] || '').split('。')[0] : '自由發揮') + '</div>';
+  html += '<div class="grid-cell pos-opp">對宮</div>';
+  html += '<div class="grid-cell">' + (oppP ? oppP.name : '') + '：' + (oppP && oppP.main.length > 0 ? oppP.main.map(function(s){return '<b>' + s.name + '</b><sub>' + s.brightness + '</sub>';}).join(' ') : '<span class="zw-palace-info">無主星</span>') + '</div>';
+  html += '<div class="grid-cell zw-palace-info">' + (oppP && oppP.main.length > 0 ? (d.starInfo[oppP.main[0].name] || '').split('。')[0] : '自由發揮') + '</div>';
   // 三合1
-  html += '<div style="padding:4px 6px;color:#c90;font-weight:600;">三合</div>';
-  html += '<div style="padding:4px 6px;">' + (sanheP1 ? sanheP1.name : '') + '：' + (sanheP1 && sanheP1.main.length > 0 ? sanheP1.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
-  html += '<div style="padding:4px 6px;color:var(--muted);">' + (sanheP1 && sanheP1.main.length > 0 ? (d.starInfo[sanheP1.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
+  html += '<div class="grid-cell pos-sanhe">三合</div>';
+  html += '<div class="grid-cell">' + (sanheP1 ? sanheP1.name : '') + '：' + (sanheP1 && sanheP1.main.length > 0 ? sanheP1.main.map(function(s){return '<b>' + s.name + '</b><sub>' + s.brightness + '</sub>';}).join(' ') : '<span class="zw-palace-info">無主星</span>') + '</div>';
+  html += '<div class="grid-cell zw-palace-info">' + (sanheP1 && sanheP1.main.length > 0 ? (d.starInfo[sanheP1.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
   // 三合2
-  html += '<div style="padding:4px 6px;color:#c90;font-weight:600;">三合</div>';
-  html += '<div style="padding:4px 6px;">' + (sanheP2 ? sanheP2.name : '') + '：' + (sanheP2 && sanheP2.main.length > 0 ? sanheP2.main.map(function(s){return '<b>' + s.name + '</b><sub style=\"color:var(--muted);\">' + s.brightness + '</sub>';}).join(' ') : '<span style="color:var(--muted);">無主星</span>') + '</div>';
-  html += '<div style="padding:4px 6px;color:var(--muted);">' + (sanheP2 && sanheP2.main.length > 0 ? (d.starInfo[sanheP2.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
+  html += '<div class="grid-cell pos-sanhe">三合</div>';
+  html += '<div class="grid-cell">' + (sanheP2 ? sanheP2.name : '') + '：' + (sanheP2 && sanheP2.main.length > 0 ? sanheP2.main.map(function(s){return '<b>' + s.name + '</b><sub>' + s.brightness + '</sub>';}).join(' ') : '<span class="zw-palace-info">無主星</span>') + '</div>';
+  html += '<div class="grid-cell zw-palace-info">' + (sanheP2 && sanheP2.main.length > 0 ? (d.starInfo[sanheP2.main[0].name] || '').split('。')[0] : '看環境') + '</div>';
   html += '</div>';
 
-  // 三方吉煞統計（一行）
+  // 三方吉煞統計
   var liuji = ['文昌','文曲','左輔','右弼','天魁','天鉞'];
   var liusha = ['火星','鈴星','擎羊','陀羅','地空','地劫'];
   var allMinorInSanfang = [];
@@ -361,21 +337,18 @@ document.addEventListener('click', function(e) {
   var jiCount = allMinorInSanfang.filter(function(s) { return liuji.indexOf(s) >= 0; }).length;
   var shaCount = allMinorInSanfang.filter(function(s) { return liusha.indexOf(s) >= 0; }).length;
   if (jiCount > 0 || shaCount > 0) {
-    html += '<div style="margin-top:6px;font-size:.76rem;color:var(--muted);">';
-    if (jiCount > 0) html += '<span style="color:#4f4;">三方 ' + jiCount + ' 吉星會照</span>';
+    html += '<div class="zw-sanfang-stats">';
+    if (jiCount > 0) html += '<span class="ji-count">三方 ' + jiCount + ' 吉星會照</span>';
     if (jiCount > 0 && shaCount > 0) html += ' · ';
-    if (shaCount > 0) html += '<span style="color:#f55;">' + shaCount + ' 煞星夾攻</span>';
+    if (shaCount > 0) html += '<span class="sha-count">' + shaCount + ' 煞星夾攻</span>';
     html += '</div>';
   }
   html += '</div>';
 
-  // ═══════════════════════════════════════
   // 第四層：更多資訊（收合）
-  // ═══════════════════════════════════════
   var hasLayer4 = false;
   var layer4Html = '';
 
-  // 宮位關聯
   var palaceRelations = {
     '命宮': '命宮的「裡面」是福德宮（內心世界），命宮的「身體」是疾厄宮。三者合看才完整。',
     '財帛': '財帛宮看「怎麼賺」，事業宮看「做什麼工作」，田宅宮看「存下多少」。三個一起看財務全貌。',
@@ -392,13 +365,12 @@ document.addEventListener('click', function(e) {
   };
   if (palaceRelations[p.name]) {
     hasLayer4 = true;
-    layer4Html += '<div style="margin-bottom:8px;font-size:.8rem;color:var(--muted);line-height:1.6;"><b style="color:var(--accent2);">🔗 宮位關聯：</b>' + palaceRelations[p.name] + '</div>';
+    layer4Html += '<div class="zw-relation-text"><b>🔗 宮位關聯：</b>' + palaceRelations[p.name] + '</div>';
   }
 
-  // 身宮說明
   if (d.shenPos !== undefined && pos === d.shenPos) {
     hasLayer4 = true;
-    layer4Html += '<div style="margin-bottom:8px;font-size:.8rem;color:#e9a;line-height:1.6;"><b>🏠 身宮：</b>這裡是你的身宮，代表後天人生重心。你最花心力、最在意的領域就是這個宮位代表的事情。</div>';
+    layer4Html += '<div class="zw-shen-text"><b>🏠 身宮：</b>這裡是你的身宮，代表後天人生重心。你最花心力、最在意的領域就是這個宮位代表的事情。</div>';
   }
 
   // 長生十二宮
@@ -421,7 +393,9 @@ document.addEventListener('click', function(e) {
     var cs = csInterp[csName];
     if (cs) {
       hasLayer4 = true;
-      layer4Html += '<div style="margin-bottom:6px;font-size:.8rem;line-height:1.6;"><span style="color:#9cb;font-weight:600;">' + cs.emoji + ' 長生十二宮：' + csName + '</span> — ' + cs.tldr + '<br><span style="color:var(--muted);">' + cs.desc + '</span></div>';
+      var csGoodNames = ['長生','冠帶','臨官','帝旺'];
+      var csClass = csGoodNames.indexOf(csName) >= 0 ? 'good' : 'bad';
+      layer4Html += '<div class="zw-cs-text"><span class="cs-label ' + csClass + '">' + cs.emoji + ' 長生十二宮：' + csName + '</span> — ' + cs.tldr + '<br><span style="color:var(--muted);">' + cs.desc + '</span></div>';
     }
   }
 
@@ -445,43 +419,41 @@ document.addEventListener('click', function(e) {
     var bs = bsInterp[bsName];
     if (bs) {
       hasLayer4 = true;
-      var bsJi = ['小耗','病符','大耗','伏兵','官府','飛廉'];
-      var bsColorStyle = bsJi.indexOf(bsName) >= 0 ? '#f77' : '#ad8';
-      layer4Html += '<div style="margin-bottom:6px;font-size:.8rem;line-height:1.6;"><span style="color:' + bsColorStyle + ';font-weight:600;">' + bs.emoji + ' 博士十二神：' + bsName + '</span> — ' + bs.tldr + '<br><span style="color:var(--muted);">' + bs.desc + '</span></div>';
+      var bsJiNames = ['小耗','病符','大耗','伏兵','官府','飛廉'];
+      var bsClass = bsJiNames.indexOf(bsName) >= 0 ? 'bad' : 'good';
+      layer4Html += '<div class="zw-bs-text"><span class="bs-label ' + bsClass + '">' + bs.emoji + ' 博士十二神：' + bsName + '</span> — ' + bs.tldr + '<br><span style="color:var(--muted);">' + bs.desc + '</span></div>';
     }
   }
 
-  // 三方四正詳細展開（完整解讀給進階者看）
+  // 三方四正詳細展開
   hasLayer4 = true;
-  layer4Html += '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--card-border);">';
-  layer4Html += '<div style="font-size:.78rem;font-weight:600;color:var(--accent2);margin-bottom:4px;">三方四正詳細</div>';
-  // 對宮
+  layer4Html += '<div class="zw-sanfang-detail">';
+  layer4Html += '<div class="detail-title">三方四正詳細</div>';
   if (oppP && oppP.main.length > 0) {
-    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:var(--accent2);">對宮 ' + oppP.name + '：</span>';
+    layer4Html += '<div class="detail-row"><span class="label-opp">對宮 ' + oppP.name + '：</span>';
     oppP.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
     layer4Html += '</div>';
   }
   if (sanheP1 && sanheP1.main.length > 0) {
-    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:#c90;">三合 ' + sanheP1.name + '：</span>';
+    layer4Html += '<div class="detail-row"><span class="label-sanhe">三合 ' + sanheP1.name + '：</span>';
     sanheP1.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
     layer4Html += '</div>';
   }
   if (sanheP2 && sanheP2.main.length > 0) {
-    layer4Html += '<div style="font-size:.78rem;margin-bottom:4px;"><span style="color:#c90;">三合 ' + sanheP2.name + '：</span>';
+    layer4Html += '<div class="detail-row"><span class="label-sanhe">三合 ' + sanheP2.name + '：</span>';
     sanheP2.main.forEach(function(s) { layer4Html += s.name + '（' + s.brightness + '）— ' + ((d.starInfo[s.name]||'').split('。')[0]) + '。'; });
     layer4Html += '</div>';
   }
   layer4Html += '</div>';
 
-  // 組裝第四層
   if (hasLayer4) {
-    html += '<details style="border-top:1px solid var(--card-border);padding-top:8px;">';
-    html += '<summary style="cursor:pointer;font-size:.82rem;font-weight:600;color:var(--muted);padding:4px 0;">📖 更多細節（長生、博士、宮位關聯、三方四正解讀）</summary>';
-    html += '<div style="padding:8px 0;font-size:.8rem;line-height:1.7;">' + layer4Html + '</div>';
+    html += '<details class="zw-more-details">';
+    html += '<summary>📖 更多細節（長生、博士、宮位關聯、三方四正解讀）</summary>';
+    html += '<div class="details-content">' + layer4Html + '</div>';
     html += '</details>';
   }
 
-  html += '</div>'; // end main container
+  html += '</div>'; // end .zw-panel
 
   var detailEl = document.getElementById('zw-detail');
   if (detailEl) {
@@ -536,20 +508,17 @@ document.addEventListener('click', function(e) {
   if (!target) return;
   var id = target.id;
 
-  // 清除結果
   if (id === 'company-compat-clear') {
     var r = document.getElementById('company-compat-result');
     if (r) r.innerHTML = '';
     return;
   }
 
-  // 公司合盤 — 開始
   if (id === 'company-compat-go') {
     doCompanyCompat();
     return;
   }
 
-  // 雙人合盤 — 開始
   if (id === 'person-compat-go') {
     doPersonCompat();
     return;
@@ -563,11 +532,9 @@ async function doCompanyCompat() {
   errorDiv.textContent = '計算中...';
   resultDiv.innerHTML = '';
 
-  // 取得 lastBaziData
   var lastBaziData = window.__getLastBaziData ? window.__getLastBaziData() : null;
 
   if (!lastBaziData) {
-    // 嘗試從 localStorage 重算
     try {
       var saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
       if (saved && saved.year && saved.month && saved.day) {
@@ -689,7 +656,6 @@ async function doPersonCompat() {
 }
 
 // ========== AI 深度解讀：複製 Prompt ==========
-// 用事件委派，讀取頁面上嵌入的 #ai-prompt-text，連快取重開也能複製
 document.addEventListener('click', function(e) {
   var btn = e.target.closest ? e.target.closest('#btn-ai-copy') : null;
   if (!btn) return;
@@ -705,7 +671,6 @@ document.addEventListener('click', function(e) {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(done).catch(function() {
-      // fallback
       ta && ta.select();
       try { document.execCommand('copy'); done(); } catch (err) { btn.textContent = '⚠️ 複製失敗，請手動選取'; }
     });

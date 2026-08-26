@@ -137,15 +137,19 @@ async function copyLink(url) {
   }
 }
 
-/** 綁定分享按鈕事件（在結果渲染後呼叫） */
+/** 綁定分享按鈕事件（使用 event delegation，不會重複綁定） */
+let _shareHandlerBound = false;
 export function attachShareHandlers() {
-  document.querySelectorAll('[data-share]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const action = e.currentTarget.dataset.share;
-      if (action === 'copy') copyText();
-      else if (action === 'link') copyLink(e.currentTarget.dataset.url || window.location.href);
-      else if (action === 'native') shareNative();
-      else if (action === 'pdf') exportPDF();
-    });
+  if (_shareHandlerBound) return;
+  _shareHandlerBound = true;
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-share]');
+    if (!btn) return;
+    const action = btn.dataset.share;
+    if (action === 'copy') copyText();
+    else if (action === 'link') copyLink(btn.dataset.url || window.location.href);
+    else if (action === 'native') shareNative();
+    else if (action === 'pdf') exportPDF();
   });
 }

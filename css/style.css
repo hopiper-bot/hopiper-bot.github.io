@@ -341,14 +341,37 @@ input::placeholder {
 .btn-meihua.active { background: rgba(var(--accent-rgb), .15); color: var(--accent); border-color: var(--accent); font-weight: 700; }
 
 /* ===== Tabs ===== */
+.tabs-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.tabs-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 4px;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--card));
+  pointer-events: none;
+  border-radius: 0 10px 10px 0;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+.tabs-wrapper.scrolled-end::after {
+  opacity: 0;
+}
+
 .tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 20px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; /* Firefox */
   padding-bottom: 4px;
+  padding-right: 32px;
 }
 
 .tabs::-webkit-scrollbar { display: none; }
@@ -1074,5 +1097,389 @@ h3 {
 
   .resonance-bar {
     padding: 8px 10px;
+  }
+}
+
+/* ===== Ziwei Detail Panel (紫微宮格展開) ===== */
+.zw-panel {
+  padding: 14px;
+  background: rgba(var(--accent2-rgb), 0.06);
+  border-radius: 10px;
+  font-size: .85rem;
+  line-height: 1.8;
+}
+
+.zw-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.zw-palace-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.zw-palace-branch {
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.zw-badge-shen {
+  font-size: .72rem;
+  padding: 1px 6px;
+  background: #e9a;
+  color: #000;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.zw-palace-info {
+  font-size: .82rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.zw-narrative {
+  font-size: .9rem;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.7;
+  padding: 10px 12px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border-radius: 8px;
+  border-left: 4px solid var(--muted);
+}
+
+.zw-narrative.level-great { border-left-color: #4f4; }
+.zw-narrative.level-ok { border-left-color: #fc0; }
+.zw-narrative.level-challenge { border-left-color: #f84; }
+
+.zw-narrative-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.zw-score-box {
+  padding: 6px 10px;
+  background: var(--input-bg);
+  border-radius: 6px;
+  font-size: .78rem;
+}
+
+.zw-score-good { color: #4f4; }
+.zw-score-bad { color: #f84; }
+
+.zw-section {
+  margin-bottom: 12px;
+  border-top: 1px solid var(--card-border);
+  padding-top: 10px;
+}
+
+.zw-star-card {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  border-radius: 6px;
+}
+
+.zw-star-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.zw-star-name {
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.zw-star-brightness {
+  font-size: .72rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.zw-star-brightness.bright { background: var(--accent); }
+.zw-star-brightness.dim { background: #f55; }
+.zw-star-brightness.neutral { background: var(--muted); }
+
+.zw-star-hua {
+  font-size: .7rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: #000;
+  font-weight: 700;
+}
+
+.zw-star-hua.hua-lu { background: #4f4; }
+.zw-star-hua.hua-quan { background: #f84; }
+.zw-star-hua.hua-ke { background: #8cf; }
+.zw-star-hua.hua-ji { background: #f55; }
+
+.zw-star-interp {
+  font-size: .82rem;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.zw-combo {
+  padding: 8px 10px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  margin-bottom: 8px;
+}
+
+.zw-combo-title {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.zw-combo-text {
+  font-size: .82rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.zw-sihua-box {
+  padding: 8px 10px;
+  background: rgba(var(--accent2-rgb), 0.05);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.zw-sihua-title {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent2);
+  margin-bottom: 3px;
+}
+
+.zw-sihua-item {
+  margin-bottom: 3px;
+}
+
+.zw-sihua-item .hua-text { font-weight: 700; }
+.zw-sihua-item .hua-text.hua-lu { color: #4f4; }
+.zw-sihua-item .hua-text.hua-quan { color: #f84; }
+.zw-sihua-item .hua-text.hua-ke { color: #8cf; }
+.zw-sihua-item .hua-text.hua-ji { color: #f55; }
+
+.zw-sihua-interp {
+  font-size: .8rem;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.zw-minor-box {
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  border-left: 3px solid var(--muted);
+}
+
+.zw-minor-box.ji-stars { background: rgba(79, 255, 79, .05); border-left-color: #4f4; }
+.zw-minor-box.sha-stars { background: rgba(255, 85, 85, .05); border-left-color: #f55; }
+
+.zw-minor-label {
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.zw-minor-label.ji { color: #4f4; }
+.zw-minor-label.sha { color: #f55; }
+
+.zw-minor-star {
+  font-size: .8rem;
+  color: var(--text);
+}
+
+.zw-minor-desc {
+  font-size: .75rem;
+  color: var(--muted);
+}
+
+.zw-other-minor {
+  padding: 4px 10px;
+  font-size: .78rem;
+  color: var(--muted);
+}
+
+/* 三方四正 */
+.zw-sanfang-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.zw-sanfang-title .title-text {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--accent2);
+}
+
+.zw-sanfang-title .title-help {
+  font-size: .7rem;
+  color: var(--muted);
+  cursor: help;
+}
+
+.zw-sanfang-grid {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 2px;
+  font-size: .78rem;
+}
+
+.zw-sanfang-grid .grid-header {
+  padding: 4px 6px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.zw-sanfang-grid .grid-cell {
+  padding: 4px 6px;
+}
+
+.zw-sanfang-grid .pos-opp { color: var(--accent2); font-weight: 600; }
+.zw-sanfang-grid .pos-sanhe { color: #c90; font-weight: 600; }
+
+.zw-sanfang-stats {
+  margin-top: 6px;
+  font-size: .76rem;
+  color: var(--muted);
+}
+
+.zw-sanfang-stats .ji-count { color: #4f4; }
+.zw-sanfang-stats .sha-count { color: #f55; }
+
+/* 第四層 details */
+.zw-more-details {
+  border-top: 1px solid var(--card-border);
+  padding-top: 8px;
+}
+
+.zw-more-details summary {
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 4px 0;
+}
+
+.zw-more-details .details-content {
+  padding: 8px 0;
+  font-size: .8rem;
+  line-height: 1.7;
+}
+
+.zw-relation-text {
+  margin-bottom: 8px;
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.zw-relation-text b { color: var(--accent2); }
+
+.zw-shen-text {
+  margin-bottom: 8px;
+  font-size: .8rem;
+  color: #e9a;
+  line-height: 1.6;
+}
+
+.zw-cs-text {
+  margin-bottom: 6px;
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.zw-cs-text .cs-label { font-weight: 600; }
+.zw-cs-text .cs-label.good { color: #9cb; }
+.zw-cs-text .cs-label.bad { color: #f77; }
+
+.zw-bs-text {
+  margin-bottom: 6px;
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.zw-bs-text .bs-label { font-weight: 600; }
+.zw-bs-text .bs-label.good { color: #ad8; }
+.zw-bs-text .bs-label.bad { color: #f77; }
+
+.zw-sanfang-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--card-border);
+}
+
+.zw-sanfang-detail .detail-title {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--accent2);
+  margin-bottom: 4px;
+}
+
+.zw-sanfang-detail .detail-row {
+  font-size: .78rem;
+  margin-bottom: 4px;
+}
+
+.zw-sanfang-detail .detail-row .label-opp { color: var(--accent2); }
+.zw-sanfang-detail .detail-row .label-sanhe { color: #c90; }
+
+/* 無主星 */
+.zw-no-star {
+  padding: 8px 10px;
+  background: var(--input-bg);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: .83rem;
+  line-height: 1.6;
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== Auto Dark/Light Theme Detection ===== */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #E7F2EA;
+    --bg-gradient: radial-gradient(circle at 20% 10%, #F4FBF5 0%, #E1EFE5 55%);
+    --card: #F8FCF9;
+    --card-border: rgba(45, 106, 79, 0.20);
+    --accent: #2D6A4F;
+    --accent2: #74A98C;
+    --text: #1D3A2B;
+    --muted: #5B7C68;
+    --red: #8B2020;
+    --white: #F8FCF9;
+    --blue: #2E6B65;
+    --yellow: #3E7D5A;
+    --input-bg: #DDEDE2;
+    --accent-rgb: 45, 106, 79;
+    --accent2-rgb: 82, 150, 118;
+    --chip-bg: rgba(45, 106, 79, 0.05);
+    --btn-text: #F4FBF5;
+    --gold-gradient: linear-gradient(135deg, #52B788 0%, #40916C 45%, #2D6A4F 100%);
+    --gold-text-gradient: linear-gradient(135deg, #40916C 0%, #2D6A4F 35%, #1B4332 70%, #123227 100%);
   }
 }

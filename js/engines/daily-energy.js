@@ -3,30 +3,15 @@
  * 結合馬雅曆日能量 + 流日八字天干，給出今天的建議
  */
 
-import { mod, dateToJDN } from '../lib/utils.js';
 import { SEALS, TONES } from '../data/maya-text.js';
+import { dreamspellKin } from '../lib/maya-core.js';
+import { STEMS, BRANCHES, STEM_ELEMENT, ELEMENT_EMOJI, dayPillar } from '../lib/bazi-core.js';
 
-// === 馬雅曆 Dreamspell KIN（同 maya.js 邏輯）===
-const MONTH_OFF = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+// === 馬雅曆 ===
 const COLOR_ZH = { red: "紅", white: "白", blue: "藍", yellow: "黃" };
 
-function dreamspellKin(y, m, d) {
-  const yearVal = mod(217 + 105 * (y - 2013), 260);
-  return mod(yearVal + MONTH_OFF[m - 1] + d - 1, 260) + 1;
-}
-
-// === 八字流日 ===
-const STEMS = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
-const BRANCHES = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
-const STEM_ELEMENT = {"甲":"木","乙":"木","丙":"火","丁":"火","戊":"土","己":"土","庚":"金","辛":"金","壬":"水","癸":"水"};
-const ELEMENT_EMOJI = {"木":"🌳","火":"🔥","土":"🏔️","金":"⚙️","水":"💧"};
-
 function dayPillarToday(y, m, d, hour) {
-  let jdn = dateToJDN(y, m, d);
-  if (typeof hour === 'number' && hour >= 23) jdn += 1; // 23:00 後算隔天日柱（子時換日，與 bazi.js 一致）
-  const base = dateToJDN(2000, 1, 7); // 甲子日
-  const diff = ((jdn - base) % 60 + 60) % 60;
-  return { stem: STEMS[diff % 10], branch: BRANCHES[diff % 12] };
+  return dayPillar(y, m, d, hour);
 }
 
 // === 今日適合做什麼 ===

@@ -29,6 +29,9 @@ export function initTabs() {
       }
     });
   });
+
+  // Tab scroll fade indicator
+  initTabScrollFade();
 }
 
 /** 切換到指定 tab */
@@ -157,4 +160,22 @@ export function renderError(message) {
 /** 渲染 placeholder（資料準備中） */
 export function renderPlaceholder(message) {
   return `<div class="placeholder">${message || '解讀內容準備中⋯'}</div>`;
+}
+
+/** 初始化 Tab 滾動 fade 提示（滾到底時移除右側陰影） */
+function initTabScrollFade() {
+  const wrapper = document.querySelector('.tabs-wrapper');
+  const nav = document.querySelector('.tabs');
+  if (!wrapper || !nav) return;
+
+  function checkScroll() {
+    const isAtEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 8;
+    wrapper.classList.toggle('scrolled-end', isAtEnd);
+  }
+
+  nav.addEventListener('scroll', checkScroll, { passive: true });
+  // 初始檢查（可能內容不夠長不需要滾動）
+  checkScroll();
+  // 在結果顯示後重新檢查（因為 tabs 可能一開始是 hidden）
+  new MutationObserver(checkScroll).observe(wrapper, { attributes: true, childList: true, subtree: true });
 }

@@ -60,11 +60,19 @@ function initThemeToggle() {
   const btn = document.getElementById('theme-toggle');
   if (!btn) return;
 
-  // 恢復上次選擇
+  // 恢復上次選擇，或跟隨系統偏好
   const saved = localStorage.getItem('destiny_theme');
   if (saved === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
     btn.textContent = '☀️';
+  } else if (saved === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    btn.textContent = '🌙';
+  } else {
+    // 沒有存過偏好 → 跟隨系統（CSS @media 已處理，這裡只更新按鈕 icon）
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      btn.textContent = '☀️';
+    }
   }
 
   btn.addEventListener('click', () => {
@@ -199,7 +207,7 @@ function restoreCachedResults() {
         const birthData = {
           year: saved.year, month: saved.month, day: saved.day,
           hour: saved.hour || 12, minute: saved.minute || 0,
-          gender: saved.gender || 'female',
+          gender: saved.gender || 'male',
         };
         // 重跑各引擎設定 runtime state（紫微點擊解說 + 流年年份切換）
         const reResults = {};
