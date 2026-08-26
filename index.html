@@ -283,16 +283,23 @@
   <script src="js/data/ziwei-narrative.js"></script>
   <script type="module" src="js/click-handlers.js"></script>
   <script>
-    // Service Worker 註冊（強制更新）
+    // Service Worker 註冊（強制更新，避免無限 reload）
     if ('serviceWorker' in navigator) {
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (!refreshing) { refreshing = true; location.reload(); }
+      });
       navigator.serviceWorker.register('./sw.js').then(function(reg) {
-        // 強制新 SW 立即接管
         if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
         reg.addEventListener('updatefound', function() {
           var newSW = reg.installing;
-          newSW.addEventListener('statechange', function() {
-            if (newSW.state === 'activated') { location.reload(); }
-          });
+          if (newSW) {
+            newSW.addEventListener('statechange', function() {
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                newSW.postMessage({type:'SKIP_WAITING'});
+              }
+            });
+          }
         });
       }).catch(function(){});
     }
