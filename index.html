@@ -117,6 +117,25 @@
       </div>
     </div>
 
+    <!-- 其他探索：次功能入口（點擊後才進入各自完整功能） -->
+    <div class="more-explore">
+      <p class="more-explore-title">其他探索</p>
+      <div class="more-explore-list">
+        <button type="button" class="more-item" data-more="person">
+          <span class="more-icon">❤️</span>
+          <span class="more-text"><b>雙人合盤</b><small>和另一個人的命盤做比對</small></span>
+        </button>
+        <button type="button" class="more-item" data-more="company">
+          <span class="more-icon">💼</span>
+          <span class="more-text"><b>公司合盤</b><small>探索你與公司的契合模式</small></span>
+        </button>
+        <button type="button" class="more-item" data-more="meihua">
+          <span class="more-icon">🎲</span>
+          <span class="more-text"><b>梅花易數</b><small>不用生日也能占</small></span>
+        </button>
+      </div>
+    </div>
+
     <!-- Loading -->
     <div id="loading" class="loading" aria-live="polite">
       <div class="loading-spinner"></div>
@@ -244,8 +263,8 @@
     <!-- Person Compatibility (now rendered inside tab view-person-compat) -->
     <div id="person-compat-container" style="display:none;"></div>
 
-    <!-- Meihua Section (independent from birth data) -->
-    <div id="meihua-container" class="panel" style="margin-top:24px;">
+    <!-- Meihua Section (independent from birth data) — 預設收合，由「其他探索」入口展開 -->
+    <div id="meihua-container" class="panel" style="margin-top:24px;display:none;">
       <div class="sig" style="margin-bottom:12px;">
         <div class="kin">即時占卦</div>
         <div class="big" style="font-size:1.3rem;">梅花易數</div>
@@ -279,6 +298,38 @@
     </div>
 
   </div>
+
+  <!-- 其他探索：次功能入口行為（收合式，點擊後才進入） -->
+  <script>
+    (function () {
+      function scrollToEl(el) { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      function hasResults() {
+        var rc = document.getElementById('result-container');
+        return rc && rc.classList.contains('show');
+      }
+      document.querySelectorAll('.more-item').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var kind = btn.dataset.more;
+          if (kind === 'meihua') {
+            var m = document.getElementById('meihua-container');
+            if (m) { m.style.display = ''; scrollToEl(m); }
+            return;
+          }
+          // person / company：需先完成本命解讀
+          var view = kind === 'person' ? 'person-compat' : 'company-compat';
+          if (hasResults()) {
+            var tab = document.querySelector('.tab[data-view="' + view + '"]');
+            if (tab) tab.click();
+            scrollToEl(document.getElementById('result-container'));
+          } else {
+            scrollToEl(document.getElementById('birth-panel'));
+            var y = document.getElementById('birth-year');
+            if (y) setTimeout(function () { y.focus(); }, 400);
+          }
+        });
+      });
+    })();
+  </script>
 
   <script type="module" src="js/main.js?v=14"></script>
   <script src="js/data/nayin-text.js"></script>

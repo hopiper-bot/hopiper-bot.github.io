@@ -277,6 +277,66 @@ header p {
   letter-spacing: .5px;
 }
 
+/* ===== 其他探索：次功能小入口 ===== */
+.more-explore {
+  margin-bottom: 22px;
+}
+
+.more-explore-title {
+  font-size: .8rem;
+  color: var(--muted);
+  margin: 0 0 10px;
+  letter-spacing: 1px;
+}
+
+.more-explore-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.more-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--chip-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition), transform var(--transition);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+}
+
+.more-item:hover {
+  border-color: var(--accent);
+  transform: translateX(2px);
+}
+
+.more-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.more-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+
+.more-text b {
+  font-size: .9rem;
+  color: var(--text);
+}
+
+.more-text small {
+  font-size: .74rem;
+  color: var(--muted);
+}
+
 /* 花束轉場 */
 .promo-bridge {
   font-weight: 700;
