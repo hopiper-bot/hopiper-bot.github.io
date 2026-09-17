@@ -34,6 +34,9 @@
       <p class="hero-tagline">凡事本無吉凶，端看自己如何詮釋。</p>
     </header>
 
+    <!-- ===== 畫面：首頁（主流程） ===== -->
+    <div class="screen active" data-screen="home">
+
     <!-- 主流程：出生資料 → 開始解讀 -->
     <div class="panel" id="birth-panel">
       <div class="systems-intro">
@@ -121,18 +124,21 @@
     <div class="more-explore">
       <p class="more-explore-title">其他探索</p>
       <div class="more-explore-list">
-        <button type="button" class="more-item" data-more="person">
+        <a class="more-item" href="#/person">
           <span class="more-icon">❤️</span>
-          <span class="more-text"><b>雙人合盤</b><small>和另一個人的命盤做比對</small></span>
-        </button>
-        <button type="button" class="more-item" data-more="company">
+          <span class="more-text"><b>雙人合盤</b><small>探索你與另一個人的相處模式</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="#/company">
           <span class="more-icon">💼</span>
           <span class="more-text"><b>公司合盤</b><small>探索你與公司的契合模式</small></span>
-        </button>
-        <button type="button" class="more-item" data-more="meihua">
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="#/meihua">
           <span class="more-icon">🎲</span>
-          <span class="more-text"><b>梅花易數</b><small>不用生日也能占</small></span>
-        </button>
+          <span class="more-text"><b>梅花易數</b><small>不用生日也能占，一事一占</small></span>
+          <span class="more-go">開始占卦 ›</span>
+        </a>
       </div>
     </div>
 
@@ -153,8 +159,6 @@
         <div class="tab" data-view="ziwei" role="tab" aria-selected="false" aria-controls="view-ziwei" id="tab-ziwei" tabindex="0">紫微</div>
         <div class="tab" data-view="hd" role="tab" aria-selected="false" aria-controls="view-hd" id="tab-hd" tabindex="0">人類圖</div>
         <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
-        <div class="tab" data-view="company-compat" role="tab" aria-selected="false" aria-controls="view-company-compat" id="tab-company-compat" tabindex="0">公司合盤</div>
-        <div class="tab" data-view="person-compat" role="tab" aria-selected="false" aria-controls="view-person-compat" id="tab-person-compat" tabindex="0">雙人合盤</div>
       </nav>
       </div>
 
@@ -168,7 +172,27 @@
       <div id="view-ziwei" class="view" role="tabpanel" aria-labelledby="tab-ziwei"></div>
       <div id="view-hd" class="view" role="tabpanel" aria-labelledby="tab-hd"></div>
       <div id="view-synthesis" class="view" role="tabpanel" aria-labelledby="tab-synthesis"></div>
-      <div id="view-company-compat" class="view" role="tabpanel" aria-labelledby="tab-company-compat">
+    </div>
+    <!-- /result-container -->
+
+    <!-- 花束（延伸內容，維持最下面） -->
+    <div class="promo-block">
+      <p class="promo-bridge">把祝福帶回現實 🌸</p>
+      <p>如果今天的分析，讓你更喜歡現在的自己——<br>希望這份心情，不只停留在螢幕上。</p>
+      <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
+      <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
+      <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
+    </div>
+
+    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。</p>
+
+    </div>
+    <!-- ===== /畫面：首頁 ===== -->
+
+    <!-- ===== 畫面：公司合盤 ===== -->
+    <div class="screen" data-screen="company">
+      <a class="screen-back" href="#/home">‹ 回首頁</a>
+      <div id="view-company-compat" class="panel">
         <div class="sig" style="margin-bottom:12px;">
           <div class="kin">職場能量</div>
           <div class="big" style="font-size:1.3rem;">💼 我適合待在這家公司嗎？</div>
@@ -223,7 +247,13 @@
         <div id="company-compat-error" style="color:#e74c3c;font-size:.85rem;margin-top:8px;" role="alert"></div>
         <div id="company-compat-result" style="margin-top:16px;"></div>
       </div>
-      <div id="view-person-compat" class="view" role="tabpanel" aria-labelledby="tab-person-compat">
+    </div>
+    <!-- ===== /畫面：公司合盤 ===== -->
+
+    <!-- ===== 畫面：雙人合盤 ===== -->
+    <div class="screen" data-screen="person">
+      <a class="screen-back" href="#/home">‹ 回首頁</a>
+      <div id="view-person-compat" class="panel">
         <div class="sig" style="margin-bottom:12px;">
           <div class="kin">人際能量</div>
           <div class="big" style="font-size:1.3rem;">雙人合盤</div>
@@ -252,19 +282,16 @@
         <div id="person-compat-error" style="color:#e74c3c;font-size:.85rem;margin-top:8px;" role="alert"></div>
         <div id="person-compat-result" style="margin-top:16px;"></div>
       </div>
-
-      <!-- Disclaimer -->
-      <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。</p>
     </div>
+    <!-- ===== /畫面：雙人合盤 ===== -->
 
-    <!-- Company Compatibility (now rendered inside tab view-company-compat) -->
     <div id="company-compat-container" style="display:none;"></div>
-
-    <!-- Person Compatibility (now rendered inside tab view-person-compat) -->
     <div id="person-compat-container" style="display:none;"></div>
 
-    <!-- Meihua Section (independent from birth data) — 預設收合，由「其他探索」入口展開 -->
-    <div id="meihua-container" class="panel" style="margin-top:24px;display:none;">
+    <!-- ===== 畫面：梅花易數 ===== -->
+    <div class="screen" data-screen="meihua">
+      <a class="screen-back" href="#/home">‹ 回首頁</a>
+    <div id="meihua-container" class="panel">
       <div class="sig" style="margin-bottom:12px;">
         <div class="kin">即時占卦</div>
         <div class="big" style="font-size:1.3rem;">梅花易數</div>
@@ -287,47 +314,28 @@
       <button id="meihua-go" class="btn-primary" type="button" style="width:100%;">起卦 ✦</button>
       <div id="meihua-result" style="margin-top:16px;"></div>
     </div>
-
-    <!-- 花束（延伸內容，與命理功能區隔） -->
-    <div class="promo-block">
-      <p class="promo-bridge">把祝福帶回現實 🌸</p>
-      <p>如果今天的分析，讓你更喜歡現在的自己——<br>希望這份心情，不只停留在螢幕上。</p>
-      <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
-      <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
-      <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
     </div>
+    <!-- ===== /畫面：梅花易數 ===== -->
 
   </div>
 
-  <!-- 其他探索：次功能入口行為（收合式，點擊後才進入） -->
+  <!-- 畫面路由：一次只顯示一個畫面（hash 路由，支援手機返回鍵） -->
   <script>
     (function () {
-      function scrollToEl(el) { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-      function hasResults() {
-        var rc = document.getElementById('result-container');
-        return rc && rc.classList.contains('show');
+      var VALID = ['home', 'person', 'company', 'meihua'];
+      function current() {
+        var h = (location.hash || '').replace(/^#\/?/, '');
+        return VALID.indexOf(h) >= 0 ? h : 'home';
       }
-      document.querySelectorAll('.more-item').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var kind = btn.dataset.more;
-          if (kind === 'meihua') {
-            var m = document.getElementById('meihua-container');
-            if (m) { m.style.display = ''; scrollToEl(m); }
-            return;
-          }
-          // person / company：需先完成本命解讀
-          var view = kind === 'person' ? 'person-compat' : 'company-compat';
-          if (hasResults()) {
-            var tab = document.querySelector('.tab[data-view="' + view + '"]');
-            if (tab) tab.click();
-            scrollToEl(document.getElementById('result-container'));
-          } else {
-            scrollToEl(document.getElementById('birth-panel'));
-            var y = document.getElementById('birth-year');
-            if (y) setTimeout(function () { y.focus(); }, 400);
-          }
+      function render() {
+        var name = current();
+        document.querySelectorAll('.screen').forEach(function (s) {
+          s.classList.toggle('active', s.dataset.screen === name);
         });
-      });
+        window.scrollTo(0, 0);
+      }
+      window.addEventListener('hashchange', render);
+      render();
     })();
   </script>
 
