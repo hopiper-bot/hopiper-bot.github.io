@@ -21,7 +21,12 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=15">
+  <style>
+    /* 關鍵樣式內嵌：確保畫面切換不受舊 CSS 快取影響 */
+    .screen { display: none; }
+    .screen.active { display: block; }
+  </style>
 </head>
 <body>
   <div class="wrap">
