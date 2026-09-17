@@ -249,54 +249,7 @@ header p {
   letter-spacing: .5px;
 }
 
-/* ===== 三大入口卡 ===== */
-.entry-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.entry-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-  padding: 18px 12px;
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
-  color: var(--text);
-  font-family: inherit;
-}
-
-.entry-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
-}
-
-.entry-icon {
-  font-size: 1.7rem;
-  line-height: 1;
-}
-
-.entry-title {
-  font-weight: 700;
-  font-size: .95rem;
-  color: var(--accent);
-}
-
-.entry-desc {
-  font-size: .74rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
-/* ===== 五大系統定位說明 ===== */
+/* ===== 命盤主流程標頭 ===== */
 .systems-intro {
   text-align: center;
   margin-bottom: 20px;
@@ -304,24 +257,24 @@ header p {
   border-bottom: 1px solid var(--card-border);
 }
 
-.systems-intro-lead {
+.systems-intro-title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.15rem;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+
+.systems-intro-lead {
+  font-size: .9rem;
   color: var(--text);
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
 .systems-intro-sub {
-  font-size: .85rem;
-  color: var(--accent);
-  margin: 0 0 4px;
-  letter-spacing: .5px;
-}
-
-.systems-intro-tags {
-  font-size: .78rem;
+  font-size: .82rem;
   color: var(--muted);
   margin: 0;
+  letter-spacing: .5px;
 }
 
 /* 花束轉場 */
@@ -775,38 +728,6 @@ h3 {
     width: 56px;
     height: 56px;
     font-size: 1.5rem;
-  }
-
-  /* 入口卡：手機改單欄橫向排列，好點好讀 */
-  .entry-cards {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .entry-card {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-    align-items: center;
-    text-align: left;
-    column-gap: 12px;
-    row-gap: 2px;
-    padding: 14px 16px;
-  }
-
-  .entry-icon {
-    font-size: 1.6rem;
-    flex-shrink: 0;
-    grid-row: 1 / span 2;
-  }
-
-  .entry-card .entry-title {
-    font-size: .92rem;
-    grid-column: 2;
-  }
-
-  .entry-card .entry-desc {
-    grid-column: 2;
   }
 }
 

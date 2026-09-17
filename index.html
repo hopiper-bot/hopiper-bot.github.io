@@ -34,42 +34,12 @@
       <p class="hero-tagline">凡事本無吉凶，端看自己如何詮釋。</p>
     </header>
 
-    <!-- 三大入口 -->
-    <nav class="entry-cards" aria-label="主要功能入口">
-      <button type="button" class="entry-card" data-entry="self">
-        <span class="entry-icon">🔮</span>
-        <span class="entry-title">我的人生劇本</span>
-        <span class="entry-desc">五大系統，解讀你的天賦與方向</span>
-      </button>
-      <button type="button" class="entry-card" data-entry="person">
-        <span class="entry-icon">❤️</span>
-        <span class="entry-title">我與某人的關係</span>
-        <span class="entry-desc">情侶・朋友・同事的相處模式</span>
-      </button>
-      <button type="button" class="entry-card" data-entry="company">
-        <span class="entry-icon">💼</span>
-        <span class="entry-title">我與公司的關係</span>
-        <span class="entry-desc">你和這家公司契不契合？</span>
-      </button>
-    </nav>
-
-    <!-- 命盤分析（原今日能量） -->
-    <div id="daily-energy" class="panel daily-energy-panel">
-      <div class="daily-energy-header">
-        <span class="daily-energy-title">✦ 開始探索我的命盤</span>
-        <span id="daily-energy-date" class="daily-energy-date"></span>
-      </div>
-      <div id="daily-energy-content" class="daily-energy-content">
-        <div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>
-      </div>
-    </div>
-
-    <!-- Input Form -->
+    <!-- 主流程：出生資料 → 開始解讀 -->
     <div class="panel" id="birth-panel">
       <div class="systems-intro">
+        <p class="systems-intro-title">✦ 開始探索我的命盤</p>
         <p class="systems-intro-lead">五種系統，看見同一個人的不同面向</p>
         <p class="systems-intro-sub">馬雅曆・星座・八字・紫微・人類圖</p>
-        <p class="systems-intro-tags">性格｜人生節奏｜關係模式｜職場特質｜行動方式</p>
       </div>
       <form id="birth-form" novalidate>
         <label>出生日期</label>
@@ -132,12 +102,19 @@
 
         <div class="form-row" style="margin-top:18px;">
           <button type="submit" class="btn-primary">開始解讀 ✦</button>
-
-        </div>
-        <div style="text-align:center;margin-top:12px;">
-          <a href="#meihua-container" style="font-size:.82rem;color:var(--muted);text-decoration:none;border-bottom:1px dashed var(--muted);">🎲 不用生日也能占 → 梅花易數</a>
         </div>
       </form>
+    </div>
+
+    <!-- 今日能量（輔助資訊，不搶主流程） -->
+    <div id="daily-energy" class="panel daily-energy-panel">
+      <div class="daily-energy-header">
+        <span class="daily-energy-title">✦ 今日能量</span>
+        <span id="daily-energy-date" class="daily-energy-date"></span>
+      </div>
+      <div id="daily-energy-content" class="daily-energy-content">
+        <div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -176,7 +153,7 @@
         <div class="sig" style="margin-bottom:12px;">
           <div class="kin">職場能量</div>
           <div class="big" style="font-size:1.3rem;">💼 我適合待在這家公司嗎？</div>
-          <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">看你的命盤 × 公司成立資訊 × 產業 × 品牌色，探索你與公司的契合模式。</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">看你的命盤 × 公司資訊，探索你與公司的契合模式。</div>
         </div>
         <label>快速選擇（或自行輸入）</label>
         <div class="form-row"><div class="form-group wide">
@@ -257,15 +234,6 @@
         <div id="person-compat-result" style="margin-top:16px;"></div>
       </div>
 
-      <!-- IG Promotion -->
-      <div class="promo-block">
-        <p class="promo-bridge">把祝福帶回現實 🌸</p>
-        <p>如果今天的分析，讓你更喜歡現在的自己——<br>希望這份心情，不只停留在螢幕上。</p>
-        <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
-        <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
-        <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
-      </div>
-
       <!-- Disclaimer -->
       <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。</p>
     </div>
@@ -301,45 +269,16 @@
       <div id="meihua-result" style="margin-top:16px;"></div>
     </div>
 
-  </div>
+    <!-- 花束（延伸內容，與命理功能區隔） -->
+    <div class="promo-block">
+      <p class="promo-bridge">把祝福帶回現實 🌸</p>
+      <p>如果今天的分析，讓你更喜歡現在的自己——<br>希望這份心情，不只停留在螢幕上。</p>
+      <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
+      <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
+      <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
+    </div>
 
-  <!-- 三大入口導引：捲到表單；若已有結果則切到對應 tab -->
-  <script>
-    (function () {
-      function scrollToEl(el) {
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      function hasResults() {
-        var rc = document.getElementById('result-container');
-        return rc && rc.classList.contains('show');
-      }
-      function clickTab(view) {
-        var tab = document.querySelector('.tab[data-view="' + view + '"]');
-        if (tab) { tab.click(); return true; }
-        return false;
-      }
-      document.querySelectorAll('.entry-card').forEach(function (card) {
-        card.addEventListener('click', function () {
-          var entry = card.dataset.entry;
-          if (entry === 'self') {
-            scrollToEl(document.getElementById('birth-panel'));
-            var y = document.getElementById('birth-year');
-            if (y) setTimeout(function () { y.focus(); }, 400);
-            return;
-          }
-          // person / company：已有結果就直接切 tab，否則引導先填生日
-          var view = entry === 'person' ? 'person-compat' : 'company-compat';
-          if (hasResults() && clickTab(view)) {
-            scrollToEl(document.getElementById('result-container'));
-          } else {
-            scrollToEl(document.getElementById('birth-panel'));
-            var yr = document.getElementById('birth-year');
-            if (yr) setTimeout(function () { yr.focus(); }, 400);
-          }
-        });
-      });
-    })();
-  </script>
+  </div>
 
   <script type="module" src="js/main.js?v=14"></script>
   <script src="js/data/nayin-text.js"></script>
