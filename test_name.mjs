@@ -12,14 +12,14 @@ function eq(label, got, want) {
 
 // ---- 1. 康熙筆劃 ----
 console.log('[1] 康熙筆劃');
-[['陳', 16], ['華', 14], ['江', 7], ['玲', 10], ['王', 4], ['何', 7], ['明', 8], ['弟', 7],
+[['陳', 16], ['華', 14], ['江', 7], ['玲', 10], ['王', 4], ['建', 9], ['明', 8],
  ['歐', 15], ['陽', 17], ['小', 3], ['蘇', 22], ['郭', 15], ['芬', 10]]
   .forEach(([ch, n]) => eq(ch, strokesOf(ch), n));
 
 // ---- 2. 複姓辨識 ----
 console.log('[2] 姓名切分');
-eq('何明弟.surname', splitName('何明弟').surname, '何');
-eq('何明弟.given', splitName('何明弟').given, '明弟');
+eq('陳建華.surname', splitName('陳建華').surname, '陳');
+eq('陳建華.given', splitName('陳建華').given, '建華');
 eq('歐陽小明.surname', splitName('歐陽小明').surname, '歐陽');
 eq('歐陽小明.given', splitName('歐陽小明').given, '小明');
 eq('司馬光.surname', splitName('司馬光').surname, '司馬');
@@ -66,14 +66,6 @@ eq('歐陽明.地', g.di, 9);
 eq('歐陽明.外', g.wai, 16);
 eq('歐陽明.總', g.zong, 40);
 
-// 何明弟：何(7) 明(8) 弟(7)
-g = grids('何', '明弟');
-eq('何明弟.天', g.tian, 8);
-eq('何明弟.人', g.ren, 15);
-eq('何明弟.地', g.di, 15);
-eq('何明弟.外', g.wai, 8);
-eq('何明弟.總', g.zong, 22);
-
 // 陳建華：陳(16) 建(9) 華(14)
 g = grids('陳', '建華');
 eq('陳建華.天', g.tian, 17);
@@ -85,15 +77,17 @@ eq('陳建華.總', g.zong, 39);
 // ---- 4. 五行 / 三才 ----
 console.log('[4] 五行與三才');
 {
-  const r = calculate({ surname: '何', given: '明弟' });
+  // 陳建華：天17 人25 地23 外15 總39
+  const r = calculate({ surname: '陳', given: '建華' });
   const gd = r.data.grids;
-  eq('天8→金', gd.tian.elem, '金');
-  eq('人15→土', gd.ren.elem, '土');
-  eq('地15→土', gd.di.elem, '土');
-  eq('外8→金', gd.wai.elem, '金');
-  eq('總22→木', gd.zong.elem, '木');
-  eq('三才combo', r.data.sancai.combo, '金土土');
-  eq('人地同', r.data.sancai.renDiRel, '同');
+  eq('天17→金', gd.tian.elem, '金');
+  eq('人25→土', gd.ren.elem, '土');
+  eq('地23→火', gd.di.elem, '火');
+  eq('外15→土', gd.wai.elem, '土');
+  eq('總39→水', gd.zong.elem, '水');
+  eq('三才combo', r.data.sancai.combo, '金土火');
+  eq('天金被土生', r.data.sancai.tianRenRel, '被生');
+  eq('人土被火生', r.data.sancai.renDiRel, '被生');
 }
 {
   // 尾數 → 五行邊界：10→水, 20→水, 1→木, 9→水, 5→土
@@ -151,7 +145,7 @@ console.log('[6b] 簡體字');
 // ---- 7. 取名建議 ----
 console.log('[7] 取名建議');
 {
-  const r = calculate({ surname: '何', given: '明弟' });
+  const r = calculate({ surname: '陳', given: '建華' });
   eq('建議數量', r.data.suggestions.length, 8);
   eq('建議有排序', r.data.suggestions[0].score >= r.data.suggestions[7].score, true);
   eq('建議三才為吉', r.data.suggestions[0].sancai.level, 'good');
@@ -166,10 +160,10 @@ console.log('[8] 八字整合');
     yongshen: { strength: '身強', yongshen: '火', xishen: '土', jishen: '水', choushen: '木' },
     pillars: { year: { branch: '寅' } },
   };
-  const r = calculate({ surname: '何', given: '明弟' }, fakeBazi);
+  const r = calculate({ surname: '陳', given: '建華' }, fakeBazi);
   eq('有 bazi 分析', !!r.data.bazi, true);
   eq('生肖寅→虎', r.data.bazi.zodiac, '虎');
-  // 人格 15 → 土 = 喜神
+  // 人格 25 → 土 = 喜神
   eq('人格土=喜神→good', r.data.bazi.verdict, 'good');
   // 日主木 對 人格土：木剋土 → 正財偏財
   eq('十神關係', r.data.bazi.role.rel, '剋');
