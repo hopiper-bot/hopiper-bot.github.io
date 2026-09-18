@@ -351,6 +351,9 @@ const CHANGSHENG_START = {
 };
 
 function getChangshengScore(stem, branchIdx) {
+  // 時間未知時時支是「？」，indexOf 會回 -1；不能拿 -1 去算，
+  // 否則會生出一個假的長生分數，把身強身弱判斷帶偏。
+  if (branchIdx < 0) return 0;
   const start = CHANGSHENG_START[stem];
   const yy = STEM_YINYANG[stem];
   let pos;
@@ -629,6 +632,10 @@ function getNayin(stemIdx, branchIdx) {
  * 計算胎元、命宮、身宮
  */
 function calculateExtras(pillars, hourBranchIdx) {
+  // 命宮和身宮都要用時支才算得出來。時間未知時 hourBranchIdx 為 null，
+  // 這兩宮就回 null（讓渲染略過），不要硬掰一個數字出來。
+  const hourKnown = (hourBranchIdx !== null && hourBranchIdx !== undefined && hourBranchIdx >= 0);
+
   // 胎元：月干進一位 + 月支進三位
   const monthStemIdx = STEMS.indexOf(pillars.month.stem);
   const monthBranchIdx = BRANCHES.indexOf(pillars.month.branch);
@@ -646,21 +653,26 @@ function calculateExtras(pillars, hourBranchIdx) {
   // 命宮地支 = 從「卯」起逆數 (m + h - 2) 位
   // 另一個常用公式：命宮支idx = (2 + 2 - monthBranchIdx - hourBranchIdx + 24) % 12
   // 最常用公式：命宮地支 = (14 - 月支 - 時支) % 12（0=子）
-  const mingBranchIdx = ((14 - monthBranchIdx - hourBranchIdx) % 12 + 12) % 12;
   // 命宮天干：由年干推（五虎遁）
   const yearStemIdx = STEMS.indexOf(pillars.year.stem);
   const startStemMap = [2, 4, 6, 8, 0]; // 丙戊庚壬甲（寅月起始干）
   const yinStartStem = startStemMap[yearStemIdx % 5];
-  // 命宮干 = 寅起始干 + (命宮支idx - 2)
-  const mingStemIdx = (yinStartStem + ((mingBranchIdx - 2 + 12) % 12)) % 10;
-  const minggong = { stem: STEMS[mingStemIdx], branch: BRANCHES[mingBranchIdx], nayin: getNayin(mingStemIdx, mingBranchIdx) };
 
-  // 身宮：月支 + 時支 順數
-  // 公式：身宮地支 = (月支 + 時支 - 2) % 12 （從寅起順數）
-  // 正確公式：身宮支idx = (monthBranchIdx + hourBranchIdx - 2 + 12) % 12
-  const shenBranchIdx = (monthBranchIdx + hourBranchIdx + 2) % 12;
-  const shenStemIdx = (yinStartStem + ((shenBranchIdx - 2 + 12) % 12)) % 10;
-  const shengong = { stem: STEMS[shenStemIdx], branch: BRANCHES[shenBranchIdx], nayin: getNayin(shenStemIdx, shenBranchIdx) };
+  let minggong = null;
+  let shengong = null;
+  if (hourKnown) {
+    const mingBranchIdx = ((14 - monthBranchIdx - hourBranchIdx) % 12 + 12) % 12;
+    // 命宮干 = 寅起始干 + (命宮支idx - 2)
+    const mingStemIdx = (yinStartStem + ((mingBranchIdx - 2 + 12) % 12)) % 10;
+    minggong = { stem: STEMS[mingStemIdx], branch: BRANCHES[mingBranchIdx], nayin: getNayin(mingStemIdx, mingBranchIdx) };
+
+    // 身宮：月支 + 時支 順數
+    // 公式：身宮地支 = (月支 + 時支 - 2) % 12 （從寅起順數）
+    // 正確公式：身宮支idx = (monthBranchIdx + hourBranchIdx - 2 + 12) % 12
+    const shenBranchIdx = (monthBranchIdx + hourBranchIdx + 2) % 12;
+    const shenStemIdx = (yinStartStem + ((shenBranchIdx - 2 + 12) % 12)) % 10;
+    shengong = { stem: STEMS[shenStemIdx], branch: BRANCHES[shenBranchIdx], nayin: getNayin(shenStemIdx, shenBranchIdx) };
+  }
 
   // 四柱納音
   const yearSIdx = STEMS.indexOf(pillars.year.stem);
@@ -676,7 +688,7 @@ function calculateExtras(pillars, hourBranchIdx) {
     year: getNayin(yearSIdx, yearBIdx),
     month: getNayin(monthSIdx, monthBIdx),
     day: getNayin(daySIdx, dayBIdx),
-    hour: getNayin(hourSIdx, hourBIdx),
+    hour: (hourSIdx >= 0 && hourBIdx >= 0) ? getNayin(hourSIdx, hourBIdx) : '',
   };
 
   return { taiyuan, minggong, shengong, nayinPillars };
@@ -752,7 +764,8 @@ export function calculate(birthData) {
     const branchRelations = calculateBranchRelations(pillars);
 
     // 納音、胎元、命宮、身宮
-    const extras = calculateExtras(pillars, hp.branchIdx);
+    // 時間未知時沒有時柱，命宮／身宮算不出來（calculateExtras 會回 null）
+    const extras = calculateExtras(pillars, hp ? hp.branchIdx : null);
 
     const data = { pillars, dayMaster, dayMasterElem, elements, tenGods, dayun, shensha, yongshen, branchRelations, extras, birthYear: year };
     const html = renderBazi(data);
@@ -1245,9 +1258,18 @@ function renderExtras(extras, pillars) {
     },
   };
 
+  // 命宮／身宮要時支才算得出來；時間未知時只顯示胎元
+  const extraPairs = [['胎元', taiyuan], ['命宮', minggong], ['身宮', shengong]]
+    .filter(([, obj]) => obj);
+  if (!minggong || !shengong) {
+    html += `<div style="font-size:.78rem;color:var(--muted);margin-top:10px;">
+      ※ 命宮和身宮需要出生時間才算得出來，這裡先略過。回首頁補上時間就會顯示。
+    </div>`;
+  }
+
   // 三宮卡片
-  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">`;
-  for (const [label, obj] of [['胎元', taiyuan], ['命宮', minggong], ['身宮', shengong]]) {
+  html += `<div style="display:grid;grid-template-columns:repeat(${extraPairs.length},1fr);gap:8px;margin-top:10px;">`;
+  for (const [label, obj] of extraPairs) {
     const info = NT[obj.nayin];
     const sym = info ? info.symbol.split('，')[0] : '';
     html += `<div style="padding:10px;background:rgba(123,108,246,.04);border-radius:8px;text-align:center;">
@@ -1261,7 +1283,7 @@ function renderExtras(extras, pillars) {
 
   // 三宮詳細敘事解讀
   html += `<div style="margin-top:14px;">`;
-  for (const [label, obj] of [['胎元', taiyuan], ['命宮', minggong], ['身宮', shengong]]) {
+  for (const [label, obj] of extraPairs) {
     const meta = extraDetailMap[label];
     const st = stemTraits[obj.stem] || '';
     const bt = branchTraits[obj.branch] || '';

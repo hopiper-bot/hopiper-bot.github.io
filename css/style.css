@@ -1620,3 +1620,254 @@ h3 {
     --gold-text-gradient: linear-gradient(135deg, #40916C 0%, #2D6A4F 35%, #1B4332 70%, #123227 100%);
   }
 }
+
+/* ===== 姓名學（name.js） ===== */
+
+/* 吉凶語氣色：不用紅綠燈，改用主題色的強弱，避免「凶」看起來像錯誤訊息 */
+.nm-good { color: var(--accent); }
+.nm-mixed { color: var(--accent2); }
+.nm-hard { color: var(--muted); }
+
+.nm-notice {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  font-size: 0.83rem;
+  line-height: 1.7;
+}
+
+/* 姓名逐字筆劃 */
+.nm-chars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0 2px;
+  flex-wrap: wrap;
+}
+
+.nm-char {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 42px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.nm-char b { font-size: 1.3rem; line-height: 1.2; }
+.nm-char small { font-size: 0.7rem; color: var(--muted); }
+
+/* 五格卡片 */
+.nm-grid-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.nm-grid-card {
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: var(--input-bg);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nm-grid-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+.nm-grid-card.nm-primary {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0.04));
+}
+
+.nm-grid-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.nm-grid-name { font-size: 0.85rem; font-weight: 700; }
+.nm-grid-span { font-size: 0.68rem; color: var(--muted); }
+
+.nm-grid-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 4px 0 2px;
+}
+
+.nm-grid-num small { font-size: 0.7rem; font-weight: 400; color: var(--muted); margin-left: 2px; }
+.nm-grid-elem { font-size: 0.78rem; font-weight: 700; }
+.nm-grid-tag { font-size: 0.7rem; opacity: 0.75; margin-top: 2px; }
+
+/* 卡片點開的詳解：grid 裡佔滿整列 */
+.nm-detail {
+  display: none;
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.07);
+  font-size: 0.84rem;
+  line-height: 1.8;
+}
+
+.nm-detail.show { display: block; }
+
+/* 三才 */
+.nm-sancai {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.nm-sancai-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  font-size: 1.1rem;
+}
+
+.nm-sancai-node b { font-size: 0.95rem; }
+.nm-sancai-node small { font-size: 0.68rem; color: var(--muted); }
+.nm-sancai-arrow { color: var(--muted); font-size: 0.9rem; }
+
+.nm-rel {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+
+.nm-rel > div {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.06);
+  font-size: 0.84rem;
+  line-height: 1.8;
+}
+
+.nm-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+/* 五行補救判定 */
+.nm-verdict {
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border-left: 3px solid currentColor;
+  font-size: 0.86rem;
+  line-height: 1.8;
+}
+
+.nm-verdict-label { font-weight: 700; margin-bottom: 4px; }
+.nm-verdict > div:last-child { color: var(--text); }
+
+/* 五行對照條 */
+.nm-bars { margin: 14px 0 4px; }
+
+.nm-bar-head,
+.nm-bar-row {
+  display: grid;
+  grid-template-columns: 88px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.nm-bar-head {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.nm-bar-head span:first-child { text-align: left; }
+.nm-bar-row { margin-bottom: 6px; }
+
+.nm-bar-label { font-size: 0.8rem; }
+.nm-bar-label em {
+  font-style: normal;
+  font-size: 0.68rem;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.nm-bar-track {
+  position: relative;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  overflow: hidden;
+}
+
+.nm-bar-track > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: rgba(var(--accent-rgb), 0.35);
+}
+
+.nm-bar-track.nm-bar-name > i { background: rgba(var(--accent-rgb), 0.6); }
+
+.nm-bar-track > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* 取名建議表 */
+.nm-table-wrap { overflow-x: auto; margin: 12px 0; }
+
+.nm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.nm-table th,
+.nm-table td {
+  padding: 7px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
+  white-space: nowrap;
+}
+
+.nm-table th { font-size: 0.72rem; color: var(--muted); font-weight: 400; }
+.nm-table td small { color: var(--muted); font-size: 0.72rem; }
+.nm-table tbody tr:hover { background: rgba(var(--accent-rgb), 0.06); }
+
+.nm-list {
+  margin: 8px 0 4px;
+  padding-left: 20px;
+  font-size: 0.86rem;
+  line-height: 1.9;
+}
+
+@media (max-width: 480px) {
+  .nm-grid-wrap { grid-template-columns: repeat(2, 1fr); }
+  .nm-bar-head, .nm-bar-row { grid-template-columns: 74px 1fr 1fr; }
+}

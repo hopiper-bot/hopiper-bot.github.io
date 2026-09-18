@@ -690,6 +690,109 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ============ 姓名學 UI ============
+// 姓名學是獨立頁（name.html），輸入是「一串中文字」而不是出生資料，
+// 所以不放進 result.html 的 tab（那邊六個 tab 共用同一份 birthData）。
+// 有存出生資料時，順手把八字算出來餵給引擎做五行補救分析。
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('name-form');
+  if (!form) return;
+
+  const surnameEl = document.getElementById('name-surname');
+  const givenEl = document.getElementById('name-given');
+  const resultEl = document.getElementById('name-result');
+  const statusEl = document.getElementById('name-bazi-status');
+
+  // 有出生資料就先算好八字，並告知使用者會做進階分析
+  let baziData = null;
+  const saved = loadSavedInput();
+  // 時間未知就用中午 12 點推（跟 primeCompatData 一致）。
+  // 時柱會影響身強身弱，進而影響用神，所以要在畫面上標示這個假設。
+  const timeAssumed = !(saved && saved.hour >= 0);
+  if (saved && saved.year && saved.month && saved.day) {
+    try {
+      const r = baziEngine.calculate({
+        year: saved.year, month: saved.month, day: saved.day,
+        hour: timeAssumed ? 12 : saved.hour,
+        minute: timeAssumed ? 0 : (saved.minute || 0),
+        utcOffset: 8,
+        gender: saved.gender || 'male',
+      });
+      if (r?.status === 'ok' && r.data) {
+        baziData = r.data;
+        baziData._timeAssumed = timeAssumed;
+      }
+    } catch (e) { console.warn('姓名學：八字計算失敗', e); }
+  }
+  if (statusEl) {
+    if (baziData) {
+      statusEl.style.display = '';
+      statusEl.innerHTML = `🔗 已抓到你的出生資料（${saved.year}/${saved.month}/${saved.day}），` +
+        `會一起分析<b>五行補救</b>和<b>名字對你的角色</b>。` +
+        (timeAssumed ? '（出生時間未填，用中午 12 點推算，用神判斷會有誤差）' : '');
+    } else {
+      statusEl.style.display = '';
+      statusEl.innerHTML = '💡 還沒有出生資料，這次只算五格和三才。' +
+        '<a href="index.html" style="color:var(--accent);">去填出生資料</a>之後回來，會多一段八字五行補救分析。';
+    }
+  }
+
+  // 恢復上次輸入的姓名
+  try {
+    const last = JSON.parse(localStorage.getItem('destiny_name_input') || 'null');
+    if (last?.surname) surnameEl.value = last.surname;
+    if (last?.given) givenEl.value = last.given;
+  } catch (e) {}
+
+  // 只填了「姓」欄位但一次貼上整個姓名 → 自動幫他切開（含複姓辨識）
+  surnameEl.addEventListener('blur', async () => {
+    const v = surnameEl.value.trim();
+    if (v.length < 2 || givenEl.value.trim()) return;
+    const { splitName } = await import('./engines/name.js');
+    const s = splitName(v);
+    if (s.given) { surnameEl.value = s.surname; givenEl.value = s.given; }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    ui.clearErrors();
+
+    const surname = surnameEl.value.trim();
+    const given = givenEl.value.trim();
+    if (!surname || !given) {
+      ui.showError('name', '請把姓和名都填上');
+      return;
+    }
+
+    resultEl.innerHTML = '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>';
+
+    try {
+      const nameEngine = await import('./engines/name.js');
+      const r = nameEngine.calculate({ surname, given }, baziData);
+      if (r.status === 'ok') {
+        resultEl.innerHTML = r.html;
+        try { localStorage.setItem('destiny_name_input', JSON.stringify({ surname, given })); } catch (err) {}
+        resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        resultEl.innerHTML = '';
+        ui.showError('name', r.error);
+      }
+    } catch (err) {
+      console.error('姓名學計算錯誤:', err);
+      resultEl.innerHTML = ui.renderError(`姓名學計算時發生錯誤：${err.message}`);
+    }
+  });
+
+  // 五格卡片點開／收起（事件委派，重新渲染後也有效）
+  resultEl.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-nm-toggle]');
+    if (!card) return;
+    const detail = document.getElementById(card.dataset.nmToggle);
+    if (detail) detail.classList.toggle('show');
+  });
+});
+
 // ============ 合盤支援 ============
 // 公司合盤 / 雙人合盤的表單與計算邏輯統一在 click-handlers.js（唯一來源）。
 // 這裡只保留 lastBaziData 的存取橋接，供該非 module script 讀取。

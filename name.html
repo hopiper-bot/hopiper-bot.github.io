@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>姓名學｜人生劇本</title>
+  <meta name="description" content="熊崎氏五格剖象 + 三才配置，用康熙筆劃算你的名字，再跟八字對照看有沒有補到本命缺的五行。">
+  <meta property="og:title" content="姓名學｜人生劇本">
+  <meta property="og:description" content="五格・三才・八字五行補救 — 看你的名字對你本人是什麼角色。">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0F2E2A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css?v=18">
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
+      <a class="screen-back" href="index.html">‹ 回首頁</a>
+    </header>
+
+    <div class="panel">
+      <div class="sig" style="margin-bottom:14px;">
+        <div class="kin">熊崎氏五格 · 康熙筆劃</div>
+        <div class="big" style="font-size:1.3rem;">🖋️ 姓名學</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">不用生日也能算。有填出生資料的話，會多一段「名字有沒有補到八字缺的五行」。</div>
+      </div>
+
+      <form id="name-form" novalidate>
+        <label>姓<span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（複姓直接填兩個字，如「歐陽」）</span></label>
+        <div class="form-row">
+          <div class="form-group wide">
+            <input type="text" id="name-surname" placeholder="例：何" maxlength="3" autocomplete="off" aria-label="姓氏">
+          </div>
+        </div>
+
+        <label>名</label>
+        <div class="form-row">
+          <div class="form-group wide">
+            <input type="text" id="name-given" placeholder="例：明弟" maxlength="3" autocomplete="off" aria-label="名字">
+          </div>
+        </div>
+        <div id="error-name" class="error-msg" role="alert"></div>
+
+        <div id="name-bazi-status" class="nm-notice" style="display:none;"></div>
+
+        <div class="form-row" style="margin-top:16px;">
+          <button type="submit" class="btn-primary" style="width:100%;">開始解讀 ✦</button>
+        </div>
+      </form>
+
+      <div id="name-result" style="margin-top:18px;"></div>
+    </div>
+
+    <!-- 其他探索 -->
+    <div class="more-explore">
+      <p class="more-explore-title">其他探索</p>
+      <div class="more-explore-list">
+        <a class="more-item" href="index.html">
+          <span class="more-icon">✦</span>
+          <span class="more-text"><b>我的命盤</b><small>馬雅・星座・八字・紫微・人類圖</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="person.html">
+          <span class="more-icon">❤️</span>
+          <span class="more-text"><b>雙人合盤</b><small>探索你與另一個人的相處模式</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="company.html">
+          <span class="more-icon">💼</span>
+          <span class="more-text"><b>公司合盤</b><small>探索你與公司的契合模式</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="meihua.html">
+          <span class="more-icon">🎲</span>
+          <span class="more-text"><b>梅花易數</b><small>不用生日也能占，一事一占</small></span>
+          <span class="more-go">開始占卦 ›</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v18</span></p>
+  </div>
+
+  <script type="module" src="js/main.js?v=18"></script>
+  <script src="js/sw-register.js?v=18"></script>
+</body>
+</html>
