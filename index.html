@@ -21,7 +21,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="stylesheet" href="css/style.css?v=16">
+  <link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
   <div class="wrap">
@@ -103,6 +103,9 @@
         <div class="form-row" style="margin-top:18px;">
           <button type="submit" class="btn-primary">開始解讀 ✦</button>
         </div>
+        <div id="last-result-link" style="text-align:center;margin-top:12px;display:none;">
+          <a href="result.html" style="font-size:.82rem;color:var(--muted);text-decoration:none;border-bottom:1px dashed var(--muted);">看上次的解讀結果 ›</a>
+        </div>
       </form>
     </div>
 
@@ -115,35 +118,6 @@
       <div id="daily-energy-content" class="daily-energy-content">
         <div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>
       </div>
-    </div>
-
-    <!-- Loading -->
-    <div id="loading" class="loading" aria-live="polite">
-      <div class="loading-spinner"></div>
-      <p>正在計算你的生命藍圖⋯</p>
-    </div>
-
-    <!-- Result Container：五大系統結果 -->
-    <div id="result-container" class="panel result-container">
-      <div class="tabs-wrapper">
-      <nav class="tabs" role="tablist" aria-label="命理系統切換">
-        <div class="tab active" data-view="maya" role="tab" aria-selected="true" aria-controls="view-maya" id="tab-maya" tabindex="0">馬雅曆</div>
-        <div class="tab" data-view="astro" role="tab" aria-selected="false" aria-controls="view-astro" id="tab-astro" tabindex="0">星座</div>
-        <div class="tab" data-view="bazi" role="tab" aria-selected="false" aria-controls="view-bazi" id="tab-bazi" tabindex="0">八字</div>
-        <div class="tab" data-view="ziwei" role="tab" aria-selected="false" aria-controls="view-ziwei" id="tab-ziwei" tabindex="0">紫微</div>
-        <div class="tab" data-view="hd" role="tab" aria-selected="false" aria-controls="view-hd" id="tab-hd" tabindex="0">人類圖</div>
-        <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
-      </nav>
-      </div>
-
-      <div id="share-toolbar-slot"></div>
-
-      <div id="view-maya" class="view active" role="tabpanel" aria-labelledby="tab-maya"></div>
-      <div id="view-astro" class="view" role="tabpanel" aria-labelledby="tab-astro"></div>
-      <div id="view-bazi" class="view" role="tabpanel" aria-labelledby="tab-bazi"></div>
-      <div id="view-ziwei" class="view" role="tabpanel" aria-labelledby="tab-ziwei"></div>
-      <div id="view-hd" class="view" role="tabpanel" aria-labelledby="tab-hd"></div>
-      <div id="view-synthesis" class="view" role="tabpanel" aria-labelledby="tab-synthesis"></div>
     </div>
 
     <!-- 其他探索：各自獨立頁面 -->
@@ -177,13 +151,26 @@
       <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
     </div>
 
-    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v16</span></p>
+    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v17</span></p>
   </div>
 
-  <script type="module" src="js/main.js?v=16"></script>
+  <script>
+    // 有上次結果就顯示「看上次的解讀結果」入口
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+        if (s && s.year) {
+          var el = document.getElementById('last-result-link');
+          if (el) el.style.display = '';
+        }
+      } catch (e) {}
+    });
+  </script>
+
+  <script type="module" src="js/main.js?v=17"></script>
   <script src="js/data/nayin-text.js"></script>
   <script src="js/data/ziwei-narrative.js"></script>
-  <script type="module" src="js/click-handlers.js?v=16"></script>
-  <script src="js/sw-register.js?v=16"></script>
+  <script type="module" src="js/click-handlers.js?v=17"></script>
+  <script src="js/sw-register.js?v=17"></script>
 </body>
 </html>

@@ -31,13 +31,23 @@ function init() {
   // 清除舊版殘留的 Groq API Key（AI 即時解讀功能已移除）
   try { localStorage.removeItem('groq_api_key'); } catch (e) {}
 
-  // 綁定表單提交
   const form = document.getElementById('birth-form');
+  const hasResultArea = !!document.getElementById('result-container');
+
+  // 綁定表單提交
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      calculate();
+      // 同頁有結果區 → 直接算；否則（首頁）→ 驗證後跳結果頁
+      if (hasResultArea) calculate();
+      else submitAndGoToResult();
     });
+  }
+
+  // 結果頁（沒有表單但有結果區）→ 直接用 URL query 或上次資料計算
+  if (!form && hasResultArea) {
+    setTimeout(() => calculate(), 0);
+    return;
   }
 
   // 優先檢查 URL query 帶入
@@ -49,8 +59,8 @@ function init() {
   } else {
     // 從 localStorage 恢復上次輸入
     restoreInput();
-    // 嘗試恢復上次計算結果（秒開）— 只有首頁有結果容器
-    if (document.getElementById('result-container')) {
+    // 嘗試恢復上次計算結果（秒開）— 只有結果區存在時才需要
+    if (hasResultArea) {
       restoreCachedResults();
     }
   }
@@ -59,6 +69,35 @@ function init() {
   if (document.getElementById('company-compat-go') || document.getElementById('person-compat-go')) {
     primeCompatData();
   }
+}
+
+/**
+ * 首頁送出：驗證通過就存檔並跳到結果頁
+ * 錯誤留在表單頁顯示，不讓使用者跳頁後才看到錯誤
+ */
+async function submitAndGoToResult() {
+  ui.clearErrors();
+
+  const formData = getFormData();
+  const errors = validateInput(formData);
+  if (errors.length > 0) {
+    errors.forEach(e => ui.showError(e.field, e.msg));
+    return;
+  }
+
+  // 有填地點就先確認能解析，避免跳頁後才報錯
+  if (formData.location) {
+    const geo = await resolveLocation(formData.location);
+    if (!geo) {
+      ui.showError('location', '無法辨識此地點，請輸入城市名稱（如「台北」）或經緯度（如「25.03, 121.56」）');
+      return;
+    }
+  }
+
+  saveInput(formData);
+  // 清掉舊結果快取，避免結果頁先閃到上一次的內容
+  try { localStorage.removeItem('destiny_result_cache'); } catch (e) {}
+  window.location.href = 'result.html';
 }
 
 /**
@@ -276,8 +315,28 @@ function restoreCachedResults() {
   } catch (e) { /* ignore */ }
 }
 
-/** 從表單取得輸入值 */
+/** 讀取上次儲存的出生資料（結果頁沒有表單時使用） */
+function loadSavedInput() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+    if (!saved || !saved.year) return null;
+    return {
+      year: saved.year,
+      month: saved.month,
+      day: saved.day,
+      hour: (saved.hour === undefined || saved.hour === null) ? -1 : saved.hour,
+      minute: saved.minute || 0,
+      location: saved.location || '',
+      gender: saved.gender || 'male',
+    };
+  } catch (e) { return null; }
+}
+
+/** 從表單取得輸入值；結果頁沒有表單時改用 URL query 或上次儲存的資料 */
 function getFormData() {
+  if (!document.getElementById('birth-year')) {
+    return parseURLQuery() || loadSavedInput() || {};
+  }
   const hourVal = document.getElementById('birth-hour')?.value;
   const minuteVal = document.getElementById('birth-minute')?.value;
   return {

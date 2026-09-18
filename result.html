@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>我的人生劇本｜解讀結果</title>
+  <meta name="description" content="馬雅曆、星座、八字、紫微斗數、人類圖五大系統的解讀結果。">
+  <meta name="theme-color" content="#0F2E2A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css?v=17">
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
+      <a class="screen-back" href="index.html">‹ 回首頁改資料</a>
+    </header>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" aria-live="polite">
+      <div class="loading-spinner"></div>
+      <p>正在計算你的生命藍圖⋯</p>
+    </div>
+
+    <!-- 五大系統結果 -->
+    <div id="result-container" class="panel result-container">
+      <div class="tabs-wrapper">
+      <nav class="tabs" role="tablist" aria-label="命理系統切換">
+        <div class="tab active" data-view="maya" role="tab" aria-selected="true" aria-controls="view-maya" id="tab-maya" tabindex="0">馬雅曆</div>
+        <div class="tab" data-view="astro" role="tab" aria-selected="false" aria-controls="view-astro" id="tab-astro" tabindex="0">星座</div>
+        <div class="tab" data-view="bazi" role="tab" aria-selected="false" aria-controls="view-bazi" id="tab-bazi" tabindex="0">八字</div>
+        <div class="tab" data-view="ziwei" role="tab" aria-selected="false" aria-controls="view-ziwei" id="tab-ziwei" tabindex="0">紫微</div>
+        <div class="tab" data-view="hd" role="tab" aria-selected="false" aria-controls="view-hd" id="tab-hd" tabindex="0">人類圖</div>
+        <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
+      </nav>
+      </div>
+
+      <div id="share-toolbar-slot"></div>
+
+      <div id="view-maya" class="view active" role="tabpanel" aria-labelledby="tab-maya"></div>
+      <div id="view-astro" class="view" role="tabpanel" aria-labelledby="tab-astro"></div>
+      <div id="view-bazi" class="view" role="tabpanel" aria-labelledby="tab-bazi"></div>
+      <div id="view-ziwei" class="view" role="tabpanel" aria-labelledby="tab-ziwei"></div>
+      <div id="view-hd" class="view" role="tabpanel" aria-labelledby="tab-hd"></div>
+      <div id="view-synthesis" class="view" role="tabpanel" aria-labelledby="tab-synthesis"></div>
+    </div>
+
+    <!-- 沒有資料時的提示 -->
+    <div id="no-data-hint" class="panel" style="display:none;text-align:center;">
+      <p style="margin:0 0 14px;">還沒有你的出生資料。</p>
+      <a href="index.html" class="btn-primary" style="display:inline-block;text-decoration:none;">回首頁輸入 ✦</a>
+    </div>
+
+    <!-- 其他探索 -->
+    <div class="more-explore">
+      <p class="more-explore-title">其他探索</p>
+      <div class="more-explore-list">
+        <a class="more-item" href="person.html">
+          <span class="more-icon">❤️</span>
+          <span class="more-text"><b>雙人合盤</b><small>探索你與另一個人的相處模式</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="company.html">
+          <span class="more-icon">💼</span>
+          <span class="more-text"><b>公司合盤</b><small>探索你與公司的契合模式</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="meihua.html">
+          <span class="more-icon">🎲</span>
+          <span class="more-text"><b>梅花易數</b><small>不用生日也能占，一事一占</small></span>
+          <span class="more-go">開始占卦 ›</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v17</span></p>
+  </div>
+
+  <script>
+    // 沒有任何出生資料 → 顯示提示、隱藏 loading
+    (function () {
+      var hasQuery = /(\?|&)y=/.test(location.search);
+      var hasSaved = false;
+      try {
+        var s = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+        hasSaved = !!(s && s.year);
+      } catch (e) {}
+      if (!hasQuery && !hasSaved) {
+        document.addEventListener('DOMContentLoaded', function () {
+          var l = document.getElementById('loading');
+          if (l) l.style.display = 'none';
+          var h = document.getElementById('no-data-hint');
+          if (h) h.style.display = '';
+        });
+      }
+    })();
+  </script>
+
+  <script type="module" src="js/main.js?v=17"></script>
+  <script src="js/data/nayin-text.js"></script>
+  <script src="js/data/ziwei-narrative.js"></script>
+  <script type="module" src="js/click-handlers.js?v=17"></script>
+  <script src="js/sw-register.js?v=17"></script>
+</body>
+</html>
