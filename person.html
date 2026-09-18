@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>雙人合盤｜人生劇本</title>
+  <meta name="description" content="和另一個人的命盤做比對，探索你們的相處模式。">
+  <meta name="theme-color" content="#0F2E2A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css?v=16">
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
+      <a class="screen-back" href="index.html">‹ 回首頁</a>
+    </header>
+
+    <div id="view-person-compat" class="panel">
+      <div class="sig" style="margin-bottom:12px;">
+        <div class="kin">人際能量</div>
+        <div class="big" style="font-size:1.3rem;">❤️ 雙人合盤</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px;">和另一個人的命盤做比對 — 情侶、朋友、同事都可以。</div>
+      </div>
+      <label>對方出生日期</label>
+      <div class="form-row">
+        <div class="form-group"><input type="number" id="person2-year" placeholder="年份" min="1900" max="2100" aria-label="對方出生年份"></div>
+        <div class="form-group"><select id="person2-month" aria-label="對方出生月份"><option value="">月</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div>
+        <div class="form-group"><input type="number" id="person2-day" placeholder="日" min="1" max="31" aria-label="對方出生日"></div>
+      </div>
+      <label>對方出生時間（選填，有助更精準分析）</label>
+      <div class="form-row">
+        <div class="form-group"><input type="number" id="person2-hour" placeholder="時（0-23）" min="0" max="23" aria-label="對方出生小時"></div>
+        <div class="form-group"><input type="number" id="person2-minute" placeholder="分（0-59）" min="0" max="59" aria-label="對方出生分鐘"></div>
+      </div>
+      <label>對方性別</label>
+      <div class="form-row"><div class="form-group">
+        <select id="person2-gender" aria-label="對方性別"><option value="male">男</option><option value="female">女</option></select>
+      </div></div>
+      <label>關係類型</label>
+      <div class="form-row"><div class="form-group wide">
+        <select id="person2-relation" aria-label="關係類型"><option value="partner">情侶/伴侶</option><option value="friend">朋友</option><option value="colleague">同事</option><option value="family">家人</option><option value="boss">主管/老闆</option></select>
+      </div></div>
+      <button id="person-compat-go" class="btn-primary" type="button" style="width:100%;margin-top:14px;">開始合盤 ✦</button>
+      <div id="person-compat-error" style="color:#e74c3c;font-size:.85rem;margin-top:8px;" role="alert"></div>
+      <div id="person-compat-result" style="margin-top:16px;"></div>
+    </div>
+
+    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v16</span></p>
+  </div>
+
+  <script type="module" src="js/main.js?v=16"></script>
+  <script src="js/data/nayin-text.js"></script>
+  <script src="js/data/ziwei-narrative.js"></script>
+  <script type="module" src="js/click-handlers.js?v=16"></script>
+  <script src="js/sw-register.js?v=16"></script>
+</body>
+</html>

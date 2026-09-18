@@ -277,19 +277,17 @@ header p {
   letter-spacing: .5px;
 }
 
-/* ===== 畫面切換（一次只顯示一個） ===== */
-.screen {
-  display: none;
-}
-
-.screen.active {
-  display: block;
-  animation: fadeIn 0.3s ease;
+/* ===== 子頁面 header（返回鍵 + 主題切換） ===== */
+header.page-header {
+  text-align: left;
+  margin-bottom: 18px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 .screen-back {
   display: inline-block;
-  margin-bottom: 14px;
   font-size: .85rem;
   color: var(--muted);
   text-decoration: none;

@@ -49,9 +49,45 @@ function init() {
   } else {
     // 從 localStorage 恢復上次輸入
     restoreInput();
-    // 嘗試恢復上次計算結果（秒開）
-    restoreCachedResults();
+    // 嘗試恢復上次計算結果（秒開）— 只有首頁有結果容器
+    if (document.getElementById('result-container')) {
+      restoreCachedResults();
+    }
   }
+
+  // 合盤獨立頁面：先用已存的出生資料算好本命，合盤才有完整素材
+  if (document.getElementById('company-compat-go') || document.getElementById('person-compat-go')) {
+    primeCompatData();
+  }
+}
+
+/**
+ * 合盤頁預備：從 localStorage 的出生資料重算本命八字／星座／馬雅，
+ * 設定 click-handlers.js 需要的全域值（不影響首頁流程）
+ */
+function primeCompatData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
+    if (!saved || !saved.year || !saved.month || !saved.day) return;
+    const birthData = {
+      year: saved.year, month: saved.month, day: saved.day,
+      hour: saved.hour >= 0 ? saved.hour : 12,
+      minute: saved.minute || 0,
+      gender: saved.gender || 'male',
+    };
+    try {
+      const r = baziEngine.calculate(birthData);
+      if (r?.status === 'ok' && r.data) lastBaziData = r.data;
+    } catch (e) {}
+    try {
+      const r = astroEngine.calculate(birthData);
+      if (r?.status === 'ok' && r.data) window.__lastAstroData = r.data;
+    } catch (e) {}
+    try {
+      const r = mayaEngine.calculate(birthData);
+      if (r?.status === 'ok' && r.data) window.__lastMayaData = r.data;
+    } catch (e) {}
+  } catch (e) { /* ignore */ }
 }
 
 // ============ Theme Toggle ============
@@ -134,13 +170,18 @@ function parseURLQuery() {
  * 將資料填入表單欄位
  */
 function fillForm(data) {
-  if (data.year) document.getElementById('birth-year').value = data.year;
-  if (data.month) document.getElementById('birth-month').value = data.month;
-  if (data.day) document.getElementById('birth-day').value = data.day;
-  if (data.hour >= 0) document.getElementById('birth-hour').value = data.hour;
-  if (data.minute >= 0) document.getElementById('birth-minute').value = data.minute;
-  if (data.location) document.getElementById('birth-location').value = data.location;
-  if (data.gender) document.getElementById('birth-gender').value = data.gender;
+  // 只在該欄位存在時才填（合盤／梅花等獨立頁面沒有出生表單）
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  };
+  if (data.year) set('birth-year', data.year);
+  if (data.month) set('birth-month', data.month);
+  if (data.day) set('birth-day', data.day);
+  if (data.hour >= 0) set('birth-hour', data.hour);
+  if (data.minute >= 0) set('birth-minute', data.minute);
+  if (data.location) set('birth-location', data.location);
+  if (data.gender) set('birth-gender', data.gender);
 }
 
 /**
