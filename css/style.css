@@ -1871,3 +1871,58 @@ h3 {
   .nm-grid-wrap { grid-template-columns: repeat(2, 1fr); }
   .nm-bar-head, .nm-bar-row { grid-template-columns: 74px 1fr 1fr; }
 }
+
+/* ===== 姓名學：聲調 ===== */
+.nm-tone-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: var(--input-bg);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+
+.nm-tone-chip b { font-size: 1.25rem; line-height: 1.2; }
+.nm-tone-chip em { font-style: normal; font-size: 1rem; color: var(--accent); line-height: 1; }
+.nm-tone-chip small { font-size: 0.66rem; color: var(--muted); }
+
+/* ===== 姓名學：筆劃反查字 ===== */
+.nm-table-row { cursor: pointer; }
+
+.nm-row-detail { display: none; }
+.nm-row-detail.show { display: table-row; }
+
+.nm-row-detail > td {
+  text-align: left !important;
+  white-space: normal !important;
+  padding: 12px 10px !important;
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.nm-pick { margin-bottom: 10px; font-size: 0.82rem; }
+
+.nm-pick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.nm-pick-char {
+  display: inline-flex;
+  align-items: baseline;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: var(--card);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  font-size: 0.95rem;
+}
+
+.nm-pick-char em {
+  font-style: normal;
+  font-size: 0.7rem;
+  color: var(--accent);
+  margin-left: 1px;
+}

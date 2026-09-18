@@ -2,7 +2,7 @@
  * test_name.mjs — 姓名學引擎驗證
  * 跑法：node test_name.mjs
  */
-import { calculate, splitName, strokesOf } from './js/engines/name.js';
+import { calculate, splitName, strokesOf, toneOf, charsByStroke } from './js/engines/name.js';
 
 let pass = 0, fail = 0;
 function eq(label, got, want) {
@@ -168,6 +168,55 @@ console.log('[8] 八字整合');
   // 日主木 對 人格土：木剋土 → 正財偏財
   eq('十神關係', r.data.bazi.role.rel, '剋');
   eq('HTML 有內容', r.html.length > 2000, true);
+}
+
+// ---- 9. 聲調 ----
+console.log('[9] 聲調');
+{
+  eq('媽=1聲', toneOf('媽'), 1);
+  eq('麻=2聲', toneOf('麻'), 2);
+  eq('馬=3聲', toneOf('馬'), 3);
+  eq('罵=4聲', toneOf('罵'), 4);
+  eq('非漢字回 null', toneOf('A'), null);
+
+  // 王(2) 小(3) 明(2) → 距離 2 種聲調、相鄰不同、收尾二聲
+  const a = calculate({ surname: '王', given: '小明' });
+  eq('王小明有聲調分析', !!a.data.tone, true);
+  eq('王小明聲調序列', a.data.tone.seq.join('-'), '2-3-2');
+  eq('王小明 distinct', a.data.tone.distinct, 2);
+
+  // 李(3) 曉(3) 美(3) → 連續三聲，應判為拗口
+  const b = calculate({ surname: '李', given: '曉美' });
+  eq('全三聲序列', b.data.tone.seq.join('-'), '3-3-3');
+  eq('全三聲→hard', b.data.tone.level, 'hard');
+  eq('有連三聲提示', b.data.tone.issues.some(i => i.includes('相鄰的兩個三聲')), true);
+
+  // HTML 要有聲調區塊
+  eq('HTML 有聲調段', a.html.includes('念起來順不順'), true);
+}
+
+// ---- 10. 筆劃反查字 ----
+console.log('[10] 筆劃反查字');
+{
+  for (let n = 3; n <= 24; n++) {
+    const chars = charsByStroke(n);
+    eq(`${n} 劃有字可選`, chars.length >= 6, true);
+    // 反查出來的字，筆劃必須真的等於 n
+    const wrong = chars.filter(c => strokesOf(c) !== n);
+    eq(`${n} 劃反查無錯字`, wrong.length, 0);
+    // 每個字都要查得到聲調（不然選字表會缺聲調）
+    eq(`${n} 劃都有聲調`, chars.filter(c => toneOf(c) === null).length, 0);
+  }
+  eq('不存在的筆劃回空陣列', charsByStroke(999).length, 0);
+
+  // 建議表每一列都要能展開出字
+  const r = calculate({ surname: '陳', given: '建華' });
+  eq('建議有選字區', r.html.includes('名第一字'), true);
+  r.data.suggestions.forEach((s, i) => {
+    eq(`建議${i} 第一字有可選`, charsByStroke(s.n1).length > 0, true);
+    eq(`建議${i} 第二字有可選`, charsByStroke(s.n2).length > 0, true);
+  });
+  eq('有改名法規提醒', r.html.includes('三次為限'), true);
 }
 
 console.log(`\n${fail === 0 ? 'ALL PASS' : 'HAS FAILURES'}  pass=${pass} fail=${fail}`);

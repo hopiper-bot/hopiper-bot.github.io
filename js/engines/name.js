@@ -15,8 +15,11 @@
  */
 
 import { STROKE_GROUPS, S2T_ONE, S2T_MANY } from '../data/strokes.js';
+import { TONE_GROUPS } from '../data/tones.js';
+import { NAME_CHARS } from '../data/name-chars.js';
 import {
   LUCK81, GRID_META, ELEMENT_TRAIT, REL_TEXT, SANCAI_LEVEL, COMPOUND_SURNAMES,
+  TONE_NAME, TONE_LEVEL, TONE_ISSUE,
 } from '../data/name-text.js';
 
 // ============ 五行基礎 ============
@@ -69,6 +72,85 @@ function strokeMap() {
  */
 export function strokesOf(ch) {
   return strokeMap().get(ch) ?? null;
+}
+
+// ============ 聲調 ============
+
+let _toneMap = null;
+
+function toneMap() {
+  if (_toneMap) return _toneMap;
+  _toneMap = new Map();
+  for (const [t, chars] of Object.entries(TONE_GROUPS)) {
+    const num = parseInt(t, 10);
+    for (const ch of chars) _toneMap.set(ch, num);
+  }
+  return _toneMap;
+}
+
+/** 查單字聲調（1-4，5 為輕聲），查不到回 null */
+export function toneOf(ch) {
+  return toneMap().get(ch) ?? null;
+}
+
+/**
+ * 分析整個姓名的聲調組合
+ *
+ * 姓名學傳統講「音、形、義」，但工具幾乎只算筆劃（形）。
+ * 聲調是「音」裡面最能客觀判斷的部分：名字每天被叫幾十次，
+ * 拗口是實際會造成困擾的事，而且國語變調規則明確，不用瞎掰。
+ */
+function analyzeTones(chars) {
+  const tones = chars.map(c => ({ ch: c.ch, tone: toneOf(c.ch) }));
+  if (tones.some(t => t.tone === null)) return null; // 有字查不到就整段略過
+
+  const seq = tones.map(t => t.tone);
+  const distinct = new Set(seq).size;
+  const issues = [];
+  let score = 0;
+
+  // 起伏：跨越的聲調種類越多越有記憶點
+  if (distinct >= 3) { score += 2; issues.push(TONE_ISSUE.varied); }
+  else if (distinct === 1) { score -= 2; issues.push(TONE_ISSUE.allSame); }
+
+  // 相鄰同調
+  let adjacentSame = false;
+  let doubleThird = false;
+  for (let i = 1; i < seq.length; i++) {
+    if (seq[i] === seq[i - 1]) {
+      adjacentSame = true;
+      if (seq[i] === 3) doubleThird = true;
+    }
+  }
+  if (doubleThird) { score -= 2; issues.push(TONE_ISSUE.doubleThird); }
+  else if (adjacentSame && distinct > 1) { score -= 1; issues.push(TONE_ISSUE.adjacentSame); }
+
+  // 全四聲
+  if (seq.length >= 3 && seq.every(t => t === 4)) { score -= 1; issues.push(TONE_ISSUE.allFourth); }
+
+  // 收尾
+  const last = seq[seq.length - 1];
+  if (last === 4) { score += 1; issues.push(TONE_ISSUE.endFourth); }
+  else if (last === 3) { score -= 1; issues.push(TONE_ISSUE.endThird); }
+
+  let level;
+  if (doubleThird || score <= -3) level = 'hard';
+  else if (score <= -1) level = 'flat';
+  else if (score >= 2) level = 'good';
+  else level = 'ok';
+
+  return { tones, seq, distinct, issues, score, level, levelInfo: TONE_LEVEL[level] };
+}
+
+// ============ 筆劃反查字 ============
+
+/**
+ * 查某個筆劃數可以用哪些字
+ * 用人工篩選的白名單（data/name-chars.js），不是整個筆劃表 ——
+ * 直接反查筆劃表會列出屍、癌、屁這類字。
+ */
+export function charsByStroke(n) {
+  return [...(NAME_CHARS[n] || '')];
 }
 
 // ============ 簡體字處理 ============
@@ -438,13 +520,14 @@ export function calculate(input, baziData = null) {
       : null;
 
     const suggestions = suggestCombos(s, bz);
+    const tone = analyzeTones(all);
 
     const data = {
       surname, given,
       rawSurname, rawGiven, converted,
       chars: all,
       surnameStrokes: s, givenStrokes: g,
-      grids, sancai: sc, bazi: bz, suggestions,
+      grids, sancai: sc, bazi: bz, tone, suggestions,
     };
 
     return { status: 'ok', data, html: render(data), error: null };
@@ -464,6 +547,8 @@ function render(d) {
     ${renderGrids(d)}
     <div class="divider"></div>
     ${renderSancai(d)}
+    <div class="divider"></div>
+    ${renderTone(d)}
     <div class="divider"></div>
     ${renderBazi(d)}
     <div class="divider"></div>
@@ -544,6 +629,37 @@ function renderSancai(d) {
       <div><b>天格 ${sc.tian} ${sc.tianRenRel} 人格 ${sc.ren}</b><br>${sc.tianRenText}</div>
       <div><b>人格 ${sc.ren} ${sc.renDiRel} 地格 ${sc.di}</b><br>${sc.renDiText}</div>
     </div>
+  `;
+}
+
+function renderTone(d) {
+  const t = d.tone;
+  if (!t) {
+    return `
+      <h3>🔊 念起來順不順</h3>
+      <p class="meaning">名字裡有字查不到讀音，這段先略過。</p>
+    `;
+  }
+
+  const chips = t.tones.map(x => {
+    const info = TONE_NAME[x.tone];
+    return `<span class="nm-tone-chip">
+      <b>${x.ch}</b>
+      <em>${info.mark}</em>
+      <small>${info.zh}</small>
+    </span>`;
+  }).join('<span class="nm-sancai-arrow">·</span>');
+
+  return `
+    <h3>🔊 念起來順不順　<span class="nm-tag ${TONE_CLASS[t.level === 'good' ? 'good' : t.level === 'ok' ? 'mixed' : 'hard']}">${t.levelInfo.label}</span></h3>
+    <div class="nm-sancai">${chips}</div>
+    <p class="meaning">聲調組合 <span class="kw">${t.seq.join('–')}</span>。${t.levelInfo.text}</p>
+    <ul class="nm-list">${t.issues.map(i => `<li>${i}</li>`).join('')}</ul>
+    <p class="source-hint">
+      這段看的是「音」。姓名學傳統講音、形、義三塊，但線上工具幾乎只算筆劃（形）——
+      聲調是「音」裡面最能客觀判斷的部分，因為國語變調規則是死的，不用靠解釋。
+      多音字只取最常用的讀音，如果你的名字有破音字，這裡可能跟你自己念的不一樣。
+    </p>
   `;
 }
 
@@ -629,9 +745,32 @@ function renderBazi(d) {
   `;
 }
 
+/** 把某個筆劃的可選字排成一排，附聲調 */
+function charPicker(n, label) {
+  const chars = charsByStroke(n);
+  if (chars.length === 0) {
+    return `<div class="nm-pick"><b>${label}　${n} 劃</b><br>
+      <span style="color:var(--muted);">白名單裡這個筆劃還沒有字。可以自己查 ${n} 劃的字，
+      或改用旁邊其他筆劃的組合。</span></div>`;
+  }
+  const chips = chars.map(ch => {
+    const t = toneOf(ch);
+    return `<span class="nm-pick-char">${ch}${t ? `<em>${TONE_NAME[t].mark}</em>` : ''}</span>`;
+  }).join('');
+  return `<div class="nm-pick">
+    <b>${label}　${n} 劃</b>　<span style="color:var(--muted);font-size:.76rem;">${chars.length} 個字可選</span>
+    <div class="nm-pick-list">${chips}</div>
+  </div>`;
+}
+
 function renderSuggest(d) {
-  const rows = d.suggestions.map(r => `
-    <tr>
+  const withBazi = !!d.bazi;
+  const cols = 7;
+
+  const rows = d.suggestions.map((r, i) => {
+    const id = `nm-pick-${i}`;
+    return `
+    <tr class="nm-table-row" data-nm-toggle="${id}">
       <td><b>${r.n1}＋${r.n2}</b></td>
       <td>${r.ren.n}<small> ${r.ren.elem}</small></td>
       <td>${r.di.n}</td>
@@ -640,9 +779,20 @@ function renderSuggest(d) {
       <td><span class="nm-tag ${TONE_CLASS[r.sancai.level]}">${r.sancai.combo}</span></td>
       <td style="color:var(--muted);font-size:.78rem;">${r.ren.luck.title}</td>
     </tr>
-  `).join('');
-
-  const withBazi = !!d.bazi;
+    <tr class="nm-row-detail" id="${id}">
+      <td colspan="${cols}">
+        ${charPicker(r.n1, '名第一字')}
+        ${charPicker(r.n2, '名第二字')}
+        <div style="font-size:.78rem;color:var(--muted);margin-top:8px;">
+          聲調符號：ˉ一聲　ˊ二聲　ˇ三聲　ˋ四聲。
+          姓「${d.surname}」是 ${d.chars.slice(0, d.surnameStrokes.length).map(c => {
+            const t = toneOf(c.ch);
+            return `${c.ch}${t ? TONE_NAME[t].mark : ''}`;
+          }).join('')}，挑字的時候順便讓三個字的聲調有點落差，名字會好叫很多。
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
 
   return `
     <h3>✍️ 如果要取名或改名</h3>
@@ -650,6 +800,7 @@ function renderSuggest(d) {
       姓「${d.surname}」（${d.surnameStrokes.join('＋')} 劃）是固定的，天格改不了。
       下面是配這個姓最順的<b>名字筆劃組合</b>（雙名），評分把人格、總格、地格、外格的吉凶和三才配置都算進去
       ${withBazi ? `，<b>並且把你八字的用神「${d.bazi.yongshen}」一起加權</b>` : ''}。
+      <b>點任一列可以看那個筆劃有哪些字能用</b> ▼
     </p>
     <div class="nm-table-wrap">
       <table class="nm-table">
@@ -658,8 +809,15 @@ function renderSuggest(d) {
       </table>
     </div>
     <p class="source-hint">
-      用法：挑一組筆劃，再去找符合那個筆劃的字。記得筆劃要用康熙筆劃查（例如 12 劃的「凱」、11 劃的「彬」）。
-      ${withBazi ? '' : '填了出生資料之後，這張表會把八字用神一起考慮，建議會更貼你。'}
+      可選字是人工篩過的白名單（約 1,000 字），不是整個字典 ——
+      直接從筆劃反查會跑出屍、癌、屁這種字。清單不是全部可能，只是常見好用的那些，
+      你想用的字不在裡面也沒關係，回上面用完整姓名重算一次就知道結果。
+      ${withBazi ? '' : '<br>填了出生資料之後，這張表會把八字用神一起考慮，建議會更貼你。'}
     </p>
+    <div class="nm-notice" style="margin-top:14px;">
+      ⚖️ <b>真的要改名的話</b>：台灣依姓名條例，同一人改名以<b>三次為限</b>（未成年時由法定代理人改的那次不算在內），
+      且需符合法定事由。戶籍謄本、學歷、證照、銀行帳戶、保單都要跟著改。
+      如果只是想換個叫法，用別號或英文名不受限制，也不用跑戶政。
+    </div>
   `;
 }
