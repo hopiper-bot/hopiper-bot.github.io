@@ -1926,3 +1926,58 @@ h3 {
   color: var(--accent);
   margin-left: 1px;
 }
+
+/* ===== 姓名學：字義（音形義的義） ===== */
+.nm-me-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.nm-me-card {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--input-bg);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+}
+
+.nm-me-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.nm-me-char { font-size: 1.5rem; line-height: 1; }
+
+.nm-me-elem {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.nm-me-hint { font-size: 0.82rem; line-height: 1.6; color: var(--text); }
+.nm-me-foot { margin-top: 8px; }
+
+/* ===== 姓名學：生肖用字 ===== */
+.nm-zc-chars { margin: 12px 0; }
+
+.nm-zc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.1);
+}
+
+.nm-zc-row:last-child { border-bottom: none; }
+.nm-zc-char { font-size: 1.4rem; min-width: 32px; text-align: center; }
+
+.nm-zc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}

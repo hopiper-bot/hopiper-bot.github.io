@@ -21,6 +21,8 @@ import {
   LUCK81, GRID_META, ELEMENT_TRAIT, REL_TEXT, SANCAI_LEVEL, COMPOUND_SURNAMES,
   TONE_NAME, TONE_LEVEL, TONE_ISSUE,
 } from '../data/name-text.js';
+import { ZODIAC_INFO, RADICALS, ZODIAC_RADICALS } from '../data/zodiac-name.js';
+import { RADICAL_ELEMENT, CHAR_MEANING } from '../data/char-meaning.js';
 
 // ============ 五行基礎 ============
 
@@ -404,6 +406,112 @@ function baziMatch(grids, baziData) {
   };
 }
 
+// ============ 生肖喜忌 ============
+
+/** 某個字命中哪些字根（回傳 RADICALS 的 key 陣列） */
+function radicalsOfChar(ch) {
+  const hit = [];
+  for (const [key, def] of Object.entries(RADICALS)) {
+    if (def.chars.includes(ch)) hit.push(key);
+  }
+  return hit;
+}
+
+/**
+ * 生肖用字分析
+ * @param {Array<{ch}>} givenChars 名字（不含姓 —— 姓是父母給的，改不了，只評名）
+ * @param {string} branch 年支（子丑寅…），從 baziData.pillars.year.branch 來
+ */
+function analyzeZodiac(givenChars, branch) {
+  const info = ZODIAC_INFO[branch];
+  if (!info) return null;
+  const animal = info.animal;
+  const zr = ZODIAC_RADICALS[animal];
+  if (!zr) return null;
+
+  const perChar = givenChars.map(c => {
+    const rads = radicalsOfChar(c.ch);
+    const likes = rads.filter(r => zr.like.includes(r));
+    const dislikes = rads.filter(r => zr.dislike.includes(r));
+    return { ch: c.ch, rads, likes, dislikes };
+  });
+
+  const likeCount = perChar.reduce((n, p) => n + p.likes.length, 0);
+  const dislikeCount = perChar.reduce((n, p) => n + p.dislikes.length, 0);
+  const net = likeCount - dislikeCount;
+
+  let level, verdict;
+  if (dislikeCount === 0 && likeCount > 0) { level = 'good'; verdict = '名字用字符合生肖喜好，加分。'; }
+  else if (net > 0) { level = 'good'; verdict = '喜多於忌，整體對生肖有利。'; }
+  else if (net === 0 && likeCount === 0) { level = 'ok'; verdict = '名字用字跟生肖沒特別關聯，中性。生肖只是十二分之一的粗略分類，中性很正常。'; }
+  else if (net === 0) { level = 'ok'; verdict = '喜忌相抵，影響互相抵消。'; }
+  else { level = 'flat'; verdict = '忌多於喜，依生肖姓名學的說法不太合。但這是民俗規則，別太緊張 —— 真要看補救還是以八字用神為準。'; }
+
+  // 收集用到的喜／忌字根，去重
+  const usedLike = [...new Set(perChar.flatMap(p => p.likes))];
+  const usedDislike = [...new Set(perChar.flatMap(p => p.dislikes))];
+
+  return {
+    branch, animal, info,
+    like: zr.like, dislike: zr.dislike,
+    likeReason: zr.likeReason, dislikeReason: zr.dislikeReason,
+    perChar, likeCount, dislikeCount, net,
+    usedLike, usedDislike,
+    level, verdict,
+    likeLabels: zr.like.map(k => RADICALS[k]?.label || k),
+    dislikeLabels: zr.dislike.map(k => RADICALS[k]?.label || k),
+  };
+}
+
+// ============ 字義（音形義的「義」） ============
+
+/** 用部首字根推字義五行，查不到回 null */
+function elementByRadical(ch) {
+  for (const def of RADICAL_ELEMENT) {
+    if (def.chars.includes(ch)) return def.elem;
+  }
+  return null;
+}
+
+/**
+ * 名字每個字的字義分析
+ * @param {Array<{ch, strokes}>} givenChars 只評名（姓不評寓意）
+ */
+function analyzeMeaning(givenChars) {
+  const chars = givenChars.map(c => {
+    const explicit = CHAR_MEANING[c.ch];
+    const radElem = elementByRadical(c.ch);
+    return {
+      ch: c.ch,
+      strokeElem: numToElement(c.strokes), // 筆劃五行（對照用）
+      meaningElem: explicit?.elem || radElem || null, // 字義五行
+      hasHint: !!explicit,
+      tone: explicit?.tone || null,       // good/neutral/caution
+      gender: explicit?.gender || null,
+      hint: explicit?.hint || null,
+    };
+  });
+
+  // 字義五行統計
+  const elemCount = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
+  chars.forEach(c => { if (c.meaningElem) elemCount[c.meaningElem]++; });
+
+  // 性別傾向
+  const genders = chars.map(c => c.gender).filter(Boolean);
+  let genderTilt = null;
+  if (genders.length) {
+    const m = genders.filter(g => g === 'm').length;
+    const f = genders.filter(g => g === 'f').length;
+    if (m > f) genderTilt = { key: 'm', label: '偏陽剛', text: '用字意象偏陽剛，適合期望孩子個性果決、有衝勁的取向。若是女生用，會帶點中性帥氣。' };
+    else if (f > m) genderTilt = { key: 'f', label: '偏陰柔', text: '用字意象偏陰柔，清雅溫婉。若是男生用，會顯得斯文、細膩。' };
+    else genderTilt = { key: 'n', label: '中性', text: '陰陽意象平衡，男女皆宜。' };
+  }
+
+  const cautions = chars.filter(c => c.tone === 'caution');
+
+  return { chars, elemCount, genderTilt, cautions };
+}
+
 // ============ 取名／改名建議 ============
 
 /**
@@ -522,12 +630,19 @@ export function calculate(input, baziData = null) {
     const suggestions = suggestCombos(s, bz);
     const tone = analyzeTones(all);
 
+    // 只評「名」的字（姓是父母給的，改不了）
+    const givenCharObjs = all.slice(sChars.length);
+    const meaning = analyzeMeaning(givenCharObjs);
+    const branch = baziData?.pillars?.year?.branch || null;
+    const zodiac = branch ? analyzeZodiac(givenCharObjs, branch) : null;
+
     const data = {
       surname, given,
       rawSurname, rawGiven, converted,
       chars: all,
       surnameStrokes: s, givenStrokes: g,
       grids, sancai: sc, bazi: bz, tone, suggestions,
+      meaning, zodiac,
     };
 
     return { status: 'ok', data, html: render(data), error: null };
@@ -549,6 +664,10 @@ function render(d) {
     ${renderSancai(d)}
     <div class="divider"></div>
     ${renderTone(d)}
+    <div class="divider"></div>
+    ${renderMeaning(d)}
+    <div class="divider"></div>
+    ${renderZodiac(d)}
     <div class="divider"></div>
     ${renderBazi(d)}
     <div class="divider"></div>
@@ -659,6 +778,112 @@ function renderTone(d) {
       這段看的是「音」。姓名學傳統講音、形、義三塊，但線上工具幾乎只算筆劃（形）——
       聲調是「音」裡面最能客觀判斷的部分，因為國語變調規則是死的，不用靠解釋。
       多音字只取最常用的讀音，如果你的名字有破音字，這裡可能跟你自己念的不一樣。
+    </p>
+  `;
+}
+
+function renderMeaning(d) {
+  const m = d.meaning;
+  if (!m || m.chars.length === 0) {
+    return `<h3>📖 字義（音形義的「義」）</h3><p class="meaning">沒有可分析的名字用字。</p>`;
+  }
+
+  const cards = m.chars.map(c => {
+    const meElem = c.meaningElem;
+    const meElemHtml = meElem
+      ? `<span class="nm-me-elem nm-good">${ELEMENT_TRAIT[meElem].icon} ${meElem}</span>`
+      : `<span class="nm-me-elem" style="color:var(--muted);">字義五行未收錄</span>`;
+    const strokeElemNote = meElem && meElem !== c.strokeElem
+      ? `<small style="color:var(--muted);">（筆劃五行 ${c.strokeElem}，字義五行 ${meElem}，兩者不同很正常）</small>`
+      : `<small style="color:var(--muted);">筆劃五行 ${c.strokeElem}</small>`;
+    const toneBadge = c.tone === 'caution'
+      ? `<span class="nm-tag nm-hard">留意</span>`
+      : c.tone === 'good' ? `<span class="nm-tag nm-good">正面</span>` : '';
+    return `
+      <div class="nm-me-card">
+        <div class="nm-me-top"><b class="nm-me-char">${c.ch}</b> ${meElemHtml} ${toneBadge}</div>
+        <div class="nm-me-hint">${c.hint || '這個字沒有收錄專屬寓意，可用它的部首和本義自行體會。'}</div>
+        <div class="nm-me-foot">${strokeElemNote}</div>
+      </div>
+    `;
+  }).join('');
+
+  const elemSummary = ['木', '火', '土', '金', '水']
+    .filter(el => m.elemCount[el] > 0)
+    .map(el => `${ELEMENT_TRAIT[el].icon}${el}×${m.elemCount[el]}`)
+    .join('　') || '（用字五行未收錄）';
+
+  const genderHtml = m.genderTilt
+    ? `<div class="nm-verdict ${m.genderTilt.key === 'n' ? 'nm-mixed' : 'nm-good'}">
+         <div class="nm-verdict-label">用字風格：${m.genderTilt.label}</div>
+         <div>${m.genderTilt.text}</div>
+       </div>`
+    : '';
+
+  const cautionHtml = m.cautions.length
+    ? `<div class="nm-notice">⚠️ <b>${m.cautions.map(c => c.ch).join('、')}</b> 這${m.cautions.length > 1 ? '些' : '個'}字意象偏剛烈或需要承接的能量，不是不能用，而是用的人要壓得住 —— 通常會搭配柔一點的字或需要八字夠旺來平衡。</div>`
+    : '';
+
+  return `
+    <h3>📖 字義　<span style="font-size:.8rem;color:var(--muted);font-weight:normal;">音形義的「義」</span></h3>
+    <p class="meaning">名字用字的<b>字義五行</b>是 ${elemSummary}。這跟上面五格的「筆劃五行」是兩套系統：
+      筆劃五行看數字，字義五行看字的本義和部首（江河屬水、松柏屬木）。做八字補救時字義五行更貼近直覺，兩個都給你參考。</p>
+    <div class="nm-me-wrap">${cards}</div>
+    ${genderHtml}
+    ${cautionHtml}
+    <p class="source-hint">
+      「義」是姓名學傳統三塊（音、形、義）裡最少工具做的一塊。字義五行用字的部首本義判斷；
+      寓意收錄常見取名字約百餘個，沒收錄的字不代表不好，只是還沒建檔。
+    </p>
+  `;
+}
+
+function renderZodiac(d) {
+  const z = d.zodiac;
+  if (!z) {
+    return `
+      <h3>🐾 生肖用字喜忌</h3>
+      <p class="meaning">生肖用字要看你的出生年（以立春為界）。填了出生資料之後，這裡會分析你名字的用字合不合生肖，並在取名建議裡一起考慮。</p>
+      <p style="text-align:center;margin-top:14px;">
+        <a href="index.html" class="btn-primary" style="display:inline-block;text-decoration:none;">去填出生資料 ✦</a>
+      </p>
+    `;
+  }
+
+  const levelCls = z.level === 'good' ? 'nm-good' : z.level === 'ok' ? 'nm-mixed' : 'nm-hard';
+  const levelLabel = z.level === 'good' ? '合' : z.level === 'ok' ? '中性' : '偏不合';
+
+  const perChar = z.perChar.map(p => {
+    const likeTags = p.likes.map(k => `<span class="nm-tag nm-good">${RADICALS[k]?.label || k} ✓</span>`).join('');
+    const dislikeTags = p.dislikes.map(k => `<span class="nm-tag nm-hard">${RADICALS[k]?.label || k} ✗</span>`).join('');
+    const none = !p.likes.length && !p.dislikes.length
+      ? `<span style="color:var(--muted);font-size:.8rem;">無明顯生肖字根，中性</span>` : '';
+    return `
+      <div class="nm-zc-row">
+        <b class="nm-zc-char">${p.ch}</b>
+        <span class="nm-zc-tags">${likeTags}${dislikeTags}${none}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <h3>🐾 生肖用字：屬${z.animal}　<span class="nm-tag ${levelCls}">${levelLabel}</span></h3>
+    <p class="meaning">
+      你屬 <span class="kw">${z.animal}</span>（年支 ${z.branch}，以立春為界）。
+      生肖姓名學看名字用字的<b>字根</b>合不合這個生肖的生活習性 —— 只評「名」，姓是改不了的。
+    </p>
+    <div class="nm-verdict ${levelCls}">
+      <div class="nm-verdict-label">整體：喜 ${z.likeCount} · 忌 ${z.dislikeCount}</div>
+      <div>${z.verdict}</div>
+    </div>
+    <div class="nm-zc-chars">${perChar}</div>
+    <div class="nm-rel">
+      <div><b>屬${z.animal}喜歡的字根</b><br>${z.likeReason}</div>
+      <div><b>屬${z.animal}要避開的字根</b><br>${z.dislikeReason}</div>
+    </div>
+    <p class="source-hint">
+      生肖用字是民俗規則，流派之間會有出入，這裡取最主流的版本。它只是十二分之一的粗略分類 ——
+      跟八字用神衝突時以八字為準，因為八字是你的完整本命結構。字根用「包含關係」判斷（如「宏」含宀、「群」含羊）。
     </p>
   `;
 }
