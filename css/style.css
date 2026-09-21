@@ -1981,3 +1981,57 @@ h3 {
   gap: 5px;
   align-items: center;
 }
+
+/* ===== 姓名學：總評分數（懶人包） ===== */
+.nm-overall {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 0 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0.03));
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+}
+
+.nm-overall-num {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  min-width: 88px;
+}
+
+.nm-overall-score { font-size: 2.6rem; font-weight: 800; }
+.nm-overall-max { font-size: 0.72rem; color: var(--muted); margin: 2px 0 6px; }
+.nm-overall-blurb { font-size: 0.88rem; line-height: 1.6; }
+
+.nm-score-bars { margin: 10px 0; }
+
+.nm-score-row {
+  display: grid;
+  grid-template-columns: 76px 1fr 30px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.nm-score-label { font-size: 0.8rem; }
+.nm-score-label small { color: var(--muted); font-size: 0.66rem; margin-left: 3px; }
+
+.nm-score-track {
+  position: relative;
+  height: 8px;
+  border-radius: 5px;
+  background: var(--input-bg);
+  overflow: hidden;
+}
+
+.nm-score-track > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: rgba(var(--accent-rgb), 0.5);
+}
+
+.nm-score-pct { font-size: 0.74rem; color: var(--muted); text-align: right; }

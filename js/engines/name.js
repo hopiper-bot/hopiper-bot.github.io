@@ -23,6 +23,7 @@ import {
 } from '../data/name-text.js';
 import { ZODIAC_INFO, RADICALS, ZODIAC_RADICALS } from '../data/zodiac-name.js';
 import { RADICAL_ELEMENT, CHAR_MEANING } from '../data/char-meaning.js';
+import { FULL_NAME, SURNAME_TRAP, BAD_CHAR } from '../data/homophone.js';
 
 // ============ 五行基礎 ============
 
@@ -512,6 +513,130 @@ function analyzeMeaning(givenChars) {
   return { chars, elemCount, genderTilt, cautions };
 }
 
+// ============ 諧音檢查（音的最後一塊） ============
+
+/**
+ * 諧音檢查
+ * @param {string} surname 姓（正體）
+ * @param {string} given 名（正體）
+ * @param {Array<{ch}>} givenChars 名的字
+ */
+function analyzeHomophone(surname, given, givenChars, rawSurname, rawGiven) {
+  const full = surname + given;
+  const rawFull = (rawSurname || surname) + (rawGiven || given);
+  const findings = [];
+
+  // 1. 整組姓名經典諧音梗
+  // 同時比對「轉換後」和「原始輸入」—— 簡繁表有時會把正體姓氏過度轉換
+  // （例：正體姓「范」被當成「範」的簡體轉掉），用原始輸入補一層才不會漏抓。
+  const fullHit = FULL_NAME[full] || FULL_NAME[rawFull];
+  const fullKey = FULL_NAME[full] ? full : (FULL_NAME[rawFull] ? rawFull : full);
+  if (fullHit) {
+    findings.push({ type: 'full', level: 'hard', text: `全名「${fullKey}」諧音「${fullHit.sounds}」—— ${fullHit.note}` });
+  }
+
+  // 2. 姓氏陷阱（原始輸入的姓優先，避免簡繁誤轉）
+  const trapSurname = SURNAME_TRAP[rawSurname] ? rawSurname : surname;
+  const trap = SURNAME_TRAP[trapSurname];
+  if (trap) {
+    const firstGiven = givenChars[0]?.ch || rawGiven?.[0];
+    const hit = trap.badGiven && trap.badGiven.includes(firstGiven);
+    findings.push({
+      type: 'surname',
+      level: hit ? 'hard' : 'ok',
+      text: hit
+        ? `⚠️ 姓「${trapSurname}」＋「${firstGiven}」要特別當心。${trap.note}`
+        : trap.note,
+    });
+  }
+
+  // 3. 單字諧音
+  for (const c of givenChars) {
+    const bad = BAD_CHAR[c.ch];
+    if (!bad) continue;
+    // onlyWith：只有配特定姓氏才提醒
+    if (bad.onlyWith && !bad.onlyWith.includes(surname)) continue;
+    findings.push({ type: 'char', level: 'ok', text: `「${c.ch}」：${bad.note}` });
+  }
+
+  const hasHard = findings.some(f => f.level === 'hard');
+  let level, summary;
+  if (hasHard) {
+    level = 'hard';
+    summary = '偵測到明顯諧音問題，如果還在取名階段建議換字。';
+  } else if (findings.length > 0) {
+    level = 'ok';
+    summary = '有一點諧音上的小提醒，多半無傷大雅，看看就好。';
+  } else {
+    level = 'good';
+    summary = '沒有踩到常見的諧音陷阱，唸起來乾淨。';
+  }
+
+  return { full, findings, level, summary };
+}
+
+// ============ 總評分數（懶人包） ============
+
+/**
+ * 把各面向濃縮成一個綜合分數 + 一句話結論。
+ * 資訊分散在五六個區塊，這裡先給重點，讓人決定要不要往下鑽。
+ *
+ * 加權（滿分 100）：
+ *   五格吉凶（人格為主）30 ｜ 三才 25 ｜ 聲調 15 ｜ 字義 10 ｜ 諧音 10 ｜ 八字補救 10
+ *   沒填八字時，八字那 10 分按比例分攤到其他項（不懲罰沒填的人）。
+ */
+function overallScore(d) {
+  const parts = [];
+
+  // 五格：人格權重最高，加總格、地格、外格
+  const gradeToPct = { 大吉: 1, 吉: 0.82, 半吉: 0.62, 吉帶凶: 0.5, 凶帶吉: 0.5, 凶: 0.28, 大凶: 0.1 };
+  const gv = k => gradeToPct[d.grids[k].luck.tag] ?? 0.5;
+  const gridPct = gv('ren') * 0.5 + gv('zong') * 0.25 + gv('di') * 0.15 + gv('wai') * 0.1;
+  parts.push({ key: '五格', weight: 30, pct: gridPct });
+
+  // 三才
+  const sancaiPct = d.sancai.level === 'good' ? 1 : d.sancai.level === 'mixed' ? 0.6 : 0.3;
+  parts.push({ key: '三才', weight: 25, pct: sancaiPct });
+
+  // 聲調
+  const tonePct = !d.tone ? 0.6
+    : d.tone.level === 'good' ? 1 : d.tone.level === 'ok' ? 0.75 : d.tone.level === 'flat' ? 0.55 : 0.35;
+  parts.push({ key: '聲調', weight: 15, pct: tonePct });
+
+  // 字義：正面字比例，有 caution 扣分
+  let meaningPct = 0.7;
+  if (d.meaning && d.meaning.chars.length) {
+    const good = d.meaning.chars.filter(c => c.tone === 'good').length;
+    const caution = d.meaning.cautions.length;
+    const n = d.meaning.chars.length;
+    meaningPct = Math.max(0.2, Math.min(1, 0.6 + (good - caution) / n * 0.4));
+  }
+  parts.push({ key: '字義', weight: 10, pct: meaningPct });
+
+  // 諧音
+  const homoPct = d.homophone.level === 'good' ? 1 : d.homophone.level === 'ok' ? 0.7 : 0.3;
+  parts.push({ key: '諧音', weight: 10, pct: homoPct });
+
+  // 八字補救（沒填則此項不計，權重分攤）
+  let baziPct = null;
+  if (d.bazi) {
+    baziPct = { best: 1, good: 0.85, ok: 0.65, neutral: 0.5, weak: 0.3 }[d.bazi.verdict] ?? 0.5;
+    parts.push({ key: '八字補救', weight: 10, pct: baziPct });
+  }
+
+  const totalWeight = parts.reduce((s, p) => s + p.weight, 0);
+  const raw = parts.reduce((s, p) => s + p.weight * p.pct, 0);
+  const score = Math.round((raw / totalWeight) * 100);
+
+  let grade, tone, blurb;
+  if (score >= 85) { grade = '很好'; tone = 'good'; blurb = '整體配置相當協調，是很順的一個名字。'; }
+  else if (score >= 72) { grade = '不錯'; tone = 'good'; blurb = '整體偏好，有一兩個地方可以更好，但無傷大雅。'; }
+  else if (score >= 58) { grade = '中等'; tone = 'mixed'; blurb = '有好有壞，看你最在意哪一塊 —— 名字通常改不了，把它當成了解自己的角度就好。'; }
+  else { grade = '偏弱'; tone = 'hard'; blurb = '幾個面向不太順。但別緊張：分數低不代表命不好，姓名學只是眾多角度之一，性格和選擇才是主角。'; }
+
+  return { score, grade, tone, blurb, parts };
+}
+
 // ============ 取名／改名建議 ============
 
 /**
@@ -635,6 +760,7 @@ export function calculate(input, baziData = null) {
     const meaning = analyzeMeaning(givenCharObjs);
     const branch = baziData?.pillars?.year?.branch || null;
     const zodiac = branch ? analyzeZodiac(givenCharObjs, branch) : null;
+    const homophone = analyzeHomophone(surname, given, givenCharObjs, rawSurname, rawGiven);
 
     const data = {
       surname, given,
@@ -642,8 +768,9 @@ export function calculate(input, baziData = null) {
       chars: all,
       surnameStrokes: s, givenStrokes: g,
       grids, sancai: sc, bazi: bz, tone, suggestions,
-      meaning, zodiac,
+      meaning, zodiac, homophone,
     };
+    data.overall = overallScore(data); // 依賴上面全部結果，最後算
 
     return { status: 'ok', data, html: render(data), error: null };
   } catch (err) {
@@ -659,11 +786,15 @@ function render(d) {
   return `
     ${d.converted.length > 0 ? `<div class="nm-notice">📝 偵測到簡體字，已自動轉成正體再算：${d.converted.map(c => `${c.from} → <b>${c.to}</b>`).join('、')}。姓名學的筆劃一定要用正體字，用簡體會整盤算錯。</div>` : ''}
     ${renderHeader(d)}
+    ${renderOverall(d)}
+    <div class="divider"></div>
     ${renderGrids(d)}
     <div class="divider"></div>
     ${renderSancai(d)}
     <div class="divider"></div>
     ${renderTone(d)}
+    <div class="divider"></div>
+    ${renderHomophone(d)}
     <div class="divider"></div>
     ${renderMeaning(d)}
     <div class="divider"></div>
@@ -695,6 +826,59 @@ function renderHeader(d) {
         主運（人格）<b style="color:var(--accent);">${ren.n} 劃 · ${ren.elem}</b> · ${ren.luck.title}
       </div>
     </div>
+  `;
+}
+
+function renderOverall(d) {
+  const o = d.overall;
+  const cls = TONE_CLASS[o.tone];
+  const bars = o.parts.map(p => {
+    const pct = Math.round(p.pct * 100);
+    return `
+      <div class="nm-score-row">
+        <span class="nm-score-label">${p.key}<small>${p.weight}%</small></span>
+        <span class="nm-score-track"><i style="width:${pct}%"></i></span>
+        <span class="nm-score-pct">${pct}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="nm-overall">
+      <div class="nm-overall-num ${cls}">
+        <span class="nm-overall-score">${o.score}</span>
+        <span class="nm-overall-max">/ 100</span>
+        <span class="nm-tag ${cls}">${o.grade}</span>
+      </div>
+      <div class="nm-overall-blurb">${o.blurb}</div>
+    </div>
+    <div class="nm-score-bars">${bars}</div>
+    <p class="source-hint">
+      這個分數是把下面各面向照重要程度加權濃縮的懶人包${d.bazi ? '' : '（沒填出生資料，八字補救那 10% 已按比例分攤到其他項，不會因為沒填而扣分）'}。
+      分數只是快速參考 —— 名字通常改不了，重點是往下看每一塊在說什麼，把它當成了解自己的角度。
+    </p>
+  `;
+}
+
+function renderHomophone(d) {
+  const h = d.homophone;
+  const cls = TONE_CLASS[h.level === 'good' ? 'good' : h.level === 'ok' ? 'mixed' : 'hard'];
+  const label = h.level === 'good' ? '乾淨' : h.level === 'ok' ? '小提醒' : '要注意';
+
+  const items = h.findings.length
+    ? `<ul class="nm-list">${h.findings.map(f =>
+        `<li class="${f.level === 'hard' ? 'nm-hard' : ''}">${f.text}</li>`).join('')}</ul>`
+    : `<p class="meaning">「${h.full}」唸起來沒有踩到常見的諧音陷阱，乾淨俐落。</p>`;
+
+  return `
+    <h3>🗣 諧音檢查　<span class="nm-tag ${cls}">${label}</span></h3>
+    <p class="meaning">${h.summary}</p>
+    ${items}
+    <p class="source-hint">
+      這是「音」的最後一塊 —— 名字每天被叫，連讀會不會變成好笑或不雅的詞，比命理吉凶更實際。
+      這裡用的是「經典諧音陷阱」清單（大家真的會拿來開玩笑的那些），不是硬用拼音窮舉，
+      所以不會誤報一堆無傷大雅的巧合。沒被點到不代表 100% 沒人聯想得到，但至少常見的雷都掃過了。
+    </p>
   `;
 }
 
