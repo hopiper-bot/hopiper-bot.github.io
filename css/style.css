@@ -2314,3 +2314,93 @@ h3 {
     break-inside: avoid;
   }
 }
+
+
+/* ===== 日夜盤詳細解說 ===== */
+.astro-sect-principle {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 9px 9px 0;
+  background: rgba(var(--accent-rgb), .07);
+}
+
+.astro-sect-principle > b,
+.astro-sect-howto > b {
+  color: var(--accent);
+  font-size: .82rem;
+}
+
+.astro-sect-principle p {
+  margin: 5px 0 0;
+  font-size: .78rem;
+  line-height: 1.7;
+}
+
+.astro-sect-personal {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--card-border);
+}
+
+.astro-sect-personal h4 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: .9rem;
+}
+
+.astro-sect-points {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.astro-sect-point {
+  padding: 11px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 9px;
+  background: rgba(var(--accent2-rgb), .055);
+}
+
+.astro-sect-point small,
+.astro-sect-point b {
+  display: block;
+}
+
+.astro-sect-point small {
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: .66rem;
+}
+
+.astro-sect-point b {
+  color: var(--accent);
+  font-size: .8rem;
+}
+
+.astro-sect-point p {
+  margin: 5px 0 0;
+  font-size: .74rem;
+  line-height: 1.65;
+}
+
+.astro-sect-howto {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), .09);
+  font-size: .75rem;
+  line-height: 1.65;
+}
+
+.astro-sect-howto > b {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .astro-sect-points { grid-template-columns: 1fr; }
+  .astro-sect-howto { display: block; }
+  .astro-sect-howto > b { display: block; margin-bottom: 3px; }
+}
