@@ -164,13 +164,20 @@ export function calculate(birthData) {
       degreeStr: formatDegree(icLon),
     };
 
-    // 福點 Part of Fortune
-    // 日間盤（太陽在地平線上）：ASC + Moon - Sun
-    // 夜間盤（太陽在地平線下）：ASC + Sun - Moon
+    // 日夜盤（sect）：太陽在地平線上方（第 7～12 宮）為日盤，
+    // 在地平線下方（第 1～6 宮）為夜盤。這也決定傳統福點公式。
     const sunLon = planets[0].longitude;
     const moonLon = planets[1].longitude;
-    const isDaytime = getHouse(sunLon, ascLon) <= 6; // 1-6宮 = 地平線上
-    const fortuneLon = isDaytime
+    const sunHouse = planets[0].house;
+    const isDayChart = sunHouse >= 7;
+    const sect = {
+      type: isDayChart ? 'day' : 'night',
+      label: isDayChart ? '日盤人' : '夜盤人',
+      symbol: isDayChart ? '☀️' : '🌙',
+      luminary: isDayChart ? '太陽' : '月亮',
+      isDayChart,
+    };
+    const fortuneLon = isDayChart
       ? normalizeDeg(ascLon + moonLon - sunLon)
       : normalizeDeg(ascLon + sunLon - moonLon);
     const fortuneSignIdx = longitudeToSign(fortuneLon);
@@ -194,6 +201,7 @@ export function calculate(birthData) {
       ic: icData,
       fortune,
       aspects,
+      sect,
       sunSign: planets[0].sign,
       moonSign: planets[1].sign,
       risingSign: SIGNS[ascSignIdx],
@@ -224,6 +232,9 @@ function renderAstro(data) {
         <span class="tag tag-${elementColor(mc.sign.elementEn)}">⊤ 天頂${mc.sign.zh}</span>
       </div>
     </div>
+
+    ${renderNatalChart(data)}
+    ${renderSect(data)}
 
     <h3>📋 星體位置表</h3>
     <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">點擊任一行查看具體解讀 ▼</p>
@@ -895,4 +906,175 @@ function elementColor(element) {
     case 'water': return 'blue';
     default: return 'white';
   }
+}
+
+
+// === 本命星盤圖與日夜盤（Sect） ===
+
+/** 將黃經轉成星盤角度：ASC 固定在左側，宮位逆時針排列。 */
+function chartAngle(longitude, ascLon) {
+  return 180 - normalizeDeg(longitude - ascLon);
+}
+
+function polarPoint(radius, angleDeg, center = 260) {
+  const rad = angleDeg * Math.PI / 180;
+  return {
+    x: center + radius * Math.cos(rad),
+    y: center + radius * Math.sin(rad),
+  };
+}
+
+function circularDistance(a, b) {
+  const diff = Math.abs(normalizeDeg(a) - normalizeDeg(b));
+  return Math.min(diff, 360 - diff);
+}
+
+/** 為相近行星安排不同半徑，避免符號完全重疊。 */
+function arrangeChartBodies(bodies, ascLon) {
+  const placed = [];
+  return [...bodies]
+    .sort((a, b) => normalizeDeg(a.longitude - ascLon) - normalizeDeg(b.longitude - ascLon))
+    .map(body => {
+      const angle = chartAngle(body.longitude, ascLon);
+      let lane = 0;
+      while (placed.some(item => item.lane === lane && circularDistance(item.angle, angle) < 9)) {
+        lane++;
+      }
+      lane = Math.min(lane, 3);
+      const radius = 151 - lane * 20;
+      const point = polarPoint(radius, angle);
+      const result = { ...body, angle, lane, radius, x: point.x, y: point.y };
+      placed.push(result);
+      return result;
+    });
+}
+
+function aspectLineClass(angle) {
+  if (angle === 0 || angle === 60 || angle === 120) return 'astro-aspect-harmonious';
+  if (angle === 90 || angle === 180) return 'astro-aspect-dynamic';
+  return 'astro-aspect-neutral';
+}
+
+/** 產生不依賴第三方套件、可隨螢幕縮放的 SVG 本命星盤。 */
+function renderNatalChart(data) {
+  const { planets, northNode, fortune, ascendant: asc, dsc, mc, ic, aspects, sect } = data;
+  const chartBodies = arrangeChartBodies([...planets, northNode, fortune], asc.longitude);
+  const bodyPoints = Object.fromEntries(chartBodies.map(body => [body.id, body]));
+
+  const zodiacBoundaries = SIGNS.map((sign, index) => {
+    const angle = chartAngle(index * 30, asc.longitude);
+    const inner = polarPoint(195, angle);
+    const outer = polarPoint(226, angle);
+    return `<line x1="${inner.x.toFixed(2)}" y1="${inner.y.toFixed(2)}" x2="${outer.x.toFixed(2)}" y2="${outer.y.toFixed(2)}" class="astro-zodiac-line" />`;
+  }).join('');
+
+  const zodiacLabels = SIGNS.map((sign, index) => {
+    const angle = chartAngle(index * 30 + 15, asc.longitude);
+    const point = polarPoint(210, angle);
+    return `<text x="${point.x.toFixed(2)}" y="${point.y.toFixed(2)}" class="astro-zodiac-label astro-zodiac-${sign.elementEn}">${sign.symbol}</text>`;
+  }).join('');
+
+  const houseLines = Array.from({ length: 12 }, (_, index) => {
+    const angle = 180 - index * 30;
+    const inner = polarPoint(67, angle);
+    const outer = polarPoint(195, angle);
+    const isAxis = index % 3 === 0;
+    return `<line x1="${inner.x.toFixed(2)}" y1="${inner.y.toFixed(2)}" x2="${outer.x.toFixed(2)}" y2="${outer.y.toFixed(2)}" class="astro-house-line${isAxis ? ' astro-axis-line' : ''}" />`;
+  }).join('');
+
+  const houseLabels = Array.from({ length: 12 }, (_, index) => {
+    const point = polarPoint(179, 165 - index * 30);
+    return `<text x="${point.x.toFixed(2)}" y="${point.y.toFixed(2)}" class="astro-house-label">${index + 1}</text>`;
+  }).join('');
+
+  const aspectLines = aspects.map(aspect => {
+    const p1 = bodyPoints[aspect.planet1.id];
+    const p2 = bodyPoints[aspect.planet2.id];
+    if (!p1 || !p2) return '';
+    return `<line x1="${p1.x.toFixed(2)}" y1="${p1.y.toFixed(2)}" x2="${p2.x.toFixed(2)}" y2="${p2.y.toFixed(2)}" class="astro-aspect-line ${aspectLineClass(aspect.type.angle)}"><title>${aspect.planet1.zh}${aspect.type.name}${aspect.planet2.zh}，容許度 ${aspect.exactDelta}°</title></line>`;
+  }).join('');
+
+  const bodyMarkers = chartBodies.map(body => `
+    <g class="astro-body-marker" transform="translate(${body.x.toFixed(2)} ${body.y.toFixed(2)})">
+      <circle r="12"></circle>
+      <text y="1">${body.symbol}</text>
+      <title>${body.zh}｜${body.sign.zh} ${body.degreeStr}｜第 ${body.house} 宮</title>
+    </g>
+  `).join('');
+
+  const axisLabels = [
+    { point: polarPoint(239, 180), text: `ASC ${asc.sign.zh}` },
+    { point: polarPoint(239, 0), text: `DSC ${dsc.sign.zh}` },
+    { point: polarPoint(239, -90), text: `MC ${mc.sign.zh}` },
+    { point: polarPoint(239, 90), text: `IC ${ic.sign.zh}` },
+  ].map(axis => `<text x="${axis.point.x.toFixed(2)}" y="${axis.point.y.toFixed(2)}" class="astro-axis-label">${axis.text}</text>`).join('');
+
+  return `
+    <section class="astro-chart-section" aria-labelledby="astro-chart-heading">
+      <h3 id="astro-chart-heading">🪐 本命星盤圖</h3>
+      <p class="astro-section-hint">外圈是十二星座，內圈是十二宮；藍綠線為和諧相位，紅線為張力相位。點按星體可查看位置。</p>
+      <div class="astro-chart-wrap">
+        <svg class="astro-chart" viewBox="0 0 520 520" role="img" aria-label="本命星盤：${sect.label}，上升${asc.sign.zh}，天頂${mc.sign.zh}">
+          <title>本命星盤</title>
+          <desc>十二星座、十二宮、行星位置及主要相位圖。左側為上升點，右側為下降點，上方為天頂。</desc>
+          <circle cx="260" cy="260" r="226" class="astro-chart-bg" />
+          <path d="M 34 260 A 226 226 0 0 1 486 260 L 455 260 A 195 195 0 0 0 65 260 Z" class="astro-sky-half" />
+          <circle cx="260" cy="260" r="226" class="astro-ring-outer" />
+          <circle cx="260" cy="260" r="195" class="astro-ring-inner" />
+          <circle cx="260" cy="260" r="67" class="astro-ring-center" />
+          ${zodiacBoundaries}
+          ${zodiacLabels}
+          ${houseLines}
+          ${houseLabels}
+          <g class="astro-aspects">${aspectLines}</g>
+          <g class="astro-bodies">${bodyMarkers}</g>
+          ${axisLabels}
+          <text x="260" y="251" class="astro-center-main">${sect.symbol} ${sect.label}</text>
+          <text x="260" y="271" class="astro-center-sub">太陽第 ${planets[0].house} 宮</text>
+          <text x="260" y="31" class="astro-horizon-label">地平線上</text>
+          <text x="260" y="503" class="astro-horizon-label">地平線下</text>
+        </svg>
+      </div>
+      <div class="astro-chart-legend" aria-label="星盤符號說明">
+        ${chartBodies.map(body => `<span><b>${body.symbol}</b>${body.zh}</span>`).join('')}
+      </div>
+    </section>
+  `;
+}
+
+/** 傳統占星的日夜派別解讀。 */
+function renderSect(data) {
+  const { sect, planets } = data;
+  const sun = planets[0];
+  const isDay = sect.isDayChart;
+  const cards = isDay
+    ? [
+        ['主導光體', '☉ 太陽', '意志、目標與被看見的需求較能統整整張星盤。'],
+        ['同派吉星', '♃ 木星', '成長、機會與信念通常較容易直接發揮。'],
+        ['較可控的考驗', '♄ 土星', '壓力較能轉化為紀律、責任與長期成果。'],
+        ['較需留意', '♂ 火星', '急躁、衝突或過度用力時，破壞性可能較明顯。'],
+      ]
+    : [
+        ['主導光體', '☽ 月亮', '情緒、安全感、身體感受與生活節奏較能統整整張星盤。'],
+        ['同派吉星', '♀ 金星', '關係、美感、愉悅與協調能力通常較容易自然發揮。'],
+        ['較可控的考驗', '♂ 火星', '行動力與競爭性較能轉化為保護自己、果斷出手。'],
+        ['較需留意', '♄ 土星', '責任、限制與孤立感可能較重，需要刻意建立支持系統。'],
+      ];
+
+  return `
+    <section class="astro-sect astro-sect-${sect.type}">
+      <div class="astro-sect-heading">
+        <span class="astro-sect-icon">${sect.symbol}</span>
+        <div>
+          <span class="astro-sect-eyebrow">傳統占星 · 日夜派別 Sect</span>
+          <h3>${sect.label}｜${sect.luminary}是主導光體</h3>
+        </div>
+      </div>
+      <p class="astro-sect-reason">你的太陽落在第 <b>${sun.house} 宮</b>，位於地平線<b>${isDay ? '上方' : '下方'}</b>，所以屬於${sect.label}。這不是用出生鐘點直接切分，也不代表個性一定外向或內向。</p>
+      <div class="astro-sect-grid">
+        ${cards.map(card => `<div class="astro-sect-card"><small>${card[0]}</small><b>${card[1]}</b><p>${card[2]}</p></div>`).join('')}
+      </div>
+      <p class="astro-sect-note">日夜盤是判斷行星如何發揮的底層條件，不是單獨論吉凶；仍要和星座、宮位及相位一起看。</p>
+    </section>
+  `;
 }
