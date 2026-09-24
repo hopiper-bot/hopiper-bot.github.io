@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>本命今日塔羅｜人生劇本</title>
+  <meta name="description" content="用你的太陽星座與八字日主，解讀每天固定的一張大阿爾克那塔羅牌。">
+  <meta property="og:title" content="本命今日塔羅｜人生劇本">
+  <meta property="og:description" content="本命資料 × 今日一張牌。不是通用牌義，而是你今天接住這張牌的方式。">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0F2E2A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="css/style.css?v=22">
+</head>
+<body>
+  <div class="wrap tarot-page">
+    <header class="page-header">
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
+      <a class="screen-back" href="index.html">‹ 回首頁</a>
+    </header>
+
+    <main>
+      <section class="panel tarot-intro">
+        <div class="tarot-intro-mark" aria-hidden="true">☾</div>
+        <p class="tarot-kicker">NATAL CHART × DAILY TAROT</p>
+        <h1>本命今日塔羅</h1>
+        <p class="tarot-lead">不是問「今天會發生什麼」，而是看你今天最適合用什麼方式回應。</p>
+        <p id="tarot-date" class="tarot-date"></p>
+
+        <div id="tarot-profile-status" class="tarot-profile-status" aria-live="polite"></div>
+
+        <details id="tarot-birth-details" class="tarot-birth-details">
+          <summary>查看或修改出生資料</summary>
+          <form id="tarot-birth-form" novalidate>
+            <label>出生日期</label>
+            <div class="form-row">
+              <div class="form-group">
+                <input type="number" id="tarot-birth-year" placeholder="年份" min="1900" max="2100" inputmode="numeric" aria-label="出生年份">
+              </div>
+              <div class="form-group">
+                <select id="tarot-birth-month" aria-label="出生月份">
+                  <option value="">月</option>
+                  <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+                  <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+                  <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+                  <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <input type="number" id="tarot-birth-day" placeholder="日" min="1" max="31" inputmode="numeric" aria-label="出生日">
+              </div>
+            </div>
+            <div id="tarot-error" class="error-msg" role="alert"></div>
+            <p class="tarot-privacy">只需要生日，不需姓名或照片；資料保存在你的瀏覽器，不會上傳。</p>
+            <button type="submit" class="btn-primary tarot-save">用這份本命看今日牌 ✦</button>
+          </form>
+        </details>
+
+        <div class="tarot-deck-wrap">
+          <button id="tarot-draw" class="tarot-deck" type="button" disabled aria-expanded="false" aria-controls="tarot-result">
+            <span class="tarot-deck-border">
+              <span class="tarot-deck-star" aria-hidden="true">✦</span>
+              <span class="tarot-deck-moon" aria-hidden="true">☾</span>
+              <span class="tarot-deck-label">揭開今天的牌</span>
+              <small>同一個人，同一天，不重抽</small>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <div id="tarot-result" class="panel tarot-result" hidden aria-live="polite"></div>
+    </main>
+
+    <div class="more-explore">
+      <p class="more-explore-title">其他探索</p>
+      <div class="more-explore-list">
+        <a class="more-item" href="index.html">
+          <span class="more-icon">✦</span>
+          <span class="more-text"><b>我的命盤</b><small>馬雅・星座・八字・紫微・人類圖</small></span>
+          <span class="more-go">開始探索 ›</span>
+        </a>
+        <a class="more-item" href="name.html">
+          <span class="more-icon">🖋️</span>
+          <span class="more-text"><b>姓名學</b><small>五格三才 ＋ 八字五行補救</small></span>
+          <span class="more-go">開始解讀 ›</span>
+        </a>
+        <a class="more-item" href="meihua.html">
+          <span class="more-icon">🎲</span>
+          <span class="more-text"><b>梅花易數</b><small>不用生日也能占，一事一占</small></span>
+          <span class="more-go">開始占卦 ›</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="disclaimer">塔羅用於整理感受與行動方向，不預測災禍，也不代替專業判斷。本站內容僅供個人參考與自我探索。</p>
+  </div>
+
+  <script type="module" src="js/main.js?v=22"></script>
+  <script type="module" src="js/tarot-page.js?v=22"></script>
+  <script src="js/sw-register.js?v=22"></script>
+</body>
+</html>
