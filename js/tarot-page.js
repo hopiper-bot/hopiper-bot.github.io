@@ -1,5 +1,6 @@
 import {
   drawDailyTarot,
+  drawQuestionTarot,
   getBirthFingerprint,
   getLocalDateKey,
   normalizeBirthData,
@@ -7,6 +8,7 @@ import {
 
 const BIRTH_STORAGE_KEY = 'destiny_birth_data';
 const DAILY_STORAGE_KEY = 'destiny_tarot_daily_v1';
+const QUESTION_STORAGE_KEY = 'destiny_tarot_question_v1';
 
 function readJson(key) {
   try {
@@ -70,6 +72,12 @@ function initTarotPage() {
   const drawButton = document.getElementById('tarot-draw');
   const resultElement = document.getElementById('tarot-result');
   const dateElement = document.getElementById('tarot-date');
+  const modeButtons = [...document.querySelectorAll('[data-tarot-mode]')];
+  const dailyPanel = document.getElementById('tarot-daily-panel');
+  const questionPanel = document.getElementById('tarot-question-panel');
+  const questionForm = document.getElementById('tarot-question-form');
+  const questionInput = document.getElementById('tarot-question');
+  const questionError = document.getElementById('tarot-question-error');
   let dateKey = getLocalDateKey();
   let currentBirthData = null;
   let currentReading = null;
@@ -79,6 +87,24 @@ function initTarotPage() {
   function setError(message = '') {
     errorElement.textContent = message;
   }
+
+  function setMode(mode) {
+    const isQuestion = mode === 'question';
+    dailyPanel.hidden = isQuestion;
+    questionPanel.hidden = !isQuestion;
+    resultElement.hidden = true;
+    resultElement.innerHTML = '';
+    modeButtons.forEach((button) => {
+      const active = button.dataset.tarotMode === mode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+    if (isQuestion) questionInput.focus();
+  }
+
+  modeButtons.forEach((button) => {
+    button.addEventListener('click', () => setMode(button.dataset.tarotMode));
+  });
 
   function fillForm(saved) {
     if (!saved) return;
@@ -181,6 +207,57 @@ function initTarotPage() {
     }
   }
 
+  function renderQuestionReading(reading) {
+    const spreadHtml = reading.spread.map(({ position, card, orientation, orientationLabel, meaning }) => {
+      const reversedClass = orientation === 'reversed' ? ' is-reversed' : '';
+      const keywords = meaning.keywords.map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join('');
+      return `
+        <article class="tarot-spread-card">
+          <div class="tarot-spread-position"><b>${escapeHtml(position.label)}</b><small>${escapeHtml(position.prompt)}</small></div>
+          <div class="tarot-mini-card${reversedClass}">
+            <span class="tarot-mini-number">${romanNumeral(card.number)}</span>
+            <span class="tarot-mini-symbol" aria-hidden="true">${escapeHtml(card.symbol)}</span>
+            <span class="tarot-mini-name">${escapeHtml(card.name)}</span>
+          </div>
+          <h3>${escapeHtml(card.name)}・${escapeHtml(orientationLabel)}</h3>
+          <div class="tarot-keywords">${keywords}</div>
+          <p>${escapeHtml(meaning.message)}</p>
+        </article>
+      `;
+    }).join('');
+
+    resultElement.innerHTML = `
+      <section class="tarot-question-result">
+        <span class="tarot-eyebrow">你問的事情</span>
+        <h2>「${escapeHtml(reading.question)}」</h2>
+        <div class="tarot-spread">${spreadHtml}</div>
+      </section>
+      <section class="tarot-personal tarot-question-personal">
+        <div class="tarot-section-title"><span>✦</span><div><b>本命給你的解題方式</b><small>${escapeHtml(reading.profile.sunSign.name)} ＋ ${escapeHtml(reading.profile.dayMasterElement ? `${reading.profile.dayMaster}${reading.profile.dayMasterElement}日主` : '生日基礎資料')}</small></div></div>
+        <div class="tarot-personal-grid">
+          <article><span class="tarot-personal-tag">太陽星座</span><p>${escapeHtml(reading.personalReading.zodiac)}</p></article>
+          <article><span class="tarot-personal-tag">八字日主</span><p>${escapeHtml(reading.personalReading.dayMaster)}</p></article>
+        </div>
+        <div class="tarot-question-conclusion">
+          <span>把牌意落地</span>
+          <p>${escapeHtml(reading.personalReading.finalAction)}</p>
+          <small>問問自己：${escapeHtml(reading.personalReading.finalReflection)}</small>
+        </div>
+        <p class="tarot-source-note">同一個問題、同一天會保留同一組牌；不是靠重抽挑喜歡的答案。問題與結果只保存在你的瀏覽器。</p>
+      </section>
+    `;
+    resultElement.hidden = false;
+    writeJson(QUESTION_STORAGE_KEY, {
+      dateKey: reading.dateKey,
+      birthFingerprint: reading.birthFingerprint,
+      question: reading.question,
+      questionFingerprint: reading.questionFingerprint,
+      cardIds: reading.spread.map((item) => item.card.id),
+      orientations: reading.spread.map((item) => item.orientation),
+    });
+    resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     setError();
@@ -204,6 +281,35 @@ function initTarotPage() {
       renderReading(currentReading);
     }
   });
+
+  questionForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    questionError.textContent = '';
+    if (!currentBirthData) {
+      questionError.textContent = '請先輸入出生日期，再為這件事抽牌。';
+      details.open = true;
+      yearInput.focus();
+      return;
+    }
+    try {
+      dateKey = getLocalDateKey();
+      dateElement.textContent = formatDate(dateKey);
+      const reading = drawQuestionTarot({
+        birthData: currentBirthData,
+        question: questionInput.value,
+        dateKey,
+      });
+      questionInput.value = reading.question;
+      renderQuestionReading(reading);
+    } catch (error) {
+      questionError.textContent = error.message || '問題暫時無法解讀，請重新確認。';
+    }
+  });
+
+  const savedQuestion = readJson(QUESTION_STORAGE_KEY);
+  if (savedQuestion && typeof savedQuestion.question === 'string') {
+    questionInput.value = savedQuestion.question;
+  }
 
   const savedBirth = readJson(BIRTH_STORAGE_KEY);
   fillForm(savedBirth);

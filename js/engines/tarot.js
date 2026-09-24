@@ -145,3 +145,65 @@ export function drawDailyTarot({ birthData: input, dateKey = getLocalDateKey() }
     },
   };
 }
+
+const QUESTION_POSITIONS = [
+  { id: 'situation', label: '現況', prompt: '這張牌映照問題目前真正的核心。' },
+  { id: 'blind-spot', label: '盲點', prompt: '這張牌提醒你可能忽略、壓抑或高估的部分。' },
+  { id: 'guidance', label: '建議', prompt: '這張牌提供現在最值得採取的方向。' },
+];
+
+export function normalizeQuestion(value) {
+  const question = String(value || '').trim().replace(/\s+/g, ' ');
+  if (question.length < 2) throw new Error('請把想問的事情寫清楚一點。');
+  if (question.length > 120) throw new Error('問題請控制在 120 字以內。');
+  return question;
+}
+
+export function drawQuestionTarot({ birthData: input, question: rawQuestion, dateKey = getLocalDateKey() }) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) throw new Error('日期格式不正確。');
+
+  const birthData = normalizeBirthData(input);
+  const question = normalizeQuestion(rawQuestion);
+  const birthFingerprint = getBirthFingerprint(birthData);
+  const normalizedSeedQuestion = question.toLocaleLowerCase('zh-Hant');
+  const seed = `destiny-tarot-question-v1|${dateKey}|${birthFingerprint}|${normalizedSeedQuestion}`;
+  const usedCardIds = new Set();
+
+  const spread = QUESTION_POSITIONS.map((position, index) => {
+    let probe = 0;
+    let card;
+    do {
+      card = TAROT_CARDS[hashString(`${seed}|card-${index}|${probe}`) % TAROT_CARDS.length];
+      probe += 1;
+    } while (usedCardIds.has(card.id));
+    usedCardIds.add(card.id);
+
+    const orientation = hashString(`${seed}|orientation-${index}`) % 100 < 70 ? 'upright' : 'reversed';
+    return {
+      position,
+      card,
+      orientation,
+      orientationLabel: orientation === 'upright' ? '正位' : '逆位',
+      meaning: card[orientation],
+    };
+  });
+
+  const profile = getBirthProfile(birthData);
+  const guidance = spread[2];
+  return {
+    dateKey,
+    birthFingerprint,
+    question,
+    questionFingerprint: hashString(normalizedSeedQuestion).toString(36),
+    spread,
+    profile,
+    personalReading: {
+      zodiac: `${profile.sunSign.name}｜${ZODIAC_TONES[profile.sunSign.element]}`,
+      dayMaster: profile.dayMasterElement
+        ? `${profile.dayMaster}${profile.dayMasterElement}日主｜${DAY_MASTER_TONES[profile.dayMasterElement]}`
+        : '日主資料暫時無法取得，這次先以太陽星座完成個人化解讀。',
+      finalAction: guidance.meaning.action,
+      finalReflection: guidance.meaning.reflection,
+    },
+  };
+}

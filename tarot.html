@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>本命今日塔羅｜人生劇本</title>
-  <meta name="description" content="用你的太陽星座與八字日主，解讀每天固定的一張大阿爾克那塔羅牌。">
-  <meta property="og:title" content="本命今日塔羅｜人生劇本">
-  <meta property="og:description" content="本命資料 × 今日一張牌。不是通用牌義，而是你今天接住這張牌的方式。">
+  <title>本命塔羅｜人生劇本</title>
+  <meta name="description" content="用你的太陽星座與八字日主，解讀每日一張牌，或用三張大阿爾克那探索一件事的現況、盲點與建議。">
+  <meta property="og:title" content="本命塔羅｜人生劇本">
+  <meta property="og:description" content="本命資料 × 塔羅。每日指引，或用現況、盲點、建議三張牌問一件事。">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#0F2E2A">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
   <div class="wrap tarot-page">
@@ -27,9 +27,9 @@
     <main>
       <section class="panel tarot-intro">
         <div class="tarot-intro-mark" aria-hidden="true">☾</div>
-        <p class="tarot-kicker">NATAL CHART × DAILY TAROT</p>
-        <h1>本命今日塔羅</h1>
-        <p class="tarot-lead">不是問「今天會發生什麼」，而是看你今天最適合用什麼方式回應。</p>
+        <p class="tarot-kicker">NATAL CHART × TAROT</p>
+        <h1>本命塔羅</h1>
+        <p class="tarot-lead">每天看一張指引，或帶著一件事來問；牌會結合你的太陽星座與八字日主解讀。</p>
         <p id="tarot-date" class="tarot-date"></p>
 
         <div id="tarot-profile-status" class="tarot-profile-status" aria-live="polite"></div>
@@ -61,16 +61,33 @@
           </form>
         </details>
 
-        <div class="tarot-deck-wrap">
-          <button id="tarot-draw" class="tarot-deck" type="button" disabled aria-expanded="false" aria-controls="tarot-result">
-            <span class="tarot-deck-border">
-              <span class="tarot-deck-star" aria-hidden="true">✦</span>
-              <span class="tarot-deck-moon" aria-hidden="true">☾</span>
-              <span class="tarot-deck-label">揭開今天的牌</span>
-              <small>同一個人，同一天，不重抽</small>
-            </span>
-          </button>
+        <div class="tarot-mode-switch" role="tablist" aria-label="塔羅模式">
+          <button class="tarot-mode-btn active" type="button" role="tab" aria-selected="true" data-tarot-mode="daily">☀ 今日一張牌</button>
+          <button class="tarot-mode-btn" type="button" role="tab" aria-selected="false" data-tarot-mode="question">✦ 問一件事</button>
         </div>
+
+        <section id="tarot-daily-panel" class="tarot-mode-panel" role="tabpanel">
+          <div class="tarot-deck-wrap">
+            <button id="tarot-draw" class="tarot-deck" type="button" disabled aria-expanded="false" aria-controls="tarot-result">
+              <span class="tarot-deck-border">
+                <span class="tarot-deck-star" aria-hidden="true">✦</span>
+                <span class="tarot-deck-moon" aria-hidden="true">☾</span>
+                <span class="tarot-deck-label">揭開今天的牌</span>
+                <small>同一個人，同一天，不重抽</small>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section id="tarot-question-panel" class="tarot-mode-panel tarot-question-panel" role="tabpanel" hidden>
+          <form id="tarot-question-form" novalidate>
+            <label for="tarot-question">你想問什麼？</label>
+            <textarea id="tarot-question" maxlength="120" rows="3" placeholder="例如：我現在適合接受這個工作機會嗎？" aria-describedby="tarot-question-hint tarot-question-error"></textarea>
+            <p id="tarot-question-hint" class="tarot-question-hint">一次專心問一件事。三張牌會看「現況／盲點／建議」。</p>
+            <div id="tarot-question-error" class="error-msg" role="alert"></div>
+            <button type="submit" class="btn-primary tarot-question-submit">為這件事抽三張牌 ✦</button>
+          </form>
+        </section>
       </section>
 
       <div id="tarot-result" class="panel tarot-result" hidden aria-live="polite"></div>
@@ -100,8 +117,8 @@
     <p class="disclaimer">塔羅用於整理感受與行動方向，不預測災禍，也不代替專業判斷。本站內容僅供個人參考與自我探索。</p>
   </div>
 
-  <script type="module" src="js/main.js?v=22"></script>
-  <script type="module" src="js/tarot-page.js?v=22"></script>
-  <script src="js/sw-register.js?v=22"></script>
+  <script type="module" src="js/main.js?v=23"></script>
+  <script type="module" src="js/tarot-page.js?v=23"></script>
+  <script src="js/sw-register.js?v=23"></script>
 </body>
 </html>
