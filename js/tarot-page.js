@@ -4,7 +4,7 @@ import {
   getBirthFingerprint,
   getLocalDateKey,
   normalizeBirthData,
-} from './engines/tarot.js';
+} from './engines/tarot.js?v=24';
 
 const BIRTH_STORAGE_KEY = 'destiny_birth_data';
 const DAILY_STORAGE_KEY = 'destiny_tarot_daily_v1';

@@ -1,5 +1,5 @@
-import { TAROT_CARDS } from '../data/tarot-cards.js';
-import { calculate as calculateBazi } from './bazi.js';
+import { TAROT_CARDS } from '../data/tarot-cards.js?v=24';
+import { calculate as calculateBazi } from './bazi.js?v=24';
 
 const ZODIAC_SIGNS = [
   { name: '摩羯座', element: '土', from: [12, 22], to: [1, 19] },
