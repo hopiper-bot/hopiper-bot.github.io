@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>本命塔羅・月之殿｜人生劇本・玄境</title><meta name="description" content="結合太陽星座與八字日主，解讀每日一張牌，或用三張大阿爾克那探索一件事。"><meta name="theme-color" content="#05030d">
+  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="../css/style.css?v=24"><link rel="stylesheet" href="css/cosmic.css?v=1">
+</head>
+<body class="cosmic-v2">
+  <div class="wrap tarot-page">
+    <header class="page-header"><button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色或淺色模式" title="切換主題">🌙</button><a class="screen-back" href="index.html">‹ 回到玄境</a></header>
+    <main>
+      <section class="panel tarot-intro">
+        <div class="tarot-intro-mark" aria-hidden="true">☾</div><p class="tarot-kicker">NATAL CHART × TAROT</p><h1>月之殿・本命塔羅</h1>
+        <p class="tarot-lead">帶著一個清晰的念頭走入月光。牌會結合你的太陽星座與八字日主，映照此刻。</p><p id="tarot-date" class="tarot-date"></p>
+        <div id="tarot-profile-status" class="tarot-profile-status" aria-live="polite"></div>
+        <details id="tarot-birth-details" class="tarot-birth-details"><summary>查看或修改出生資料</summary><form id="tarot-birth-form" novalidate>
+          <label>出生日期</label><div class="form-row"><div class="form-group"><input type="number" id="tarot-birth-year" placeholder="年份" min="1900" max="2100" inputmode="numeric" aria-label="出生年份"></div><div class="form-group"><select id="tarot-birth-month" aria-label="出生月份"><option value="">月</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div><div class="form-group"><input type="number" id="tarot-birth-day" placeholder="日" min="1" max="31" inputmode="numeric" aria-label="出生日"></div></div>
+          <div id="tarot-error" class="error-msg" role="alert"></div><p class="tarot-privacy">只需生日。資料保存在你的瀏覽器，不會上傳。</p><button type="submit" class="btn-primary tarot-save">以這份本命進入月之殿 ✦</button>
+        </form></details>
+        <div class="tarot-mode-switch" role="tablist" aria-label="塔羅模式"><button class="tarot-mode-btn active" type="button" role="tab" aria-selected="true" data-tarot-mode="daily">☀ 今日一張牌</button><button class="tarot-mode-btn" type="button" role="tab" aria-selected="false" data-tarot-mode="question">✦ 問一件事</button></div>
+        <section id="tarot-daily-panel" class="tarot-mode-panel" role="tabpanel"><div class="tarot-deck-wrap"><button id="tarot-draw" class="tarot-deck" type="button" disabled aria-expanded="false" aria-controls="tarot-result"><span class="tarot-deck-border"><span class="tarot-deck-star" aria-hidden="true">✦</span><span class="tarot-deck-moon" aria-hidden="true">☾</span><span class="tarot-deck-label">揭開月光下的牌</span><small>同一個人，同一天，不重抽</small></span></button></div></section>
+        <section id="tarot-question-panel" class="tarot-mode-panel tarot-question-panel" role="tabpanel" hidden><form id="tarot-question-form" novalidate><label for="tarot-question">你想讓牌映照什麼？</label><textarea id="tarot-question" maxlength="120" rows="3" placeholder="例如：我現在適合接受這個工作機會嗎？" aria-describedby="tarot-question-hint tarot-question-error"></textarea><p id="tarot-question-hint" class="tarot-question-hint">一次專心問一件事。三張牌會看「現況／盲點／建議」。</p><div id="tarot-question-error" class="error-msg" role="alert"></div><button type="submit" class="btn-primary tarot-question-submit">為這件事展開三張牌 ✦</button></form></section>
+      </section>
+      <div id="tarot-result" class="panel tarot-result" hidden aria-live="polite"></div>
+      <nav class="more-explore"><p class="more-explore-title">Other portals・其他入口</p><div class="more-explore-list"><a class="more-item" href="index.html"><span class="more-icon">✦</span><span class="more-text"><b>我的命盤</b><small>五大系統生命解讀</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="name.html"><span class="more-icon">☿</span><span class="more-text"><b>姓名學</b><small>解開名字承載的能量</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="meihua.html"><span class="more-icon">☯</span><span class="more-text"><b>梅花易數</b><small>以當下心念起卦</small></span><span class="more-go">起卦 ›</span></a></div></nav>
+    </main>
+    <p class="disclaimer">塔羅用於整理感受與行動方向，不預測災禍，也不代替專業判斷。<span style="opacity:.45;"> Cosmic V2</span></p>
+  </div>
+  <script type="module" src="js/cosmic-scene.js?v=1"></script><script type="module" src="../js/main.js?v=24"></script><script type="module" src="../js/tarot-page.js?v=24"></script>
+</body></html>

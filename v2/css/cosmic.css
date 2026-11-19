@@ -1,0 +1,381 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Noto+Serif+TC:wght@400;600;700&display=swap');
+
+:root {
+  --v2-void: #05030d;
+  --v2-ink: #0b0718;
+  --v2-indigo: #17102e;
+  --v2-violet: #5f3ca8;
+  --v2-amethyst: #a378db;
+  --v2-gold: #d8b86b;
+  --v2-gold-light: #f6e6ad;
+  --v2-cyan: #78d8d1;
+  --v2-text: #f2ecff;
+  --v2-muted: #afa2c7;
+}
+
+html {
+  background: var(--v2-void);
+  scroll-behavior: smooth;
+}
+
+body.cosmic-v2 {
+  --bg: var(--v2-void);
+  --bg-gradient: linear-gradient(160deg, #05030d 0%, #0d071b 48%, #080511 100%);
+  --card: rgba(14, 9, 29, .78);
+  --card-border: rgba(216, 184, 107, .22);
+  --accent: var(--v2-gold);
+  --accent2: var(--v2-amethyst);
+  --text: var(--v2-text);
+  --muted: var(--v2-muted);
+  --input-bg: rgba(9, 5, 20, .78);
+  --accent-rgb: 216, 184, 107;
+  --accent2-rgb: 163, 120, 219;
+  --chip-bg: rgba(147, 107, 207, .08);
+  --btn-text: #140d26;
+  --gold-gradient: linear-gradient(135deg, #fff0b8 0%, #d7ad50 43%, #9d7132 100%);
+  --gold-text-gradient: linear-gradient(115deg, #9b7133 0%, #f7e4a3 34%, #fff8d6 52%, #d5a84b 72%, #8f632a 100%);
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  padding-top: 26px;
+  overflow-x: hidden;
+  color: var(--v2-text);
+  background: var(--v2-void);
+  font-family: "Noto Serif TC", "PMingLiU", serif;
+}
+
+body.cosmic-v2::before,
+body.cosmic-v2::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body.cosmic-v2::before {
+  background:
+    radial-gradient(circle at 50% -12%, rgba(113, 72, 178, .30), transparent 42%),
+    radial-gradient(circle at 8% 58%, rgba(33, 134, 146, .13), transparent 31%),
+    radial-gradient(circle at 92% 72%, rgba(123, 62, 146, .16), transparent 30%),
+    linear-gradient(180deg, rgba(5, 3, 13, .1), rgba(5, 3, 13, .86));
+}
+
+body.cosmic-v2::after {
+  opacity: .20;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.23'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+#cosmic-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.1s ease;
+}
+
+#cosmic-scene.is-ready { opacity: 1; }
+
+.cosmic-aura {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: -1;
+  width: min(72vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(216, 184, 107, .08);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 42px rgba(162, 120, 219, .025),
+    0 0 0 96px rgba(216, 184, 107, .018),
+    inset 0 0 100px rgba(85, 52, 137, .10);
+  pointer-events: none;
+}
+
+.cosmic-runes {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  color: rgba(236, 211, 141, .30);
+  font-family: "Cinzel", serif;
+  letter-spacing: .22em;
+}
+
+.cosmic-runes span {
+  position: absolute;
+  font-size: .65rem;
+  writing-mode: vertical-rl;
+}
+.cosmic-runes span:first-child { left: clamp(10px, 3vw, 44px); top: 28%; }
+.cosmic-runes span:last-child { right: clamp(10px, 3vw, 44px); bottom: 20%; transform: rotate(180deg); }
+
+.cosmic-v2 .wrap {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 920px);
+  max-width: 920px;
+}
+
+.cosmic-v2 header:not(.page-header) {
+  margin: 22px 0 28px;
+  padding: 46px 24px 34px;
+}
+
+.cosmic-v2 header:not(.page-header)::before {
+  content: "☿  ✦  ☽  ✦  ♄";
+  display: block;
+  margin-bottom: 11px;
+  color: rgba(243, 221, 158, .65);
+  font-family: "Cinzel", serif;
+  font-size: .72rem;
+  letter-spacing: .72em;
+  transform: translateX(.36em);
+}
+
+.cosmic-v2 .logo-icon {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 15px;
+  display: grid;
+  place-items: center;
+  color: var(--v2-gold-light);
+  border: 1px solid rgba(216, 184, 107, .52);
+  border-radius: 50%;
+  font-size: 2.15rem;
+  background: radial-gradient(circle, rgba(171, 124, 218, .22), transparent 63%);
+  box-shadow: 0 0 42px rgba(152, 104, 212, .25), inset 0 0 24px rgba(216, 184, 107, .08);
+  animation: v2-pulse 4s ease-in-out infinite;
+}
+
+.cosmic-v2 header h1,
+.cosmic-v2 .tarot-intro h1 {
+  font-family: "Cinzel", "Noto Serif TC", serif;
+  font-weight: 600;
+  letter-spacing: .16em;
+  filter: drop-shadow(0 0 18px rgba(216, 184, 107, .22));
+}
+
+.cosmic-v2 header h1 { font-size: clamp(2.2rem, 7vw, 3.55rem); }
+.cosmic-v2 header p { color: #c7bdd8; }
+.cosmic-v2 .hero-tagline { color: var(--v2-gold) !important; letter-spacing: .14em; }
+
+.cosmic-v2 .page-header {
+  margin: 0 0 18px;
+  min-height: 44px;
+}
+
+.cosmic-v2 .screen-back,
+.cosmic-v2 .theme-toggle {
+  color: #d9caef;
+  border-color: rgba(216, 184, 107, .25);
+  background: rgba(10, 6, 22, .62);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.cosmic-v2 .screen-back:hover,
+.cosmic-v2 .theme-toggle:hover {
+  color: var(--v2-gold-light);
+  border-color: rgba(246, 230, 173, .65);
+  box-shadow: 0 0 22px rgba(169, 122, 220, .18);
+}
+
+.cosmic-v2 .panel {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(21px, 4vw, 34px);
+  border: 1px solid rgba(216, 184, 107, .22);
+  border-radius: 4px 28px 4px 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .035), transparent 38%),
+    rgba(13, 8, 27, .77);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, .42),
+    inset 0 1px 0 rgba(255, 255, 255, .055);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+.cosmic-v2 .panel::before,
+.cosmic-v2 .panel::after {
+  content: "";
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  pointer-events: none;
+}
+.cosmic-v2 .panel::before {
+  left: 9px;
+  top: 9px;
+  border-left: 1px solid rgba(239, 213, 143, .42);
+  border-top: 1px solid rgba(239, 213, 143, .42);
+}
+.cosmic-v2 .panel::after {
+  right: 9px;
+  bottom: 9px;
+  border-right: 1px solid rgba(163, 120, 219, .42);
+  border-bottom: 1px solid rgba(163, 120, 219, .42);
+}
+
+.cosmic-v2 .systems-intro {
+  padding: 9px 10px 23px;
+  border-image: linear-gradient(90deg, transparent, rgba(216, 184, 107, .58), transparent) 1;
+}
+.cosmic-v2 .systems-intro-title,
+.cosmic-v2 .sig .big { color: var(--v2-gold-light); font-family: "Noto Serif TC", serif; }
+.cosmic-v2 .systems-intro-title { font-size: 1.35rem; letter-spacing: .1em; }
+.cosmic-v2 .systems-intro-sub,
+.cosmic-v2 .sig .kin { color: var(--v2-amethyst); letter-spacing: .14em; }
+
+.cosmic-v2 label { color: #ede5fa; letter-spacing: .05em; }
+
+.cosmic-v2 input,
+.cosmic-v2 select,
+.cosmic-v2 textarea {
+  color: #f4efff;
+  border: 1px solid rgba(168, 130, 218, .28) !important;
+  border-radius: 10px !important;
+  background: rgba(6, 3, 15, .72) !important;
+  box-shadow: inset 0 0 22px rgba(90, 50, 135, .08);
+}
+.cosmic-v2 input:focus,
+.cosmic-v2 select:focus,
+.cosmic-v2 textarea:focus {
+  border-color: rgba(237, 207, 126, .72) !important;
+  box-shadow: 0 0 0 3px rgba(216, 184, 107, .08), 0 0 24px rgba(139, 96, 196, .14);
+  outline: none;
+}
+.cosmic-v2 select option { color: #efe9f8; background: #120b25; }
+
+.cosmic-v2 .btn-primary {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 239, 187, .55);
+  border-radius: 4px 15px 4px 15px;
+  color: #1a102a;
+  background: linear-gradient(115deg, #9b7438 0%, #ecd88e 44%, #fff0b7 52%, #c89542 100%);
+  background-size: 220% 100%;
+  box-shadow: 0 10px 28px rgba(166, 119, 49, .20), inset 0 1px 0 rgba(255, 255, 255, .55);
+  font-family: "Noto Serif TC", serif;
+  font-weight: 700;
+  letter-spacing: .08em;
+  transition: transform .25s ease, box-shadow .25s ease, background-position .6s ease;
+}
+.cosmic-v2 .btn-primary:hover {
+  transform: translateY(-2px);
+  background-position: 100% 0;
+  box-shadow: 0 14px 36px rgba(166, 119, 49, .30), 0 0 24px rgba(223, 190, 111, .16);
+}
+
+.cosmic-v2 .daily-energy-panel { background: rgba(11, 7, 24, .70); }
+.cosmic-v2 .daily-energy-title { color: var(--v2-gold-light); }
+
+.cosmic-v2 .more-explore-title {
+  color: rgba(223, 207, 240, .7);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+.cosmic-v2 .more-explore-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.cosmic-v2 .more-item {
+  min-height: 82px;
+  border-color: rgba(216, 184, 107, .16);
+  border-radius: 3px 17px 3px 17px;
+  background: linear-gradient(135deg, rgba(112, 72, 167, .12), rgba(9, 5, 20, .70));
+  backdrop-filter: blur(13px);
+  -webkit-backdrop-filter: blur(13px);
+}
+.cosmic-v2 .more-item:hover {
+  transform: translateY(-3px);
+  border-color: rgba(216, 184, 107, .52);
+  background: linear-gradient(135deg, rgba(147, 99, 205, .20), rgba(14, 8, 27, .82));
+  box-shadow: 0 13px 32px rgba(0, 0, 0, .26);
+}
+.cosmic-v2 .more-icon { filter: drop-shadow(0 0 10px rgba(185, 140, 230, .4)); }
+.cosmic-v2 .more-text b { color: #f3e9ff; }
+.cosmic-v2 .more-go { color: var(--v2-gold); }
+
+.cosmic-v2 .promo-block {
+  border-color: rgba(216, 184, 107, .18);
+  background: linear-gradient(145deg, rgba(94, 46, 82, .20), rgba(11, 7, 24, .65));
+  backdrop-filter: blur(13px);
+}
+
+.cosmic-v2 .tabs-wrapper { border-bottom-color: rgba(216, 184, 107, .18); }
+.cosmic-v2 .tabs { background: rgba(6, 3, 15, .55); }
+.cosmic-v2 .tab { color: #a99dbd; }
+.cosmic-v2 .tab.active { color: var(--v2-gold-light); border-color: var(--v2-gold); background: rgba(216, 184, 107, .07); }
+
+.cosmic-v2 .sig { text-align: center; padding: 6px 8px 18px; }
+.cosmic-v2 .sig::before { content: "✧  ☾  ✧"; display: block; margin-bottom: 8px; color: rgba(216, 184, 107, .72); letter-spacing: .4em; }
+
+.cosmic-v2 .btn-meihua {
+  color: #c8badc;
+  border-color: rgba(163, 120, 219, .25);
+  background: rgba(8, 4, 18, .62);
+}
+.cosmic-v2 .btn-meihua.active { color: var(--v2-gold-light); border-color: rgba(216, 184, 107, .62); background: rgba(216, 184, 107, .08); }
+
+.cosmic-v2 .tarot-intro {
+  background: radial-gradient(circle at 50% 10%, rgba(130, 81, 190, .22), transparent 40%), rgba(13, 8, 27, .77);
+}
+.cosmic-v2 .tarot-intro-mark { color: var(--v2-gold-light); border-color: rgba(216, 184, 107, .48); box-shadow: 0 0 42px rgba(143, 92, 199, .25); }
+.cosmic-v2 .tarot-deck {
+  border-color: rgba(216, 184, 107, .62);
+  background: repeating-radial-gradient(circle at center, transparent 0 14px, rgba(216, 184, 107, .04) 15px 16px), #090516;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, .48), 8px 8px 0 -3px #120b25, 9px 9px 0 -3px rgba(216, 184, 107, .38);
+}
+.cosmic-v2 .tarot-card-face,
+.cosmic-v2 .tarot-mini-card { background-color: #090516; }
+
+.cosmic-v2 .result-container { min-height: 360px; }
+.cosmic-v2 .view h2,
+.cosmic-v2 .view h3 { color: var(--v2-gold-light); }
+.cosmic-v2 .view-card,
+.cosmic-v2 .result-card,
+.cosmic-v2 .analysis-card { background: rgba(9, 5, 20, .58); border-color: rgba(163, 120, 219, .18); }
+
+.cosmic-v2 .disclaimer { color: rgba(177, 164, 196, .62); }
+.cosmic-v2 .disclaimer::before { content: "☽  "; color: rgba(216, 184, 107, .52); }
+
+.cosmic-v2 .loading-spinner { border-color: rgba(163, 120, 219, .18); border-top-color: var(--v2-gold); }
+
+@keyframes v2-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 38px rgba(152, 104, 212, .20), inset 0 0 24px rgba(216, 184, 107, .08); }
+  50% { transform: scale(1.04); box-shadow: 0 0 58px rgba(152, 104, 212, .33), inset 0 0 30px rgba(216, 184, 107, .12); }
+}
+
+@media (max-width: 720px) {
+  body.cosmic-v2 { padding: 14px 12px 48px; }
+  .cosmic-v2 .more-explore-list { grid-template-columns: 1fr; }
+  .cosmic-v2 header:not(.page-header) { padding: 34px 12px 24px; }
+  .cosmic-runes { display: none; }
+  .cosmic-v2 .panel { border-radius: 3px 21px 3px 21px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .cosmic-v2 *, .cosmic-v2 *::before, .cosmic-v2 *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+
+[data-theme="light"] body.cosmic-v2 {
+  --card: rgba(245, 238, 255, .78);
+  --card-border: rgba(91, 61, 133, .22);
+  --text: #261b36;
+  --muted: #6e607f;
+  --input-bg: rgba(247, 242, 252, .84);
+  --chip-bg: rgba(98, 62, 145, .07);
+  color: #261b36;
+  background: #e9e0f0;
+}
+[data-theme="light"] body.cosmic-v2::before { background: linear-gradient(rgba(239, 230, 246, .82), rgba(226, 214, 237, .90)); }
+[data-theme="light"] .cosmic-v2 .panel { background: rgba(244, 238, 250, .80); box-shadow: 0 22px 60px rgba(59, 35, 78, .15); }
+[data-theme="light"] .cosmic-v2 input,
+[data-theme="light"] .cosmic-v2 select,
+[data-theme="light"] .cosmic-v2 textarea { color: #271936; background: rgba(255, 252, 255, .83) !important; }
+[data-theme="light"] .cosmic-v2 .more-item { background: rgba(244, 237, 250, .72); }
