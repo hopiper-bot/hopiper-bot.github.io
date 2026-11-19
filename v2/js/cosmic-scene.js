@@ -98,15 +98,16 @@ function initCosmicScene(THREE) {
 
   starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
   starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-  const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({
-    size: isMobile ? 0.045 : 0.055,
+  const starMaterial = new THREE.PointsMaterial({
+    size: isMobile ? 0.062 : 0.072,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.86,
+    opacity: 0.96,
     vertexColors: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false
-  }));
+  });
+  const stars = new THREE.Points(starGeometry, starMaterial);
   universe.add(stars);
 
   const orbitGroup = new THREE.Group();
@@ -220,6 +221,34 @@ function initCosmicScene(THREE) {
   moonLight.position.set(-4, 3, 3);
   scene.add(moonLight);
 
+  // 清楚可見的流星會定期穿過畫面，讓動態不必靠滑鼠才看得出來。
+  const shootingStars = new THREE.Group();
+  const shootingStarData = [];
+  const shootingStarCount = isMobile ? 3 : 5;
+  for (let index = 0; index < shootingStarCount; index += 1) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(-1.9, 0.72, 0)
+    ]);
+    const material = new THREE.LineBasicMaterial({
+      color: index % 2 === 0 ? 0xf6e6ad : 0xb997df,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const streak = new THREE.Line(geometry, material);
+    streak.position.z = -1.5 - index * 0.45;
+    shootingStars.add(streak);
+    shootingStarData.push({
+      streak,
+      phase: index * 4.7 + Math.random() * 2,
+      speed: 2.2 + index * 0.18,
+      startY: 4.8 - index * 2.1
+    });
+  }
+  scene.add(shootingStars);
+
   const pointer = { x: 0, y: 0 };
   const target = { x: 0, y: 0 };
   const clock = new THREE.Clock();
@@ -227,8 +256,8 @@ function initCosmicScene(THREE) {
   let isVisible = true;
 
   function onPointerMove(event) {
-    target.x = (event.clientX / window.innerWidth - 0.5) * 0.45;
-    target.y = (event.clientY / window.innerHeight - 0.5) * 0.30;
+    target.x = (event.clientX / window.innerWidth - 0.5) * 0.90;
+    target.y = (event.clientY / window.innerHeight - 0.5) * 0.58;
   }
 
   function onResize() {
@@ -247,16 +276,29 @@ function initCosmicScene(THREE) {
     pointer.y += (target.y - pointer.y) * 0.025;
 
     if (!reducedMotion) {
-      stars.rotation.y = elapsed * 0.006 + pointer.x * 0.12;
-      stars.rotation.x = pointer.y * 0.08;
-      orbitGroup.rotation.z = elapsed * 0.018 - pointer.x * 0.16;
-      orbitGroup.rotation.y = 0.2 + Math.sin(elapsed * 0.17) * 0.08;
-      glyphGroup.rotation.z = -elapsed * 0.011 - pointer.x * 0.12;
-      core.rotation.x = elapsed * 0.075;
-      core.rotation.y = elapsed * 0.055;
-      moon.position.y = 2.4 + Math.sin(elapsed * 0.33) * 0.12;
+      stars.rotation.y = elapsed * 0.020 + pointer.x * 0.18;
+      stars.rotation.x = elapsed * 0.004 + pointer.y * 0.13;
+      stars.rotation.z = elapsed * 0.006;
+      starMaterial.opacity = 0.82 + Math.sin(elapsed * 1.35) * 0.14;
+
+      orbitGroup.rotation.z = elapsed * 0.060 - pointer.x * 0.22;
+      orbitGroup.rotation.y = 0.2 + Math.sin(elapsed * 0.42) * 0.14;
+      glyphGroup.rotation.z = -elapsed * 0.048 - pointer.x * 0.17;
+      core.rotation.x = elapsed * 0.19;
+      core.rotation.y = elapsed * 0.14;
+      moon.position.y = 2.4 + Math.sin(elapsed * 0.72) * 0.22;
       crescent.position.y = moon.position.y;
-      camera.position.y = -window.scrollY * 0.00035;
+
+      shootingStarData.forEach(({ streak, phase, speed, startY }) => {
+        const progress = (elapsed * speed + phase) % 22;
+        streak.position.x = -11 + progress;
+        streak.position.y = startY - progress * 0.36;
+        const edgeFade = Math.min(progress / 2.2, (22 - progress) / 2.2, 1);
+        streak.material.opacity = Math.max(0, edgeFade) * 0.72;
+      });
+
+      camera.position.x = pointer.x * 0.22;
+      camera.position.y = pointer.y * -0.13 - window.scrollY * 0.00035;
     }
 
     renderer.render(scene, camera);
