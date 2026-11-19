@@ -6,8 +6,8 @@
   --v2-indigo: #143a36;
   --v2-violet: #5c8d78;
   --v2-amethyst: #9bb9a8;
-  --v2-gold: #d8b86b;
-  --v2-gold-light: #f6e6ad;
+  --v2-gold: #e2b647;
+  --v2-gold-light: #f5d06f;
   --v2-cyan: #78b5a0;
   --v2-text: #f5f3e9;
   --v2-muted: #a7b9ac;
@@ -28,12 +28,12 @@ body.cosmic-v2 {
   --text: var(--v2-text);
   --muted: var(--v2-muted);
   --input-bg: rgba(6, 28, 23, .80);
-  --accent-rgb: 216, 184, 107;
+  --accent-rgb: 226, 182, 71;
   --accent2-rgb: 155, 185, 168;
   --chip-bg: rgba(143, 175, 155, .10);
   --btn-text: #10231b;
-  --gold-gradient: linear-gradient(135deg, #fff0b8 0%, #d7ad50 43%, #9d7132 100%);
-  --gold-text-gradient: linear-gradient(115deg, #9b7133 0%, #f7e4a3 34%, #fff8d6 52%, #d5a84b 72%, #8f632a 100%);
+  --gold-gradient: linear-gradient(135deg, #f7d873 0%, #e2b647 46%, #b57b1d 100%);
+  --gold-text-gradient: linear-gradient(115deg, #936019 0%, #e2b647 28%, #ffdd78 50%, #d39b21 73%, #80500f 100%);
   position: relative;
   isolation: isolate;
   min-height: 100vh;
@@ -158,7 +158,9 @@ body.cosmic-v2::after {
   font-family: "Cinzel", "Noto Serif TC", serif;
   font-weight: 600;
   letter-spacing: .16em;
-  filter: drop-shadow(0 0 18px rgba(216, 184, 107, .22));
+  filter:
+    drop-shadow(0 2px 1px rgba(3, 19, 15, .88))
+    drop-shadow(0 0 15px rgba(226, 182, 71, .24));
 }
 
 .cosmic-v2 header h1 { font-size: clamp(2.2rem, 7vw, 3.55rem); }
@@ -228,7 +230,11 @@ body.cosmic-v2::after {
   border-image: linear-gradient(90deg, transparent, rgba(216, 184, 107, .58), transparent) 1;
 }
 .cosmic-v2 .systems-intro-title,
-.cosmic-v2 .sig .big { color: var(--v2-gold-light); font-family: "Noto Serif TC", serif; }
+.cosmic-v2 .sig .big {
+  color: var(--v2-gold-light);
+  font-family: "Noto Serif TC", serif;
+  text-shadow: 0 2px 2px rgba(3, 19, 15, .85), 0 0 12px rgba(226, 182, 71, .16);
+}
 .cosmic-v2 .systems-intro-title { font-size: 1.35rem; letter-spacing: .1em; }
 .cosmic-v2 .systems-intro-sub,
 .cosmic-v2 .sig .kin { color: var(--v2-amethyst); letter-spacing: .14em; }
@@ -370,6 +376,10 @@ body.cosmic-v2::after {
   --muted: #5b7566;
   --input-bg: rgba(246, 250, 246, .88);
   --chip-bg: rgba(92, 141, 120, .09);
+  --v2-gold: #8b5f13;
+  --v2-gold-light: #7a5010;
+  --accent-rgb: 139, 95, 19;
+  --gold-text-gradient: linear-gradient(115deg, #6e4408 0%, #a87516 42%, #7a5010 72%, #573204 100%);
   color: #18342a;
   background: #dfece3;
 }
