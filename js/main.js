@@ -97,6 +97,11 @@ async function submitAndGoToResult() {
   saveInput(formData);
   // 清掉舊結果快取，避免結果頁先閃到上一次的內容
   try { localStorage.removeItem('destiny_result_cache'); } catch (e) {}
+
+  // V2 玄境版會先完成命盤展開儀式；經典版沒有這個物件，行為維持不變。
+  if (window.__cosmicRitual?.openPortal) {
+    await window.__cosmicRitual.openPortal();
+  }
   window.location.href = 'result.html';
 }
 
@@ -667,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnNumber?.addEventListener('click', () => setMode('number'));
   btnText?.addEventListener('click', () => setMode('text'));
 
-  btnGo.addEventListener('click', () => {
+  btnGo.addEventListener('click', async () => {
     let gua;
     if (mode === 'time') {
       gua = timeGua();
@@ -685,7 +690,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!val) { gua = timeGua(); }
       else { gua = textGua(val); }
     }
+    if (window.__cosmicRitual?.castMeihua) {
+      btnGo.disabled = true;
+      try {
+        await window.__cosmicRitual.castMeihua();
+      } finally {
+        btnGo.disabled = false;
+      }
+    }
     resultDiv.innerHTML = renderMeihua(gua);
+    resultDiv.classList.add('gua-revealed');
     resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 });

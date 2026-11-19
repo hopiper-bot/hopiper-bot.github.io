@@ -275,14 +275,22 @@ function initTarotPage() {
     }
   });
 
-  drawButton.addEventListener('click', () => {
+  drawButton.addEventListener('click', async () => {
     if (currentBirthData) {
-      prepareReading(currentBirthData);
-      renderReading(currentReading);
+      drawButton.disabled = true;
+      try {
+        if (window.__cosmicRitual?.shuffleTarot) {
+          await window.__cosmicRitual.shuffleTarot('single');
+        }
+        prepareReading(currentBirthData);
+        renderReading(currentReading);
+      } finally {
+        drawButton.disabled = false;
+      }
     }
   });
 
-  questionForm.addEventListener('submit', (event) => {
+  questionForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     questionError.textContent = '';
     if (!currentBirthData) {
@@ -300,7 +308,16 @@ function initTarotPage() {
         dateKey,
       });
       questionInput.value = reading.question;
-      renderQuestionReading(reading);
+      const submitButton = questionForm.querySelector('[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+      try {
+        if (window.__cosmicRitual?.shuffleTarot) {
+          await window.__cosmicRitual.shuffleTarot('spread');
+        }
+        renderQuestionReading(reading);
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
     } catch (error) {
       questionError.textContent = error.message || '問題暫時無法解讀，請重新確認。';
     }

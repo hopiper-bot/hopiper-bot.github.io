@@ -389,3 +389,230 @@ body.cosmic-v2::after {
 [data-theme="light"] .cosmic-v2 select,
 [data-theme="light"] .cosmic-v2 textarea { color: #18342a; background: rgba(249, 252, 249, .88) !important; }
 [data-theme="light"] .cosmic-v2 .more-item { background: rgba(235, 244, 237, .76); }
+
+/* ===== 儀式動態：命盤入口、塔羅、梅花易數 ===== */
+.cosmic-reveal {
+  opacity: 0;
+  transform: translateY(24px) scale(.985);
+  transition: opacity .75s ease, transform .75s cubic-bezier(.2, .75, .25, 1);
+}
+.cosmic-reveal.cosmic-visible { opacity: 1; transform: translateY(0) scale(1); }
+
+#cosmic-ritual {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle, rgba(15, 46, 42, .28) 0 22%, rgba(7, 26, 22, .94) 67%);
+  transition: opacity .22s ease;
+}
+#cosmic-ritual > * { grid-area: 1 / 1; }
+#cosmic-ritual p {
+  margin-top: 250px;
+  color: var(--v2-gold-light);
+  font-size: .86rem;
+  font-weight: 700;
+  letter-spacing: .28em;
+  opacity: 0;
+}
+.ritual-halo {
+  width: min(72vw, 560px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(226, 182, 71, .48);
+  border-radius: 50%;
+  opacity: 0;
+}
+.ritual-halo-inner { width: min(48vw, 350px); border-color: rgba(155, 185, 168, .55); }
+.ritual-sigil {
+  width: min(61vw, 455px);
+  aspect-ratio: 1;
+  position: relative;
+  opacity: 0;
+}
+.ritual-sigil span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: var(--v2-gold-light);
+  font-size: 1.15rem;
+  text-shadow: 0 0 14px rgba(226, 182, 71, .68);
+}
+.ritual-sigil span:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg) translateY(-205px); }
+.ritual-sigil span:nth-child(2) { transform: translate(-50%, -50%) rotate(72deg) translateY(-205px) rotate(-72deg); }
+.ritual-sigil span:nth-child(3) { transform: translate(-50%, -50%) rotate(144deg) translateY(-205px) rotate(-144deg); }
+.ritual-sigil span:nth-child(4) { transform: translate(-50%, -50%) rotate(216deg) translateY(-205px) rotate(-216deg); }
+.ritual-sigil span:nth-child(5) { transform: translate(-50%, -50%) rotate(288deg) translateY(-205px) rotate(-288deg); }
+.ritual-core {
+  color: #ffdd78;
+  font-size: 3.2rem;
+  opacity: 0;
+  text-shadow: 0 0 18px #e2b647, 0 0 55px rgba(155, 185, 168, .80);
+}
+
+body.ritual-opening #cosmic-ritual { opacity: 1; }
+body.ritual-opening #cosmic-ritual .ritual-halo-outer { animation: ritual-ring-in 1.2s cubic-bezier(.2, .75, .2, 1) both, ritual-spin 7s linear infinite; }
+body.ritual-opening #cosmic-ritual .ritual-halo-inner { animation: ritual-ring-in .95s .08s cubic-bezier(.2, .75, .2, 1) both, ritual-spin-reverse 5s linear infinite; }
+body.ritual-opening #cosmic-ritual .ritual-sigil { animation: ritual-sigil-in 1s .08s ease both, ritual-spin 8s linear infinite; }
+body.ritual-opening #cosmic-ritual .ritual-core { animation: ritual-core-pulse .85s .18s ease both; }
+body.ritual-opening #cosmic-ritual p { animation: ritual-caption .7s .42s ease both; }
+body.ritual-opening > .wrap { animation: ritual-page-away 1.15s .12s ease both; }
+
+@keyframes ritual-ring-in {
+  0% { opacity: 0; transform: scale(1.8) rotate(-30deg); }
+  55% { opacity: .72; }
+  100% { opacity: .42; transform: scale(.56) rotate(40deg); }
+}
+@keyframes ritual-sigil-in {
+  from { opacity: 0; transform: scale(1.35) rotate(-25deg); }
+  to { opacity: .8; transform: scale(.72) rotate(0); }
+}
+@keyframes ritual-core-pulse {
+  0% { opacity: 0; transform: scale(.2) rotate(-90deg); }
+  55% { opacity: 1; transform: scale(1.22) rotate(8deg); }
+  100% { opacity: .92; transform: scale(1) rotate(0); }
+}
+@keyframes ritual-caption { from { opacity: 0; transform: translateY(10px); } to { opacity: .9; transform: translateY(0); } }
+@keyframes ritual-page-away { 0%, 45% { opacity: 1; filter: blur(0); transform: scale(1); } 100% { opacity: .12; filter: blur(8px); transform: scale(1.035); } }
+@keyframes ritual-spin { to { rotate: 360deg; } }
+@keyframes ritual-spin-reverse { to { rotate: -360deg; } }
+
+.tarot-deck-wrap.is-shuffling { position: relative; min-height: 365px; }
+.tarot-deck-wrap.is-shuffling .tarot-deck { animation: tarot-deck-breathe .9s ease both; }
+.tarot-ghost-fan {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.tarot-ghost-fan > span {
+  --center: 2;
+  position: absolute;
+  left: -72px;
+  top: -114px;
+  width: 144px;
+  aspect-ratio: 5 / 8;
+  display: grid;
+  place-items: center;
+  color: var(--v2-gold-light);
+  border: 1px solid rgba(226, 182, 71, .68);
+  border-radius: 10px;
+  background: repeating-radial-gradient(circle, transparent 0 13px, rgba(226, 182, 71, .07) 14px 15px), rgba(6, 28, 23, .96);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .38);
+  opacity: 0;
+  transform-origin: 50% 120%;
+  animation: tarot-ghost-shuffle .88s cubic-bezier(.22, .75, .25, 1) both;
+  animation-delay: calc(var(--card-index) * 45ms);
+}
+.tarot-ghost-fan-spread > span { --center: 3; }
+.tarot-ghost-fan i { font-style: normal; font-size: 2rem; text-shadow: 0 0 15px rgba(226, 182, 71, .45); }
+
+@keyframes tarot-deck-breathe {
+  0% { transform: rotate(-1.5deg) scale(1); }
+  45% { transform: rotate(2deg) scale(.94); filter: brightness(1.35); }
+  100% { transform: rotate(0) scale(1.03); }
+}
+@keyframes tarot-ghost-shuffle {
+  0% { opacity: 0; transform: translateX(0) rotate(0) scale(.74); }
+  38%, 68% { opacity: .95; transform: translateX(calc((var(--card-index) - var(--center)) * 54px)) rotate(calc((var(--card-index) - var(--center)) * 8deg)) scale(.83); }
+  100% { opacity: 0; transform: translateX(0) rotate(0) scale(.68); }
+}
+
+.cosmic-v2 .tarot-card-shell {
+  position: relative;
+  overflow: hidden;
+  animation: tarot-v2-reveal 1s cubic-bezier(.18, .82, .22, 1) both;
+  transform-style: preserve-3d;
+}
+.cosmic-v2 .tarot-card-shell::after {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 240, 184, .58) 49%, transparent 56%);
+  transform: translateX(-70%) rotate(8deg);
+  animation: tarot-card-glint 1.2s .48s ease both;
+}
+.cosmic-v2 .tarot-spread-card { animation: tarot-spread-rise .72s ease both; }
+.cosmic-v2 .tarot-spread-card:nth-child(2) { animation-delay: .18s; }
+.cosmic-v2 .tarot-spread-card:nth-child(3) { animation-delay: .36s; }
+@keyframes tarot-v2-reveal {
+  0% { opacity: 0; transform: perspective(900px) rotateY(180deg) translateY(20px) scale(.78); }
+  65% { opacity: 1; transform: perspective(900px) rotateY(-8deg) translateY(-4px) scale(1.03); }
+  100% { transform: perspective(900px) rotateY(0) translateY(0) scale(1); }
+}
+@keyframes tarot-card-glint { from { opacity: 0; transform: translateX(-70%) rotate(8deg); } 35% { opacity: 1; } to { opacity: 0; transform: translateX(70%) rotate(8deg); } }
+@keyframes tarot-spread-rise { from { opacity: 0; transform: translateY(30px) rotateY(35deg); } to { opacity: 1; transform: translateY(0) rotateY(0); } }
+
+.meihua-ritual {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  margin: 18px 0 8px;
+  overflow: hidden;
+  border-top: 1px solid rgba(226, 182, 71, .18);
+  border-bottom: 1px solid rgba(226, 182, 71, .18);
+  background: radial-gradient(circle, rgba(92, 141, 120, .18), transparent 62%);
+}
+.meihua-ritual > * { grid-area: 1 / 1; }
+.meihua-ritual p { align-self: end; margin-bottom: 22px; color: var(--v2-gold-light); font-size: .8rem; letter-spacing: .2em; }
+.meihua-taiji {
+  width: 112px;
+  aspect-ratio: 1;
+  border: 2px solid rgba(226, 182, 71, .82);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 25%, #0a2420 0 8%, #f0d785 9% 25%, transparent 26%),
+    radial-gradient(circle at 50% 75%, #f0d785 0 8%, #0a2420 9% 25%, transparent 26%),
+    linear-gradient(90deg, #f0d785 50%, #0a2420 50%);
+  box-shadow: 0 0 34px rgba(226, 182, 71, .20);
+  animation: meihua-spin 1.35s cubic-bezier(.4, 0, .2, 1) both;
+}
+.meihua-lines {
+  width: 220px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 9px;
+}
+.meihua-lines span {
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, transparent, var(--v2-gold-light) 18% 82%, transparent);
+  box-shadow: 0 0 12px rgba(226, 182, 71, .30);
+  opacity: 0;
+  transform: scaleX(.15);
+  animation: meihua-line-form .34s ease forwards;
+  animation-delay: calc(.48s + var(--line-index) * 110ms);
+}
+@keyframes meihua-spin { 0% { opacity: 0; transform: rotate(-360deg) scale(.35); } 62% { opacity: 1; transform: rotate(18deg) scale(1); } 100% { opacity: 0; transform: rotate(90deg) scale(.62); } }
+@keyframes meihua-line-form { to { opacity: .92; transform: scaleX(1); } }
+#meihua-result.gua-revealed { animation: gua-result-rise .8s ease both; }
+@keyframes gua-result-rise { from { opacity: 0; transform: translateY(22px); filter: blur(5px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+
+.cosmic-result-arrival { animation: result-arrival 1.35s cubic-bezier(.18, .82, .22, 1) both; }
+@keyframes result-arrival { from { opacity: 0; transform: scale(.94) translateY(20px); filter: blur(8px); } to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); } }
+
+@media (max-width: 720px) {
+  .ritual-sigil span:nth-child(1) { transform: translate(-50%, -50%) rotate(0deg) translateY(-130px); }
+  .ritual-sigil span:nth-child(2) { transform: translate(-50%, -50%) rotate(72deg) translateY(-130px) rotate(-72deg); }
+  .ritual-sigil span:nth-child(3) { transform: translate(-50%, -50%) rotate(144deg) translateY(-130px) rotate(-144deg); }
+  .ritual-sigil span:nth-child(4) { transform: translate(-50%, -50%) rotate(216deg) translateY(-130px) rotate(-216deg); }
+  .ritual-sigil span:nth-child(5) { transform: translate(-50%, -50%) rotate(288deg) translateY(-130px) rotate(-288deg); }
+  .tarot-deck-wrap.is-shuffling { min-height: 330px; }
+  .tarot-ghost-fan > span { left: -58px; top: -92px; width: 116px; }
+  @keyframes tarot-ghost-shuffle {
+    0% { opacity: 0; transform: translateX(0) rotate(0) scale(.72); }
+    38%, 68% { opacity: .95; transform: translateX(calc((var(--card-index) - var(--center)) * 32px)) rotate(calc((var(--card-index) - var(--center)) * 7deg)) scale(.78); }
+    100% { opacity: 0; transform: translateX(0) rotate(0) scale(.66); }
+  }
+}
+.tarot-question-panel.is-shuffling { position: relative; min-height: 310px; }
+.tarot-question-panel.is-shuffling form { opacity: .24; filter: blur(3px); transition: opacity .2s ease, filter .2s ease; }
