@@ -23,7 +23,7 @@ function addFallbackStars() {
   fallback.setAttribute('aria-hidden', 'true');
   fallback.style.cssText = [
     'position:fixed', 'inset:0', 'z-index:-2', 'pointer-events:none',
-    'background-image:radial-gradient(circle at 20% 25%,rgba(255,238,183,.55) 0 1px,transparent 1.5px),radial-gradient(circle at 75% 18%,rgba(193,157,232,.55) 0 1px,transparent 1.5px),radial-gradient(circle at 62% 72%,rgba(120,216,209,.45) 0 1px,transparent 1.5px)',
+    'background-image:radial-gradient(circle at 20% 25%,rgba(255,238,183,.62) 0 1px,transparent 1.5px),radial-gradient(circle at 75% 18%,rgba(155,185,168,.62) 0 1px,transparent 1.5px),radial-gradient(circle at 62% 72%,rgba(120,181,160,.52) 0 1px,transparent 1.5px)',
     'background-size:113px 113px,157px 157px,199px 199px'
   ].join(';');
   document.body.prepend(fallback);
@@ -57,7 +57,7 @@ function initCosmicScene(THREE) {
   renderer.setClearColor(0x000000, 0);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x07030f, 0.032);
+  scene.fog = new THREE.FogExp2(0x0a2420, 0.032);
 
   const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(0, 0, 13);
@@ -75,9 +75,9 @@ function initCosmicScene(THREE) {
   const starColors = new Float32Array(starCount * 3);
   const palette = [
     new THREE.Color(0xf7e8b1),
-    new THREE.Color(0xb494df),
-    new THREE.Color(0x7edbd4),
-    new THREE.Color(0xffffff)
+    new THREE.Color(0x9bb9a8),
+    new THREE.Color(0x78b5a0),
+    new THREE.Color(0xf5f3e9)
   ];
 
   for (let i = 0; i < starCount; i += 1) {
@@ -123,7 +123,7 @@ function initCosmicScene(THREE) {
     depthWrite: false
   });
   const violetMaterial = new THREE.MeshBasicMaterial({
-    color: 0x9c72d3,
+    color: 0x7da28d,
     transparent: true,
     opacity: 0.13,
     blending: THREE.AdditiveBlending,
@@ -144,7 +144,7 @@ function initCosmicScene(THREE) {
   const core = new THREE.Mesh(
     new THREE.IcosahedronGeometry(1.18, 1),
     new THREE.MeshBasicMaterial({
-      color: 0xa77bd9,
+      color: 0x8faf9b,
       wireframe: true,
       transparent: true,
       opacity: 0.15,
@@ -156,8 +156,8 @@ function initCosmicScene(THREE) {
   const moon = new THREE.Mesh(
     new THREE.SphereGeometry(0.62, 36, 36),
     new THREE.MeshStandardMaterial({
-      color: 0xcbb7d9,
-      emissive: 0x3b205c,
+      color: 0xc6d2c7,
+      emissive: 0x173b32,
       emissiveIntensity: 0.52,
       roughness: 0.82,
       metalness: 0.08,
@@ -196,7 +196,7 @@ function initCosmicScene(THREE) {
     context.font = '44px Georgia, serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
-    context.fillStyle = index % 3 === 0 ? '#f3dda0' : '#b99add';
+    context.fillStyle = index % 3 === 0 ? '#f3dda0' : '#9bb9a8';
     context.shadowColor = context.fillStyle;
     context.shadowBlur = 10;
     context.fillText(symbol, 48, 50);
@@ -216,7 +216,7 @@ function initCosmicScene(THREE) {
     glyphGroup.add(sprite);
   });
 
-  scene.add(new THREE.AmbientLight(0xbda4d3, 0.82));
+  scene.add(new THREE.AmbientLight(0xa9c2b3, 0.82));
   const moonLight = new THREE.PointLight(0xf1d899, 2.2, 18);
   moonLight.position.set(-4, 3, 3);
   scene.add(moonLight);
@@ -231,7 +231,7 @@ function initCosmicScene(THREE) {
       new THREE.Vector3(-1.9, 0.72, 0)
     ]);
     const material = new THREE.LineBasicMaterial({
-      color: index % 2 === 0 ? 0xf6e6ad : 0xb997df,
+      color: index % 2 === 0 ? 0xf6e6ad : 0x9bb9a8,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
