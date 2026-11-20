@@ -4,183 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>人生劇本｜多系統命理合盤</title>
-  <meta name="description" content="整合馬雅曆、星座、八字、紫微斗數、人類圖五大命理系統，一次解讀你的生命藍圖。">
-  <meta property="og:title" content="人生劇本｜多系統命理合盤">
-  <meta property="og:description" content="馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀你的天賦與人生方向。">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://hopiper-bot.github.io">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="人生劇本｜多系統命理合盤">
-  <meta name="twitter:description" content="馬雅曆・星座・八字・紫微・人類圖 — 五大系統合盤解讀">
-  <meta name="theme-color" content="#0F2E2A">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="manifest.json">
+  <title>人生劇本・玄境｜多系統命理合盤</title>
+  <meta name="description" content="整合馬雅曆、星座、八字、紫微斗數與人類圖，在星象玄境中探索你的生命藍圖。">
+  <meta name="theme-color" content="#0f2e2a">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=24">
+  <link rel="stylesheet" href="v2/css/cosmic.css?v=4">
 </head>
-<body>
+<body class="cosmic-v2">
   <div class="wrap">
-    <!-- Header -->
     <header>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色/淺色模式" title="切換主題">🌙</button>
-      <div class="logo-icon">✦</div>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色或淺色模式" title="切換主題">🌙</button>
+      <div class="logo-icon" aria-hidden="true">✦</div>
       <h1>人生劇本</h1>
-      <p>用你的出生資料，一次探索自己的天賦與人生方向。</p>
-      <p class="hero-tagline">凡事本無吉凶，端看自己如何詮釋。</p>
+      <p>循著出生時刻的星軌，閱讀你與生俱來的天賦與方向。</p>
+      <p class="hero-tagline">天象為鏡，選擇為路。</p>
     </header>
 
-    <!-- 主流程：出生資料 → 開始解讀 -->
-    <div class="panel" id="birth-panel">
-      <div class="systems-intro">
-        <p class="systems-intro-title">✦ 開始探索我的命盤</p>
-        <p class="systems-intro-lead">五種系統，看見同一個人的不同面向</p>
-        <p class="systems-intro-sub">馬雅曆・星座・八字・紫微・人類圖</p>
-      </div>
-      <form id="birth-form" novalidate>
-        <label>出生日期</label>
-        <div class="form-row">
-          <div class="form-group">
-            <input type="number" id="birth-year" placeholder="年份" min="1900" max="2100" aria-label="出生年份">
-          </div>
-          <div class="form-group">
-            <select id="birth-month" aria-label="出生月份">
-              <option value="">月</option>
-              <option value="1">1月</option>
-              <option value="2">2月</option>
-              <option value="3">3月</option>
-              <option value="4">4月</option>
-              <option value="5">5月</option>
-              <option value="6">6月</option>
-              <option value="7">7月</option>
-              <option value="8">8月</option>
-              <option value="9">9月</option>
-              <option value="10">10月</option>
-              <option value="11">11月</option>
-              <option value="12">12月</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <input type="number" id="birth-day" placeholder="日" min="1" max="31" aria-label="出生日">
-          </div>
+    <main>
+      <section class="panel" id="birth-panel">
+        <div class="systems-intro">
+          <p class="systems-intro-title">開啟我的生命星盤</p>
+          <p class="systems-intro-lead">五種古老與現代系統，映照同一個靈魂</p>
+          <p class="systems-intro-sub">馬雅曆・星座・八字・紫微・人類圖</p>
         </div>
-        <div id="error-date" class="error-msg" role="alert"></div>
-
-        <label>出生時間<span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（選填，不知道可以留空）</span></label>
-        <div class="form-row">
-          <div class="form-group">
-            <input type="number" id="birth-hour" placeholder="時（0-23）" min="0" max="23" aria-label="出生小時">
+        <form id="birth-form" novalidate>
+          <label>出生日期</label>
+          <div class="form-row">
+            <div class="form-group"><input type="number" id="birth-year" placeholder="年份" min="1900" max="2100" aria-label="出生年份"></div>
+            <div class="form-group"><select id="birth-month" aria-label="出生月份"><option value="">月</option><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div>
+            <div class="form-group"><input type="number" id="birth-day" placeholder="日" min="1" max="31" aria-label="出生日"></div>
           </div>
-          <div class="form-group">
-            <input type="number" id="birth-minute" placeholder="分（0-59）" min="0" max="59" aria-label="出生分鐘">
+          <div id="error-date" class="error-msg" role="alert"></div>
+
+          <label>出生時間 <span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（選填，不知道可留空）</span></label>
+          <div class="form-row">
+            <div class="form-group"><input type="number" id="birth-hour" placeholder="時（0-23）" min="0" max="23" aria-label="出生小時"></div>
+            <div class="form-group"><input type="number" id="birth-minute" placeholder="分（0-59）" min="0" max="59" aria-label="出生分鐘"></div>
           </div>
+          <div id="error-time" class="error-msg" role="alert"></div>
+
+          <label>出生地點 <span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（有填時間時建議填入）</span></label>
+          <div class="form-row"><div class="form-group wide"><input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度" aria-label="出生地點" maxlength="100" list="city-list" autocomplete="off"><datalist id="city-list"></datalist></div></div>
+          <div id="error-location" class="error-msg" role="alert"></div>
+
+          <label>性別</label>
+          <div class="form-row"><div class="form-group"><select id="birth-gender" aria-label="性別"><option value="male">男</option><option value="female">女</option></select></div></div>
+
+          <div class="form-row" style="margin-top:20px;"><button type="submit" class="btn-primary">展開生命劇本 ✦</button></div>
+          <div id="last-result-link" style="text-align:center;margin-top:12px;display:none;"><a href="result.html" style="font-size:.82rem;color:var(--muted);text-decoration:none;border-bottom:1px dashed var(--muted);">沿著上次的星軌繼續閱讀 ›</a></div>
+        </form>
+      </section>
+
+      <section id="daily-energy" class="panel daily-energy-panel">
+        <div class="daily-energy-header"><span class="daily-energy-title">✦ 今日能量</span><span id="daily-energy-date" class="daily-energy-date"></span></div>
+        <div id="daily-energy-content" class="daily-energy-content"><div class="view-loading"><div class="loading-spinner"></div><span>感應今日星象⋯</span></div></div>
+      </section>
+
+      <nav class="more-explore" aria-label="其他命理探索">
+        <p class="more-explore-title">Explore the unseen・探索未見</p>
+        <div class="more-explore-list">
+          <a class="more-item" href="person.html"><span class="more-icon">☍</span><span class="more-text"><b>雙人合盤</b><small>探索兩個靈魂的引力與相處模式</small></span><span class="more-go">進入 ›</span></a>
+          <a class="more-item" href="company.html"><span class="more-icon">♄</span><span class="more-text"><b>公司合盤</b><small>看見你與職場之間的能量契合</small></span><span class="more-go">進入 ›</span></a>
+          <a class="more-item" href="name.html"><span class="more-icon">☿</span><span class="more-text"><b>姓名學</b><small>五格三才與八字五行補救</small></span><span class="more-go">進入 ›</span></a>
+          <a class="more-item" href="tarot.html"><span class="more-icon">☾</span><span class="more-text"><b>本命塔羅</b><small>今日一張牌與三張牌問事</small></span><span class="more-go">揭牌 ›</span></a>
+          <a class="more-item" href="meihua.html"><span class="more-icon">☯</span><span class="more-text"><b>梅花易數</b><small>以當下心念映照所問之事</small></span><span class="more-go">起卦 ›</span></a>
         </div>
-        <div id="error-time" class="error-msg" role="alert"></div>
+      </nav>
 
-        <label>出生地點<span style="font-size:.78rem;color:var(--muted);font-weight:normal;">（有填時間時建議填入）</span></label>
-        <div class="form-row">
-          <div class="form-group wide">
-            <input type="text" id="birth-location" placeholder="城市名（如：台北）或經緯度（如：25.03, 121.56）" aria-label="出生地點" maxlength="100" list="city-list" autocomplete="off">
-            <datalist id="city-list"></datalist>
-          </div>
-        </div>
-        <div id="error-location" class="error-msg" role="alert"></div>
+      <aside class="promo-block">
+        <p class="promo-bridge">把祝福帶回現實 🌸</p>
+        <p>如果今天的分析，讓你更喜歡現在的自己，希望這份心情不只停留在螢幕上。</p>
+        <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
+        <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
+        <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">前往 Instagram 看作品 ›</a></p>
+      </aside>
+    </main>
 
-        <label>性別</label>
-        <div class="form-row">
-          <div class="form-group">
-            <select id="birth-gender" aria-label="性別">
-              <option value="male">男</option>
-              <option value="female">女</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row" style="margin-top:18px;">
-          <button type="submit" class="btn-primary">開始解讀 ✦</button>
-        </div>
-        <div id="last-result-link" style="text-align:center;margin-top:12px;display:none;">
-          <a href="result.html" style="font-size:.82rem;color:var(--muted);text-decoration:none;border-bottom:1px dashed var(--muted);">看上次的解讀結果 ›</a>
-        </div>
-      </form>
-    </div>
-
-    <!-- 今日能量（輔助資訊，不搶主流程） -->
-    <div id="daily-energy" class="panel daily-energy-panel">
-      <div class="daily-energy-header">
-        <span class="daily-energy-title">✦ 今日能量</span>
-        <span id="daily-energy-date" class="daily-energy-date"></span>
-      </div>
-      <div id="daily-energy-content" class="daily-energy-content">
-        <div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>
-      </div>
-    </div>
-
-    <!-- 其他探索：各自獨立頁面 -->
-    <div class="more-explore">
-      <p class="more-explore-title">其他探索</p>
-      <div class="more-explore-list">
-        <a class="more-item" href="person.html">
-          <span class="more-icon">❤️</span>
-          <span class="more-text"><b>雙人合盤</b><small>探索你與另一個人的相處模式</small></span>
-          <span class="more-go">開始探索 ›</span>
-        </a>
-        <a class="more-item" href="company.html">
-          <span class="more-icon">💼</span>
-          <span class="more-text"><b>公司合盤</b><small>探索你與公司的契合模式</small></span>
-          <span class="more-go">開始探索 ›</span>
-        </a>
-        <a class="more-item" href="name.html">
-          <span class="more-icon">🖋️</span>
-          <span class="more-text"><b>姓名學</b><small>五格三才 ＋ 看名字有沒有補到八字缺的五行</small></span>
-          <span class="more-go">開始解讀 ›</span>
-        </a>
-        <a class="more-item" href="tarot.html">
-          <span class="more-icon">🔮</span>
-          <span class="more-text"><b>本命塔羅</b><small>今日一張牌 ＋ 三張牌問事</small></span>
-          <span class="more-go">揭開今日牌 ›</span>
-        </a>
-        <a class="more-item" href="meihua.html">
-          <span class="more-icon">🎲</span>
-          <span class="more-text"><b>梅花易數</b><small>不用生日也能占，一事一占</small></span>
-          <span class="more-go">開始占卦 ›</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- 花束（延伸內容，維持最下面） -->
-    <div class="promo-block">
-      <p class="promo-bridge">把祝福帶回現實 🌸</p>
-      <p>如果今天的分析，讓你更喜歡現在的自己——<br>希望這份心情，不只停留在螢幕上。</p>
-      <p>我手作客製黏土花束，把祝福變成能長久保存的東西。</p>
-      <p class="promo-tags">🌸 現金花束 ｜ 📚 文具花束 ｜ 🎁 生日・畢業・退休・紀念日</p>
-      <p><a href="https://www.instagram.com/softchaos.tw?utm_source=qr" target="_blank" rel="noopener" class="promo-link">👉 點擊前往 Instagram 看作品</a></p>
-    </div>
-
-    <p class="disclaimer">本網站分析結果僅供個人參考與自我探索，不構成任何醫療、法律、心理或財務建議。<span style="opacity:.45;">v19</span></p>
+    <p class="disclaimer">命理分析僅供個人參考與自我探索，不構成醫療、法律、心理或財務建議。<span style="opacity:.45;"> Cosmic V2</span></p>
   </div>
 
-  <script>
-    // 有上次結果就顯示「看上次的解讀結果」入口
-    document.addEventListener('DOMContentLoaded', function () {
-      try {
-        var s = JSON.parse(localStorage.getItem('destiny_birth_data') || 'null');
-        if (s && s.year) {
-          var el = document.getElementById('last-result-link');
-          if (el) el.style.display = '';
-        }
-      } catch (e) {}
-    });
-  </script>
-
-  <script type="module" src="js/main.js?v=21"></script>
+  <script>document.addEventListener('DOMContentLoaded',function(){try{var s=JSON.parse(localStorage.getItem('destiny_birth_data')||'null');if(s&&s.year){var el=document.getElementById('last-result-link');if(el)el.style.display='';}}catch(e){}});</script>
+  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script>
+  <script type="module" src="v2/js/ritual-effects.js?v=1"></script>
+  <script type="module" src="js/main.js?v=25"></script>
   <script src="js/data/nayin-text.js"></script>
   <script src="js/data/ziwei-narrative.js"></script>
-  <script type="module" src="js/click-handlers.js?v=21"></script>
-  <script src="js/sw-register.js?v=21"></script>
+  <script type="module" src="js/click-handlers.js?v=24"></script>
 </body>
 </html>
