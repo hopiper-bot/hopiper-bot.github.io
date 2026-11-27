@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>MBTI 性格｜人生劇本・玄境</title><meta name="description" content="選擇你的 MBTI 型別，或用 20 題小測驗找出來，並與八字、人類圖、星座交叉解讀。"><meta name="theme-color" content="#0f2e2a">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=24"><link rel="stylesheet" href="v2/css/cosmic.css?v=4"><link rel="stylesheet" href="css/mbti.css?v=1">
+</head>
+<body class="cosmic-v2">
+  <div class="wrap">
+    <header class="page-header"><button id="theme-toggle" class="theme-toggle" type="button" aria-label="切換深色或淺色模式" title="切換主題">🌙</button><a class="screen-back" href="index.html">‹ 回到玄境</a></header>
+    <main>
+      <section class="panel">
+        <div class="sig"><div class="kin">THE PERSONALITY LAYER</div><div class="big" style="font-size:1.45rem;">🧩 MBTI 性格</div><div style="font-size:.84rem;color:var(--muted);margin-top:5px;">命盤是先天設定，性格是你的操作方式。兩者放在一起看。</div></div>
+
+        <div id="mbti-entry">
+          <div class="mbti-modes" role="tablist">
+            <button type="button" id="mode-pick" class="active">我知道我的型別</button>
+            <button type="button" id="mode-test">做 20 題小測驗</button>
+          </div>
+
+          <div id="mbti-pick"><div id="mbti-grid" class="mbti-grid"></div></div>
+
+          <div id="mbti-test" style="display:none;">
+            <div class="mbti-progress" aria-hidden="true"><div id="mbti-progress-bar"></div></div>
+            <div id="mbti-progress-text" class="mbti-progress-text"></div>
+            <div id="mbti-q" class="mbti-q" aria-live="polite"></div>
+            <div id="mbti-options" class="mbti-options"></div>
+            <button type="button" id="mbti-back" class="mbti-back">‹ 上一題</button>
+            <div class="mbti-note">每題選「比較像你」的那個就好，不用想太久。這是簡易版，不等同正式施測。</div>
+          </div>
+        </div>
+
+        <div id="mbti-result" style="display:none;margin-top:6px;"></div>
+      </section>
+      <nav class="more-explore"><p class="more-explore-title">Other portals・其他入口</p><div class="more-explore-list"><a class="more-item" href="index.html"><span class="more-icon">✦</span><span class="more-text"><b>我的命盤</b><small>五大系統生命解讀</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="name.html"><span class="more-icon">☿</span><span class="more-text"><b>姓名學</b><small>五格三才與八字五行</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="tarot.html"><span class="more-icon">☾</span><span class="more-text"><b>本命塔羅</b><small>為今天或一件事抽牌</small></span><span class="more-go">揭牌 ›</span></a></div></nav>
+    </main>
+    <p class="disclaimer">MBTI 僅供自我探索，不構成心理評估或專業建議。<span style="opacity:.45;"> Cosmic V2</span></p>
+  </div>
+  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script><script type="module" src="v2/js/ritual-effects.js?v=1"></script><script type="module" src="js/main.js?v=26"></script><script type="module" src="js/mbti-page.js?v=1"></script>
+</body></html>

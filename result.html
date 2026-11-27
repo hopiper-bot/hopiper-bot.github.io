@@ -30,6 +30,7 @@
             <div class="tab" data-view="bazi" role="tab" aria-selected="false" aria-controls="view-bazi" id="tab-bazi" tabindex="0">八字</div>
             <div class="tab" data-view="ziwei" role="tab" aria-selected="false" aria-controls="view-ziwei" id="tab-ziwei" tabindex="0">紫微</div>
             <div class="tab" data-view="hd" role="tab" aria-selected="false" aria-controls="view-hd" id="tab-hd" tabindex="0">人類圖</div>
+            <div class="tab" data-view="mbti" role="tab" aria-selected="false" aria-controls="view-mbti" id="tab-mbti" tabindex="0">MBTI</div>
             <div class="tab" data-view="synthesis" role="tab" aria-selected="false" aria-controls="view-synthesis" id="tab-synthesis" tabindex="0">劇本大綱</div>
           </nav>
         </div>
@@ -39,6 +40,7 @@
         <div id="view-bazi" class="view" role="tabpanel" aria-labelledby="tab-bazi"></div>
         <div id="view-ziwei" class="view" role="tabpanel" aria-labelledby="tab-ziwei"></div>
         <div id="view-hd" class="view" role="tabpanel" aria-labelledby="tab-hd"></div>
+        <div id="view-mbti" class="view" role="tabpanel" aria-labelledby="tab-mbti"></div>
         <div id="view-synthesis" class="view" role="tabpanel" aria-labelledby="tab-synthesis"></div>
       </section>
 
@@ -47,6 +49,7 @@
       <nav class="more-explore" aria-label="其他命理探索">
         <p class="more-explore-title">Continue the journey・繼續探索</p>
         <div class="more-explore-list">
+          <a class="more-item" href="mbti.html"><span class="more-icon">🧩</span><span class="more-text"><b>MBTI 性格</b><small>選型別或做 20 題測驗，交叉解讀命盤</small></span><span class="more-go">進入 ›</span></a>
           <a class="more-item" href="person.html"><span class="more-icon">☍</span><span class="more-text"><b>雙人合盤</b><small>探索兩個靈魂的相處模式</small></span><span class="more-go">進入 ›</span></a>
           <a class="more-item" href="company.html"><span class="more-icon">♄</span><span class="more-text"><b>公司合盤</b><small>看見你與職場的能量契合</small></span><span class="more-go">進入 ›</span></a>
           <a class="more-item" href="name.html"><span class="more-icon">☿</span><span class="more-text"><b>姓名學</b><small>五格三才與八字五行</small></span><span class="more-go">進入 ›</span></a>
@@ -61,7 +64,7 @@
   <script>(function(){var hasQuery=/(\?|&)y=/.test(location.search),hasSaved=false;try{var s=JSON.parse(localStorage.getItem('destiny_birth_data')||'null');hasSaved=!!(s&&s.year);}catch(e){}if(!hasQuery&&!hasSaved){document.addEventListener('DOMContentLoaded',function(){var l=document.getElementById('loading');if(l)l.style.display='none';var h=document.getElementById('no-data-hint');if(h)h.style.display='';});}})();</script>
   <script type="module" src="v2/js/cosmic-scene.js?v=4"></script>
   <script type="module" src="v2/js/ritual-effects.js?v=1"></script>
-  <script type="module" src="js/main.js?v=25"></script>
+  <script type="module" src="js/main.js?v=26"></script>
   <script src="js/data/nayin-text.js"></script>
   <script src="js/data/ziwei-narrative.js"></script>
   <script type="module" src="js/click-handlers.js?v=24"></script>

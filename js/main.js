@@ -18,6 +18,24 @@ import * as synthesisEngine from './engines/synthesis.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
 import { calculateDaily, renderDaily } from './engines/daily-energy.js';
+import { renderMbtiTab, renderSynthesisBlock } from './engines/mbti.js';
+
+/**
+ * MBTI 分頁 + 劇本大綱尾端的性格層。
+ * 不進 result cache：MBTI 隨時可改，每次依 localStorage 即時渲染。
+ */
+function applyMbti(results) {
+  try {
+    ui.setViewContent('mbti', renderMbtiTab(results || {}));
+    const syn = document.getElementById('view-synthesis');
+    if (syn) {
+      const old = syn.querySelector('#mbti-synth');
+      if (old) old.remove();
+      const block = renderSynthesisBlock(results || {});
+      if (block) syn.insertAdjacentHTML('beforeend', block);
+    }
+  } catch (e) { console.warn('MBTI 渲染失敗:', e); }
+}
 
 // 全域儲存最新的個人八字結果，供公司合盤使用（click-handlers.js 透過 window.__getLastBaziData 讀取）
 let lastBaziData = null;
@@ -302,8 +320,11 @@ function restoreCachedResults() {
         try { reResults.astro = astroEngine.calculate(birthData); } catch(e) {}
         try { reResults.maya = mayaEngine.calculate(birthData); } catch(e) {}
         try { synthesisEngine.calculate(reResults); } catch(e) { console.warn('[cache-restore] synthesis re-calc failed:', e); }
+        applyMbti(reResults);
+      } else {
+        applyMbti({});
       }
-    } catch(e) { console.warn('[cache-restore] re-calc failed:', e); }
+    } catch(e) { console.warn('[cache-restore] re-calc failed:', e); applyMbti({}); }
 
     // 綁定年份切換按鈕
     try { synthesisEngine.attachYearSwitcher(); } catch(e) {}
@@ -486,6 +507,7 @@ async function calculate() {
   // 各 tab 先放 loading placeholder
   const engineTabs = ['maya', 'astro', 'bazi', 'ziwei', 'hd', 'synthesis'];
   engineTabs.forEach(k => ui.setViewContent(k, '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>'));
+  ui.setViewContent('mbti', '<div class="view-loading"><div class="loading-spinner"></div><span>計算中⋯</span></div>');
   // 合盤 tab 保留現有表單（不覆蓋）
 
   // === Progressive Rendering: 每個引擎獨立 try/catch ===
@@ -550,6 +572,9 @@ async function calculate() {
     results.synthesis = { status: 'error', error: `劇本大綱計算時發生錯誤：${err.message}` };
     ui.setViewContent('synthesis', ui.renderError(results.synthesis.error));
   }
+
+  // Phase 3: MBTI 分頁與劇本大綱性格層（有存 MBTI 才會有交叉解讀）
+  applyMbti(results);
 
   // 隱藏 loading
   ui.hideLoading();
@@ -810,6 +835,4 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============ 合盤支援 ============
 // 公司合盤 / 雙人合盤的表單與計算邏輯統一在 click-handlers.js（唯一來源）。
 // 這裡只保留 lastBaziData 的存取橋接，供該非 module script 讀取。
-// 暴露 lastBaziData 給 click-handlers.js（非 module script）使用
-window.__getLastBaziData = () => lastBaziData;
-window.__setLastBaziData = (d) => { lastBaziData = d; };
+// 暴露 lastBaziData 給 click-handlers.js（非 modu

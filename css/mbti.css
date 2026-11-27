@@ -1,0 +1,35 @@
+/* mbti.html 專用樣式（沿用 style.css 的 CSS 變數，不改動主樣式表） */
+.mbti-modes { display: flex; gap: 8px; margin: 14px 0; }
+.mbti-modes button {
+  flex: 1; padding: 10px 8px; border-radius: 10px; cursor: pointer; font-size: .9rem;
+  border: 1px solid rgba(255,255,255,.18); background: transparent; color: var(--text);
+}
+.mbti-modes button.active { background: var(--accent); color: #000; font-weight: 700; border-color: var(--accent); }
+
+.mbti-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mbti-type-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px;
+  border-radius: 10px; cursor: pointer; color: var(--text);
+  border: 1px solid rgba(255,255,255,.15); background: rgba(123,108,246,.06);
+}
+.mbti-type-btn b { letter-spacing: .06em; }
+.mbti-type-btn small { font-size: .68rem; color: var(--muted); }
+.mbti-type-btn:hover, .mbti-type-btn:focus-visible { border-color: var(--accent); outline: none; }
+@media (max-width: 420px) { .mbti-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.mbti-progress { height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; margin: 6px 0; }
+.mbti-progress > div { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+.mbti-progress-text { font-size: .78rem; color: var(--muted); }
+.mbti-q { font-size: 1.08rem; font-weight: 700; line-height: 1.7; margin: 18px 0 12px; }
+.mbti-options { display: flex; flex-direction: column; gap: 10px; }
+.mbti-opt {
+  text-align: left; padding: 14px; border-radius: 10px; cursor: pointer; font-size: .92rem; line-height: 1.7;
+  color: var(--text); border: 1px solid rgba(255,255,255,.18); background: rgba(123,108,246,.06);
+}
+.mbti-opt:hover, .mbti-opt:focus-visible { border-color: var(--accent); outline: none; }
+.mbti-back { margin-top: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
+
+.mbti-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; align-items: stretch; text-align: center; }
+.mbti-actions .btn-primary { display: block; text-decoration: none; }
+.btn-ghost { padding: 10px; border-radius: 10px; cursor: pointer; background: transparent; color: var(--muted); border: 1px dashed var(--muted); }
+.mbti-note { font-size: .74rem; color: var(--muted); margin-top: 12px; line-height: 1.7; text-align: center; }
