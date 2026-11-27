@@ -173,6 +173,32 @@ export function renderAxisBars(scores) {
   return rows.length ? `<div style="margin-top:12px;">${rows.join('')}</div>` : '';
 }
 
+/**
+ * 候選型別（給「候選比較」用）
+ * 取測驗結果本身，加上「最接近中間的 1～2 軸」各翻一個字母的型別，
+ * 再加上 extra（例如上次結果、使用者原本認定的型別），最多 4 個。
+ * @param {string} type 測驗算出的四字母
+ * @param {Object|null} scores { EI: 0~100, ... }
+ * @param {string[]} extra 額外想放進來比較的型別
+ */
+export function candidatesFrom(type, scores, extra = []) {
+  const out = [type];
+  if (scores) {
+    AXES.slice(0, 4)
+      .map((a, idx) => ({ a, idx, win: typeof scores[a.key] === 'number' ? Math.max(scores[a.key], 100 - scores[a.key]) : 100 }))
+      .filter(x => x.win <= 62)           // 62% 以內視為「可能翻過去」
+      .sort((x, y) => x.win - y.win)
+      .slice(0, 2)
+      .forEach(({ a, idx }) => {
+        const flip = type.split('');
+        flip[idx] = flip[idx] === a.a ? a.b : a.a;
+        out.push(flip.join(''));
+      });
+  }
+  extra.forEach(t => out.push(t));
+  return [...new Set(out.filter(isValidType))].slice(0, 4);
+}
+
 /** 接近平衡（≤55%）的軸 → 提示也可以參考翻轉那個字母的型別 */
 function neighborHint(type, scores) {
   if (!scores) return '';

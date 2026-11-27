@@ -42,6 +42,44 @@
 }
 .mbti-id-row button.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
+/* ---------- 候選比較 ---------- */
+.cmp-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 8px; }
+.cmp-tools .btn-ghost { padding: 8px 12px; font-size: .8rem; }
+.cmp-tools select {
+  flex: 1; min-width: 150px; padding: 8px; border-radius: 10px; font-size: .8rem;
+  background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,.18);
+}
+.cmp-sec { margin-top: 18px; }
+.cmp-title { font-weight: 700; margin-bottom: 8px; }
+.cmp-done { color: var(--accent); }
+.cmp-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.cmp-card {
+  position: relative; padding: 12px 12px 34px; border-radius: 10px; cursor: pointer;
+  font-size: .84rem; line-height: 1.8; color: var(--text);
+  border: 1px solid rgba(255,255,255,.15); background: rgba(123,108,246,.06);
+}
+.cmp-card p { margin: 6px 0 0; }
+.cmp-card ul { margin: 6px 0 0; padding-left: 1.1em; }
+.cmp-card:hover, .cmp-card:focus-visible { border-color: var(--accent); outline: none; }
+.cmp-card.on { border-color: var(--accent); background: rgba(245,197,66,.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+.cmp-tag { display: inline-block; font-size: .72rem; font-weight: 700; color: var(--accent); }
+.cmp-pick { position: absolute; left: 12px; bottom: 8px; font-size: .74rem; color: var(--muted); }
+.cmp-card.on .cmp-pick { color: var(--accent); font-weight: 700; }
+.cmp-none {
+  margin-top: 6px; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: .74rem;
+  background: none; color: var(--muted); border: 1px dashed rgba(255,255,255,.2);
+}
+.cmp-none.on { color: var(--accent); border-color: var(--accent); }
+.cmp-summary { margin-top: 22px; padding: 14px; border-radius: 10px; background: rgba(245,197,66,.08); }
+.cmp-summary .btn-primary { display: block; width: 100%; margin-top: 10px; }
+.cmp-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: .8rem; }
+.cmp-bar span { width: 150px; }
+.cmp-bar div { flex: 1; height: 10px; border-radius: 5px; background: rgba(255,255,255,.08); overflow: hidden; }
+.cmp-bar i { display: block; height: 100%; background: var(--accent); }
+.cmp-confirm { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.cmp-confirm .btn-ghost { padding: 10px; }
+.cmp-skip { display: block; margin: 12px auto 0; background: none; border: none; color: var(--muted); font-size: .78rem; cursor: pointer; text-decoration: underline; }
+
 .mbti-tip { font-size: .82rem; line-height: 1.8; padding: 10px 12px; border-radius: 8px; background: rgba(245,197,66,.1); margin-bottom: 12px; }
 
 .mbti-back { margin-top: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }

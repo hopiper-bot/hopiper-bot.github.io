@@ -18,7 +18,7 @@ import * as synthesisEngine from './engines/synthesis.js';
 import { timeGua, numberGua, textGua, renderMeihua } from './engines/meihua.js';
 import { renderShareToolbar, attachShareHandlers } from './share.js';
 import { calculateDaily, renderDaily } from './engines/daily-energy.js';
-import { renderMbtiTab, renderSynthesisBlock } from './engines/mbti.js?v=3';
+import { renderMbtiTab, renderSynthesisBlock } from './engines/mbti.js?v=4';
 
 /**
  * MBTI 分頁 + 劇本大綱尾端的性格層。
