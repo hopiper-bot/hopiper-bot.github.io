@@ -1,13 +1,18 @@
 /**
- * mbti.js — MBTI 引擎
- * - 測驗計分、型別儲存（localStorage: destiny_mbti）
- * - 渲染型別解讀卡片
+ * mbti.js — MBTI 引擎（v2）
+ * - 五段式測驗計分（含 -A／-T 第五軸），算出每軸強度
+ * - 型別儲存（localStorage: destiny_mbti），相容 v1 舊格式
+ * - 詳細解讀卡片：四軸強度、八維功能、壓力反應、成長、溝通、-A/-T
  * - 與八字／人類圖／星座交叉對照（觀察角度，非科學對應）
  */
 
-import { AXES, QUESTIONS, TYPES, ELEMENT_HINT } from '../data/mbti-data.js';
+import {
+  AXES, QUESTIONS, TYPES, ELEMENT_HINT, LETTER_DESC,
+  FUNCS, FUNC_ROLES, IDENTITY,
+} from '../data/mbti-data.js';
 
 const STORE_KEY = 'destiny_mbti';
+const PER_AXIS = 5;
 
 // ============ 儲存 ============
 
@@ -15,21 +20,53 @@ export function isValidType(t) {
   return typeof t === 'string' && Object.prototype.hasOwnProperty.call(TYPES, t);
 }
 
+/**
+ * 分數統一成 { EI: 0~100, ... }，數值 = 偏向該軸左邊字母（a）的百分比。
+ * v1 舊格式是 {E:3, I:2, ...} 次數，這裡換算過來。
+ */
+function normalizeScores(s) {
+  if (!s || typeof s !== 'object') return null;
+  if ('EI' in s) return s;
+  if ('E' in s) {
+    const out = {};
+    AXES.forEach(a => {
+      const l = s[a.a] || 0, r = s[a.b] || 0;
+      if (l + r > 0) out[a.key] = Math.round((l / (l + r)) * 100);
+    });
+    return out;
+  }
+  return null;
+}
+
 /** 讀取已存的 MBTI；沒有或格式不對回 null */
 export function loadMbti() {
   try {
     const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if (d && isValidType(d.type)) return d;
+    if (d && isValidType(d.type)) {
+      return {
+        type: d.type,
+        id: d.id === 'A' || d.id === 'T' ? d.id : null,
+        src: d.src || 'pick',
+        scores: normalizeScores(d.scores),
+      };
+    }
   } catch (e) { /* ignore */ }
   return null;
 }
 
-/** 儲存 MBTI。src: 'pick' | 'test'；scores 為測驗各字母得分（選填） */
-export function saveMbti(type, src = 'pick', scores = null) {
+/**
+ * 儲存 MBTI
+ * @param {string} type 四字母
+ * @param {string} src 'pick' | 'test'
+ * @param {Object|null} scores { EI: 0~100, ... }
+ * @param {'A'|'T'|null} id 自信型／敏感型
+ */
+export function saveMbti(type, src = 'pick', scores = null, id = null) {
   if (!isValidType(type)) return false;
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({ type, src, scores, ts: Date.now() }));
-    // 結果頁的快取只存 HTML，MBTI 另外即時渲染，不需清快取
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      v: 2, type, src, scores, id: id === 'A' || id === 'T' ? id : null, ts: Date.now(),
+    }));
     return true;
   } catch (e) { return false; }
 }
@@ -41,66 +78,153 @@ export function clearMbti() {
 // ============ 測驗計分 ============
 
 /**
- * @param {string[]} answers 長度 = QUESTIONS.length，每項為該題選到的字母（如 'E'）
- * @returns {{type:string, scores:Object}} scores 例：{E:3,I:2,S:4,N:1,...}
+ * @param {number[]} answers 每題 -2~2，正數 = 偏向左邊（該軸 a 字母）
+ * @returns {{type:string, id:'A'|'T', scores:Object}}
  */
 export function scoreAnswers(answers) {
+  const sum = {};
+  const cnt = {};
+  AXES.forEach(a => { sum[a.key] = 0; cnt[a.key] = 0; });
+  QUESTIONS.forEach((q, i) => {
+    const v = Number(answers[i]);
+    if (!Number.isFinite(v)) return;
+    sum[q.ax] += Math.max(-2, Math.min(2, v));
+    cnt[q.ax] += 1;
+  });
   const scores = {};
-  AXES.forEach(a => { scores[a.a] = 0; scores[a.b] = 0; });
-  answers.forEach(v => { if (v in scores) scores[v] += 1; });
-  // 每軸 5 題，不會平手；保險起見平手時取第一個字母
-  const type = AXES.map(a => (scores[a.b] > scores[a.a] ? a.b : a.a)).join('');
-  return { type, scores };
+  AXES.forEach(a => {
+    const n = cnt[a.key] || PER_AXIS;
+    // -2n ~ +2n 換算成 0~100（偏向 a 的百分比）
+    scores[a.key] = Math.round(((sum[a.key] + 2 * n) / (4 * n)) * 100);
+  });
+  // 剛好 50 時取左邊字母，畫面會標「兩邊平衡」
+  const pick = a => (scores[a.key] >= 50 ? a.a : a.b);
+  const type = AXES.slice(0, 4).map(pick).join('');
+  const id = pick(AXES[4]);
+  return { type, id, scores };
 }
 
-// ============ 渲染 ============
+// ============ 渲染工具 ============
 
 const BOX = 'padding:14px;border-radius:10px;margin-top:12px;';
 const SOFT = 'background:rgba(123,108,246,.07);';
 const WARM = 'background:rgba(245,197,66,.08);';
+const TXT = 'font-size:.86rem;line-height:1.9;margin-top:6px;';
 
 function list(items) {
   return `<ul style="margin:6px 0 0;padding-left:1.2em;line-height:1.9;font-size:.86rem;">${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
 }
 
-/** 四軸傾向條（測驗結果有分數時才畫） */
-export function renderAxisBars(scores) {
-  if (!scores) return '';
-  const total = QUESTIONS.length / AXES.length; // 每軸題數
-  return AXES.map(a => {
-    const l = scores[a.a] || 0;
-    const r = scores[a.b] || 0;
-    const lp = Math.round((l / total) * 100);
-    const rp = 100 - lp;
-    const leftWins = l >= r;
-    return `<div style="display:flex;align-items:center;gap:8px;margin:6px 0;font-size:.8rem;">
-      <span style="width:52px;text-align:right;${leftWins ? 'font-weight:700;color:var(--accent);' : 'color:var(--muted);'}">${a.aZh} ${a.a}</span>
-      <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden;display:flex;">
-        <div style="width:${lp}%;background:${leftWins ? 'var(--accent)' : 'rgba(255,255,255,.18)'};"></div>
-        <div style="width:${rp}%;background:${leftWins ? 'rgba(255,255,255,.18)' : 'var(--accent)'};"></div>
-      </div>
-      <span style="width:52px;${leftWins ? 'color:var(--muted);' : 'font-weight:700;color:var(--accent);'}">${a.b} ${a.bZh}</span>
-    </div>`;
-  }).join('');
+function box(title, inner, tone = SOFT) {
+  return `<div style="${BOX}${tone}"><b>${title}</b>${inner}</div>`;
 }
 
-/** 型別解讀卡片 */
-export function renderTypeCard(type, scores = null) {
+function letterDesc(axisKey, letter) {
+  if (axisKey === 'AT' && letter === 'T') return LETTER_DESC.AT_T;
+  return LETTER_DESC[letter] || '';
+}
+
+/** 強度文字：依勝出那一邊的百分比 */
+function strength(pct) {
+  if (pct <= 55) return '兩邊接近平衡';
+  if (pct <= 65) return '輕微偏向';
+  if (pct <= 80) return '明顯偏向';
+  return '非常強烈';
+}
+
+/** 每軸傾向條 + 強度說明 */
+export function renderAxisBars(scores) {
+  if (!scores) return '';
+  const rows = AXES.filter(a => typeof scores[a.key] === 'number').map(a => {
+    const lp = scores[a.key];
+    const rp = 100 - lp;
+    const leftWins = lp >= 50;
+    const win = leftWins ? a.a : a.b;
+    const winPct = leftWins ? lp : rp;
+    const hi = 'font-weight:700;color:var(--accent);';
+    const lo = 'color:var(--muted);';
+    return `<div style="margin:10px 0;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;">
+        <span style="width:58px;text-align:right;${leftWins ? hi : lo}">${a.aZh} ${a.a}</span>
+        <div style="flex:1;height:12px;background:rgba(255,255,255,.07);border-radius:6px;overflow:hidden;display:flex;">
+          <div style="width:${lp}%;background:${leftWins ? 'var(--accent)' : 'rgba(255,255,255,.18)'};"></div>
+          <div style="width:${rp}%;background:${leftWins ? 'rgba(255,255,255,.18)' : 'var(--accent)'};"></div>
+        </div>
+        <span style="width:58px;${leftWins ? lo : hi}">${a.b} ${a.bZh}</span>
+      </div>
+      <div style="font-size:.74rem;color:var(--muted);text-align:center;margin-top:2px;">${winPct}% ${win}・${strength(winPct)}：${letterDesc(a.key, win)}</div>
+    </div>`;
+  });
+  return rows.length ? `<div style="margin-top:12px;">${rows.join('')}</div>` : '';
+}
+
+/** 接近平衡（≤55%）的軸 → 提示也可以參考翻轉那個字母的型別 */
+function neighborHint(type, scores) {
+  if (!scores) return '';
+  const near = [];
+  AXES.slice(0, 4).forEach((a, idx) => {
+    const p = scores[a.key];
+    if (typeof p !== 'number') return;
+    if (Math.max(p, 100 - p) <= 55) {
+      const flip = type.split('');
+      flip[idx] = flip[idx] === a.a ? a.b : a.a;
+      const alt = flip.join('');
+      if (TYPES[alt]) near.push(`<b>${alt}</b> ${TYPES[alt].name}（${a.aZh}／${a.bZh}接近）`);
+    }
+  });
+  if (!near.length) return '';
+  return box('🔀 你也可能是', `<div style="${TXT}">有軸線兩邊分數很接近，下面的型別也可能很像你。覺得不準時，到 MBTI 頁「我知道我的型別」點它看看：<br>${near.join('<br>')}</div>`);
+}
+
+/** 八維功能堆疊 */
+function renderStack(t) {
+  const fs = t.stack.split('-');
+  const rows = fs.map((f, i) => {
+    const info = FUNCS[f];
+    if (!info) return '';
+    const role = FUNC_ROLES[i];
+    const body = i === 0 ? info.dom : info.desc;
+    return `<div style="margin-top:8px;"><b>${role.zh}｜${f} ${info.zh}</b> <span style="font-size:.72rem;color:var(--muted);">${role.hint}</span><div style="font-size:.84rem;line-height:1.8;">${body}</div></div>`;
+  }).join('');
+  return `<details style="${BOX}${SOFT}"><summary style="cursor:pointer;font-weight:700;">🧠 你的大腦怎麼運作（八維功能）</summary>${rows}</details>`;
+}
+
+/** -A／-T 區塊 */
+function renderIdentity(id) {
+  if (!id || !IDENTITY[id]) {
+    return box('🌗 -A 還是 -T？', `<div style="${TXT}">「很在意別人評價」「容易焦慮、反覆想」這類特質不屬於四個字母，而是看第五軸 -A（自信型）／-T（敏感型）。做一次測驗，或在選型別時一起選，解讀會更貼近你。</div>`);
+  }
+  const d = IDENTITY[id];
+  return box(`🌗 ${d.name}`, `<div style="${TXT}">${d.sum}</div><div style="font-size:.84rem;margin-top:6px;"><b>加分：</b>${d.pros.join('、')}<br><b>留意：</b>${d.cons.join('、')}</div>`);
+}
+
+/** 型別解讀卡片（測驗頁、結果頁共用） */
+export function renderTypeCard(type, scores = null, id = null) {
   const t = TYPES[type];
   if (!t) return '';
+  const fs = t.stack.split('-');
+  const inf = FUNCS[fs[3]];
+  const full = id ? `${type}-${id}` : type;
   return `
     <div class="sig">
       <div class="kin">MBTI・${t.stack}</div>
-      <div class="big" style="font-size:1.6rem;letter-spacing:.08em;">${type}</div>
-      <div style="font-size:.95rem;margin-top:4px;">${t.name}</div>
+      <div class="big" style="font-size:1.6rem;letter-spacing:.08em;">${full}</div>
+      <div style="font-size:.95rem;margin-top:4px;">${t.name}${id && IDENTITY[id] ? `・${IDENTITY[id].name}` : ''}</div>
     </div>
     ${renderAxisBars(scores)}
     <div class="meaning" style="margin-top:12px;line-height:1.9;">${t.sum}</div>
-    <div style="${BOX}${SOFT}"><b>✦ 天賦優勢</b>${list(t.pros)}</div>
-    <div style="${BOX}${SOFT}"><b>⚠ 容易卡住的地方</b>${list(t.cons)}</div>
-    <div style="${BOX}${SOFT}"><b>💼 工作風格</b><div style="font-size:.86rem;line-height:1.9;margin-top:6px;">${t.work}</div></div>
-    <div style="${BOX}${SOFT}"><b>💗 親密關係</b><div style="font-size:.86rem;line-height:1.9;margin-top:6px;">${t.love}</div></div>
-    <div style="${BOX}${WARM}"><b>🔮 近期運勢建議</b><div style="font-size:.86rem;line-height:1.9;margin-top:6px;">${t.luck}</div></div>`;
+    ${neighborHint(type, scores)}
+    ${box('✦ 天賦優勢', list(t.pros))}
+    ${box('⚠ 容易卡住的地方', list(t.cons))}
+    ${renderIdentity(id)}
+    ${renderStack(t)}
+    ${inf ? box('🌪 壓力大時的你', `<div style="${TXT}">你的劣勢功能是 ${fs[3]} ${inf.zh}。長期累積壓力時，${inf.inf}這不是你變了，是電量見底的訊號，先休息再做決定。</div>`) : ''}
+    ${box('🌱 成長方向', `<div style="${TXT}">${t.grow}</div>`)}
+    ${box('💬 溝通方式', `<div style="${TXT}">${t.comm}</div>`)}
+    ${box('💼 工作風格', `<div style="${TXT}">${t.work}</div>`)}
+    ${box('💗 親密關係', `<div style="${TXT}">${t.love}</div>`)}
+    ${box('🔮 近期運勢建議', `<div style="${TXT}">${t.luck}</div>`, WARM)}
+    <div style="font-size:.72rem;color:var(--muted);margin-top:12px;line-height:1.7;">16 型描述的是同一類人的共同傾向，不會每一條都中。不像你的地方，常是 -A/-T、成長環境或某一軸接近平衡造成的。</div>`;
 }
 
 // ============ 命盤交叉對照 ============
@@ -213,11 +337,7 @@ export function buildCross(type, results = {}) {
 }
 
 function renderCross(blocks) {
-  return blocks.map(b => `
-    <div style="${BOX}${SOFT}">
-      <b>${b.title}</b>
-      <div style="font-size:.85rem;line-height:1.9;margin-top:6px;">${b.lines.join('<br>')}</div>
-    </div>`).join('');
+  return blocks.map(b => box(b.title, `<div style="font-size:.85rem;line-height:1.9;margin-top:6px;">${b.lines.join('<br>')}</div>`)).join('');
 }
 
 // ============ 結果頁 Tab / 劇本大綱 ============
@@ -229,10 +349,10 @@ export function renderMbtiTab(results) {
   const saved = loadMbti();
   if (!saved) {
     return `<div class="placeholder" style="line-height:2;">還沒有你的 MBTI。<br>
-      <a href="mbti.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:10px;">做 20 題小測驗，或直接選你的型別 ✦</a></div>`;
+      <a href="mbti.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:10px;">做 25 題小測驗，或直接選你的型別 ✦</a></div>`;
   }
   const cross = buildCross(saved.type, results);
-  return renderTypeCard(saved.type, saved.scores) +
+  return renderTypeCard(saved.type, saved.scores, saved.id) +
     (cross.length ? `<div style="margin-top:18px;font-weight:700;">🔗 與你的命盤交叉對照</div>${renderCross(cross)}` : '') +
     `<div style="text-align:center;margin-top:16px;"><a href="mbti.html" style="font-size:.82rem;color:var(--muted);border-bottom:1px dashed var(--muted);text-decoration:none;">重測或更改型別 ›</a></div>` +
     NOTE;
@@ -245,8 +365,9 @@ export function renderSynthesisBlock(results) {
   const t = TYPES[saved.type];
   const cross = buildCross(saved.type, results);
   if (!cross.length) return '';
+  const full = saved.id ? `${saved.type}-${saved.id}` : saved.type;
   return `<div id="mbti-synth" style="margin-top:20px;padding:14px;border-radius:10px;background:rgba(245,197,66,.08);">
-    <div style="font-weight:700;margin-bottom:4px;">🧩 性格層：${saved.type} ${t.name}</div>
+    <div style="font-weight:700;margin-bottom:4px;">🧩 性格層：${full} ${t.name}</div>
     <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">把你的 MBTI 放進命盤，看性格與命運設定怎麼互動</div>
     ${cross.map(b => `<div style="font-size:.85rem;line-height:1.9;margin-top:8px;"><b>${b.title}</b><br>${b.lines.join('<br>')}</div>`).join('')}
   </div>`;

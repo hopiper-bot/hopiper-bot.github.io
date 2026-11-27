@@ -27,6 +27,21 @@
   color: var(--text); border: 1px solid rgba(255,255,255,.18); background: rgba(123,108,246,.06);
 }
 .mbti-opt:hover, .mbti-opt:focus-visible { border-color: var(--accent); outline: none; }
+.mbti-opt b { display: block; font-size: .9rem; }
+.mbti-opt small { display: block; font-size: .76rem; color: var(--muted); margin-top: 2px; }
+.mbti-opt.picked { border-color: var(--accent); }
+.mbti-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; font-weight: 400; font-size: .86rem; }
+.mbti-side { padding: 10px; border-radius: 8px; background: rgba(255,255,255,.05); line-height: 1.6; }
+.mbti-side span { display: block; font-size: .7rem; color: var(--accent); font-weight: 700; }
+
+.mbti-id-label { font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+.mbti-id-row { display: flex; gap: 6px; margin-bottom: 12px; }
+.mbti-id-row button {
+  flex: 1; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: .8rem;
+  border: 1px solid rgba(255,255,255,.15); background: transparent; color: var(--text);
+}
+.mbti-id-row button.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
 .mbti-back { margin-top: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
 
 .mbti-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; align-items: stretch; text-align: center; }

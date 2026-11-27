@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>MBTI 性格｜人生劇本・玄境</title><meta name="description" content="選擇你的 MBTI 型別，或用 20 題小測驗找出來，並與八字、人類圖、星座交叉解讀。"><meta name="theme-color" content="#0f2e2a">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=24"><link rel="stylesheet" href="v2/css/cosmic.css?v=4"><link rel="stylesheet" href="css/mbti.css?v=1">
+  <title>MBTI 性格｜人生劇本・玄境</title><meta name="description" content="選擇你的 MBTI 型別，或用 25 題小測驗找出來，並與八字、人類圖、星座交叉解讀。"><meta name="theme-color" content="#0f2e2a">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=24"><link rel="stylesheet" href="v2/css/cosmic.css?v=4"><link rel="stylesheet" href="css/mbti.css?v=2">
 </head>
 <body class="cosmic-v2">
   <div class="wrap">
@@ -15,10 +15,18 @@
         <div id="mbti-entry">
           <div class="mbti-modes" role="tablist">
             <button type="button" id="mode-pick" class="active">我知道我的型別</button>
-            <button type="button" id="mode-test">做 20 題小測驗</button>
+            <button type="button" id="mode-test">做 25 題小測驗</button>
           </div>
 
-          <div id="mbti-pick"><div id="mbti-grid" class="mbti-grid"></div></div>
+          <div id="mbti-pick">
+            <div class="mbti-id-label">先選你是 -A 還是 -T（不確定可以跳過）</div>
+            <div id="mbti-id-row" class="mbti-id-row">
+              <button type="button" data-id="" class="active">不確定</button>
+              <button type="button" data-id="A">-A 自信型</button>
+              <button type="button" data-id="T">-T 敏感型</button>
+            </div>
+            <div id="mbti-grid" class="mbti-grid"></div>
+          </div>
 
           <div id="mbti-test" style="display:none;">
             <div class="mbti-progress" aria-hidden="true"><div id="mbti-progress-bar"></div></div>
@@ -26,7 +34,7 @@
             <div id="mbti-q" class="mbti-q" aria-live="polite"></div>
             <div id="mbti-options" class="mbti-options"></div>
             <button type="button" id="mbti-back" class="mbti-back">‹ 上一題</button>
-            <div class="mbti-note">每題選「比較像你」的那個就好，不用想太久。這是簡易版，不等同正式施測。</div>
+            <div class="mbti-note">依「平常的你」作答，不是理想中的你。兩邊都像就選中間。這是簡易版，不等同正式施測。</div>
           </div>
         </div>
 
@@ -36,5 +44,5 @@
     </main>
     <p class="disclaimer">MBTI 僅供自我探索，不構成心理評估或專業建議。<span style="opacity:.45;"> Cosmic V2</span></p>
   </div>
-  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script><script type="module" src="v2/js/ritual-effects.js?v=1"></script><script type="module" src="js/main.js?v=26"></script><script type="module" src="js/mbti-page.js?v=1"></script>
+  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script><script type="module" src="v2/js/ritual-effects.js?v=1"></script><script type="module" src="js/main.js?v=26"></script><script type="module" src="js/mbti-page.js?v=2"></script>
 </body></html>
