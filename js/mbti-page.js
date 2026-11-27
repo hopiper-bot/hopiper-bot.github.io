@@ -4,14 +4,16 @@
  * 結果存 localStorage，結果頁自動讀取。
  */
 
-import { QUESTIONS, TYPES, SCALE } from './data/mbti-data.js';
-import { loadMbti, saveMbti, clearMbti, scoreAnswers, renderTypeCard } from './engines/mbti.js';
+// ?v= 要跟 engines/mbti.js、main.js 裡的版本一致，否則會載到兩份不同的模組
+import { QUESTIONS, ORDER, TYPES, SCALE } from './data/mbti-data.js?v=3';
+import { loadMbti, saveMbti, clearMbti, scoreAnswers, renderTypeCard } from './engines/mbti.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 
 let answers = [];
 let step = 0;
 let pickId = null; // 選型別時的 -A/-T（null = 不確定）
+let lastResult = null; // 上一次的結果（重測時平手參考用；清除儲存後仍保留在記憶體）
 
 function showMode(mode) {
   $('mbti-pick').style.display = mode === 'pick' ? '' : 'none';
@@ -34,6 +36,7 @@ function showResult(type, scores, id) {
      <div class="mbti-note">結果已存在這台裝置，命盤結果頁會自動加入「MBTI」分頁與交叉解讀。</div>`;
   $('mbti-result').style.display = '';
   $('mbti-redo').addEventListener('click', () => {
+    lastResult = loadMbti() || lastResult;
     clearMbti();
     $('mbti-result').style.display = 'none';
     $('mbti-result').innerHTML = '';
@@ -74,9 +77,10 @@ function startTest() {
 }
 
 function renderQuestion() {
-  const total = QUESTIONS.length;
+  const total = ORDER.length;
   if (step >= total) { finishTest(); return; }
-  const q = QUESTIONS[step];
+  const qi = ORDER[step]; // 實際題目索引（五軸輪流出題）
+  const q = QUESTIONS[qi];
   $('mbti-progress-bar').style.width = `${Math.round((step / total) * 100)}%`;
   $('mbti-progress-text').textContent = `第 ${step + 1} / ${total} 題`;
   $('mbti-q').innerHTML =
@@ -87,17 +91,17 @@ function renderQuestion() {
   SCALE.forEach(s => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'mbti-opt' + (answers[step] === s.v ? ' picked' : '');
+    b.className = 'mbti-opt' + (answers[qi] === s.v ? ' picked' : '');
     const hint = s.v > 0 ? q.L : s.v < 0 ? q.R : '兩邊都有';
     b.innerHTML = `<b>${s.label}</b><small>${hint}</small>`;
-    b.addEventListener('click', () => { answers[step] = s.v; step += 1; renderQuestion(); });
+    b.addEventListener('click', () => { answers[qi] = s.v; step += 1; renderQuestion(); });
     box.appendChild(b);
   });
   $('mbti-back').style.visibility = step === 0 ? 'hidden' : 'visible';
 }
 
 function finishTest() {
-  const { type, id, scores } = scoreAnswers(answers);
+  const { type, id, scores } = scoreAnswers(answers, lastResult);
   saveMbti(type, 'test', scores, id);
   showResult(type, scores, id);
 }
@@ -113,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const saved = loadMbti();
+  lastResult = saved;
   if (saved) showResult(saved.type, saved.scores, saved.id);
   else showMode('pick');
 });

@@ -9,10 +9,10 @@
 import {
   AXES, QUESTIONS, TYPES, ELEMENT_HINT, LETTER_DESC,
   FUNCS, FUNC_ROLES, IDENTITY,
-} from '../data/mbti-data.js';
+} from '../data/mbti-data.js?v=3';
 
 const STORE_KEY = 'destiny_mbti';
-const PER_AXIS = 5;
+const PER_AXIS = 8;
 
 // ============ 儲存 ============
 
@@ -78,18 +78,22 @@ export function clearMbti() {
 // ============ 測驗計分 ============
 
 /**
- * @param {number[]} answers 每題 -2~2，正數 = 偏向左邊（該軸 a 字母）
- * @returns {{type:string, id:'A'|'T', scores:Object}}
+ * @param {number[]} answers 以 QUESTIONS 索引對應，每題 -2~2，正數 = 偏向畫面左邊選項
+ * @param {{type?:string, id?:string}|null} prev 上一次的結果，平手時參考
+ * @returns {{type:string, id:'A'|'T', scores:Object, ties:string[]}}
  */
-export function scoreAnswers(answers) {
-  const sum = {};
-  const cnt = {};
-  AXES.forEach(a => { sum[a.key] = 0; cnt[a.key] = 0; });
+export function scoreAnswers(answers, prev = null) {
+  const sum = {}, cnt = {}, strongA = {}, strongB = {};
+  AXES.forEach(a => { sum[a.key] = 0; cnt[a.key] = 0; strongA[a.key] = 0; strongB[a.key] = 0; });
   QUESTIONS.forEach((q, i) => {
-    const v = Number(answers[i]);
-    if (!Number.isFinite(v)) return;
-    sum[q.ax] += Math.max(-2, Math.min(2, v));
+    const raw = Number(answers[i]);
+    if (!Number.isFinite(raw)) return;
+    // rev 題左右對調：畫面左邊 = 該軸 b
+    const v = Math.max(-2, Math.min(2, raw)) * (q.rev ? -1 : 1);
+    sum[q.ax] += v;
     cnt[q.ax] += 1;
+    if (v === 2) strongA[q.ax] += 1;
+    if (v === -2) strongB[q.ax] += 1;
   });
   const scores = {};
   AXES.forEach(a => {
@@ -97,11 +101,22 @@ export function scoreAnswers(answers) {
     // -2n ~ +2n 換算成 0~100（偏向 a 的百分比）
     scores[a.key] = Math.round(((sum[a.key] + 2 * n) / (4 * n)) * 100);
   });
-  // 剛好 50 時取左邊字母，畫面會標「兩邊平衡」
-  const pick = a => (scores[a.key] >= 50 ? a.a : a.b);
+
+  // 剛好平手：先看誰的「很像」比較多 → 再參考上次結果 → 都沒有才取左邊
+  const ties = [];
+  const prevLetters = prev?.type && isValidType(prev.type) ? prev.type.split('') : null;
+  const pick = (a, idx) => {
+    const exact = sum[a.key] === 0;
+    if (!exact) return scores[a.key] > 50 ? a.a : a.b;
+    ties.push(a.key);
+    if (strongA[a.key] !== strongB[a.key]) return strongA[a.key] > strongB[a.key] ? a.a : a.b;
+    if (idx < 4 && prevLetters) return prevLetters[idx];
+    if (idx === 4 && (prev?.id === 'A' || prev?.id === 'T')) return prev.id;
+    return a.a;
+  };
   const type = AXES.slice(0, 4).map(pick).join('');
-  const id = pick(AXES[4]);
-  return { type, id, scores };
+  const id = pick(AXES[4], 4);
+  return { type, id, scores, ties };
 }
 
 // ============ 渲染工具 ============
@@ -349,7 +364,7 @@ export function renderMbtiTab(results) {
   const saved = loadMbti();
   if (!saved) {
     return `<div class="placeholder" style="line-height:2;">還沒有你的 MBTI。<br>
-      <a href="mbti.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:10px;">做 25 題小測驗，或直接選你的型別 ✦</a></div>`;
+      <a href="mbti.html" class="btn-primary" style="display:inline-block;text-decoration:none;margin-top:10px;">做 40 題測驗，或直接選你的型別 ✦</a></div>`;
   }
   const cross = buildCross(saved.type, results);
   return renderTypeCard(saved.type, saved.scores, saved.id) +

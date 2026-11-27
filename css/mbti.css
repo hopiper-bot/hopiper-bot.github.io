@@ -42,6 +42,8 @@
 }
 .mbti-id-row button.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
+.mbti-tip { font-size: .82rem; line-height: 1.8; padding: 10px 12px; border-radius: 8px; background: rgba(245,197,66,.1); margin-bottom: 12px; }
+
 .mbti-back { margin-top: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }
 
 .mbti-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; align-items: stretch; text-align: center; }
