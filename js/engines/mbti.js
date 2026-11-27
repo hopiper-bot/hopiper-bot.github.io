@@ -7,9 +7,9 @@
  */
 
 import {
-  AXES, QUESTIONS, TYPES, ELEMENT_HINT, LETTER_DESC,
+  AXES, QUESTIONS, ROLE_QUESTIONS, TYPES, ELEMENT_HINT, LETTER_DESC,
   FUNCS, FUNC_ROLES, IDENTITY,
-} from '../data/mbti-data.js?v=3';
+} from '../data/mbti-data.js?v=4';
 
 const STORE_KEY = 'destiny_mbti';
 const PER_AXIS = 8;
@@ -48,6 +48,7 @@ export function loadMbti() {
         id: d.id === 'A' || d.id === 'T' ? d.id : null,
         src: d.src || 'pick',
         scores: normalizeScores(d.scores),
+        profile: d.profile && typeof d.profile === 'object' ? d.profile : null,
       };
     }
   } catch (e) { /* ignore */ }
@@ -59,13 +60,16 @@ export function loadMbti() {
  * @param {string} type 四字母
  * @param {string} src 'pick' | 'test'
  * @param {Object|null} scores { EI: 0~100, ... }
- * @param {'A'|'T'|null} id 自信型／敏感型
+ * @param {'A'|'T'|null} id 自信型／敏感型延伸維度
+ * @param {Object|null} profile 測驗答案、責任模式等可追溯資料
  */
-export function saveMbti(type, src = 'pick', scores = null, id = null) {
+export function saveMbti(type, src = 'pick', scores = null, id = null, profile = null) {
   if (!isValidType(type)) return false;
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({
-      v: 2, type, src, scores, id: id === 'A' || id === 'T' ? id : null, ts: Date.now(),
+      v: 3, type, src, scores, id: id === 'A' || id === 'T' ? id : null,
+      profile: profile && typeof profile === 'object' ? profile : null,
+      ts: Date.now(),
     }));
     return true;
   } catch (e) { return false; }
@@ -117,6 +121,31 @@ export function scoreAnswers(answers, prev = null) {
   const type = AXES.slice(0, 4).map(pick).join('');
   const id = pick(AXES[4], 4);
   return { type, id, scores, ties };
+}
+
+/**
+ * 16 題責任／工作模式計分。只計正式 MBTI 四軸，不含 -A/-T。
+ * 結果描述「採取的模式」，不宣稱是第二個人格或另一個真正型別。
+ */
+export function scoreRoleAnswers(answers, prevType = null) {
+  const sum = {}, cnt = {};
+  AXES.slice(0, 4).forEach(a => { sum[a.key] = 0; cnt[a.key] = 0; });
+  ROLE_QUESTIONS.forEach((q, i) => {
+    const raw = Number(answers[i]);
+    if (!Number.isFinite(raw)) return;
+    const v = Math.max(-2, Math.min(2, raw)) * (q.rev ? -1 : 1);
+    sum[q.ax] += v;
+    cnt[q.ax] += 1;
+  });
+  const scores = {};
+  const prev = isValidType(prevType) ? prevType.split('') : null;
+  const type = AXES.slice(0, 4).map((a, idx) => {
+    const n = cnt[a.key] || 1;
+    scores[a.key] = Math.round(((sum[a.key] + 2 * n) / (4 * n)) * 100);
+    if (sum[a.key] === 0 && prev) return prev[idx];
+    return sum[a.key] >= 0 ? a.a : a.b;
+  }).join('');
+  return { type, scores };
 }
 
 // ============ 渲染工具 ============
@@ -199,6 +228,70 @@ export function candidatesFrom(type, scores, extra = []) {
   return [...new Set(out.filter(isValidType))].slice(0, 4);
 }
 
+/** 接近中間的軸：不把 50/50 附近包裝成確定字母。 */
+function renderUncertainty(type, scores) {
+  if (!scores) return '';
+  const uncertain = AXES.slice(0, 4).filter(a => {
+    const p = scores[a.key];
+    return typeof p === 'number' && Math.max(p, 100 - p) < 60;
+  });
+  if (!uncertain.length) return '';
+  const names = uncertain.map(a => `${a.a}/${a.b} ${a.aZh}／${a.bZh}`).join('、');
+  return box('⚖ 接近中間，不硬判', `<div style="${TXT}">${names}的分數不到 60%，容易隨情境改變。上方型別是你最後選定的「最適型別」，不是測驗替你下的定論。</div>`, WARM);
+}
+
+/**
+ * 顯示每個字母的主要判定依據。profile.answers 必須以 QUESTIONS 索引儲存。
+ * 只列方向一致且影響最大（「很像」優先）的題目，讓使用者能檢查結果怎麼來。
+ */
+export function renderEvidence(type, scores, profile) {
+  const answers = profile?.answers;
+  if (!scores || !Array.isArray(answers)) return '';
+  const rows = AXES.slice(0, 4).map((a, idx) => {
+    const p = scores[a.key];
+    if (typeof p !== 'number') return '';
+    const measured = p >= 50 ? a.a : a.b;
+    const pct = Math.max(p, 100 - p);
+    const evidence = [];
+    QUESTIONS.forEach((q, qi) => {
+      if (q.ax !== a.key || !Number.isFinite(Number(answers[qi]))) return;
+      const raw = Number(answers[qi]);
+      const normalized = raw * (q.rev ? -1 : 1);
+      const supports = measured === a.a ? normalized > 0 : normalized < 0;
+      if (!supports) return;
+      evidence.push({
+        weight: Math.abs(normalized),
+        q: q.q,
+        choice: raw > 0 ? q.L : q.R,
+      });
+    });
+    evidence.sort((x, y) => y.weight - x.weight);
+    const why = evidence.slice(0, 3).map(e => `<li><b>${e.q}</b><br><span style="color:var(--muted);">你選：${e.choice}</span></li>`).join('');
+    return `<details class="mbti-evidence"><summary>${measured} ${measured === a.a ? a.aZh : a.bZh} ${pct}%：主要依據</summary>${why ? `<ul>${why}</ul>` : '<div style="margin-top:6px;color:var(--muted);">兩邊回答接近，沒有單一明顯依據。</div>'}</details>`;
+  }).join('');
+  return rows ? box('🔎 為什麼測出這個輪廓？', `<div style="${TXT}">這裡顯示影響各軸最大的答案。覺得答錯可以回 MBTI 頁修改，不必整份重做。</div>${rows}`) : '';
+}
+
+/** 自然型態 vs 責任模式。責任模式是環境下的行為策略，不另宣稱一個人格。 */
+export function renderContextProfile(type, scores, profile) {
+  const ad = profile?.adaptive;
+  if (!ad || !isValidType(ad.type) || !ad.scores) {
+    return box('🌓 自然型態／責任模式', `<div style="${TXT}">目前只有自然狀態資料。到 MBTI 頁加做 16 題「責任模式」，可以看工作、照顧或需要扛責任時，你會切換成什麼做事方式。</div>`);
+  }
+  const diffs = AXES.slice(0, 4).map((a, i) => type[i] !== ad.type[i]
+    ? `${a.a}/${a.b}：${type[i] === a.a ? a.aZh : a.bZh} → ${ad.type[i] === a.a ? a.aZh : a.bZh}`
+    : null).filter(Boolean);
+  return box('🌓 自然型態／責任模式', `
+    <div class="mbti-context-grid">
+      <div><small>放鬆、無壓力時</small><b>${type} ${TYPES[type]?.name || ''}</b></div>
+      <div><small>工作、照顧、扛責任時</small><b>${ad.type} ${TYPES[ad.type]?.name || ''}</b></div>
+    </div>
+    <div style="${TXT}">${diffs.length
+      ? `你在責任情境會切換：${diffs.join('；')}。這表示你會因角色調整做法，不代表人格變來變去。`
+      : '兩種情境的四軸方向一致，表示你的自然偏好和工作方式差距不大。'}</div>
+    <details style="margin-top:8px;"><summary style="cursor:pointer;font-size:.82rem;">查看責任模式四軸</summary>${renderAxisBars(ad.scores)}</details>`);
+}
+
 /** 接近平衡（≤55%）的軸 → 提示也可以參考翻轉那個字母的型別 */
 function neighborHint(type, scores) {
   if (!scores) return '';
@@ -233,7 +326,7 @@ function renderStack(t) {
 /** -A／-T 區塊 */
 function renderIdentity(id) {
   if (!id || !IDENTITY[id]) {
-    return box('🌗 -A 還是 -T？', `<div style="${TXT}">「很在意別人評價」「容易焦慮、反覆想」這類特質不屬於四個字母，而是看第五軸 -A（自信型）／-T（敏感型）。做一次測驗，或在選型別時一起選，解讀會更貼近你。</div>`);
+    return box('🌗 -A／-T 延伸維度（非正式 MBTI）', `<div style="${TXT}">「很在意別人評價」「容易焦慮、反覆想」這類特質不屬於 MBTI 四個字母。-A／-T 是 16Personalities 加入的延伸設計；做測驗或選型別時可另外標示。</div>`);
   }
   const d = IDENTITY[id];
   return box(`🌗 ${d.name}`, `<div style="${TXT}">${d.sum}</div><div style="font-size:.84rem;margin-top:6px;"><b>加分：</b>${d.pros.join('、')}<br><b>留意：</b>${d.cons.join('、')}</div>`);
@@ -253,6 +346,7 @@ export function renderTypeCard(type, scores = null, id = null) {
       <div style="font-size:.95rem;margin-top:4px;">${t.name}${id && IDENTITY[id] ? `・${IDENTITY[id].name}` : ''}</div>
     </div>
     ${renderAxisBars(scores)}
+    ${renderUncertainty(type, scores)}
     <div class="meaning" style="margin-top:12px;line-height:1.9;">${t.sum}</div>
     ${neighborHint(type, scores)}
     ${box('✦ 天賦優勢', list(t.pros))}
@@ -394,6 +488,8 @@ export function renderMbtiTab(results) {
   }
   const cross = buildCross(saved.type, results);
   return renderTypeCard(saved.type, saved.scores, saved.id) +
+    renderContextProfile(saved.type, saved.scores, saved.profile) +
+    renderEvidence(saved.type, saved.scores, saved.profile) +
     (cross.length ? `<div style="margin-top:18px;font-weight:700;">🔗 與你的命盤交叉對照</div>${renderCross(cross)}` : '') +
     `<div style="text-align:center;margin-top:16px;"><a href="mbti.html" style="font-size:.82rem;color:var(--muted);border-bottom:1px dashed var(--muted);text-decoration:none;">重測或更改型別 ›</a></div>` +
     NOTE;

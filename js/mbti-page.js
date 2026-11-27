@@ -1,25 +1,35 @@
 /**
- * mbti-page.js — mbti.html 頁面邏輯（v3）
- * 入口：直接選型別（可附 -A/-T）／40 題五段式測驗
- * 候選比較：測驗只負責縮小範圍，列出 2～4 個可能型別，
- *           逐段讀描述選「最像我」，最後由使用者決定（最適型別 best-fit）。
- * 結果存 localStorage，結果頁自動讀取。
+ * mbti-page.js — mbti.html 頁面邏輯（v4）
+ * 入口：直接選型別（可附 -A/-T 延伸維度）／40 題自然狀態測驗
+ * 候選比較：測驗只縮小範圍，最後由使用者選最適型別（best-fit）
+ * 責任模式：16 題，看工作／照顧／扛責任時的做事方式（不是第二個人格）
+ * 修改答案：列出全部題目，改完重新計算，不用整份重做
  */
 
 // ?v= 要跟 engines/mbti.js、main.js 裡的版本一致，否則會載到兩份不同的模組
-import { QUESTIONS, ORDER, TYPES, SCALE, FUNCS, AXES } from './data/mbti-data.js?v=3';
+import { QUESTIONS, ROLE_QUESTIONS, ORDER, TYPES, SCALE, FUNCS, AXES } from './data/mbti-data.js?v=4';
 import {
-  loadMbti, saveMbti, clearMbti, scoreAnswers, renderTypeCard, candidatesFrom,
-} from './engines/mbti.js?v=4';
+  loadMbti, saveMbti, clearMbti, scoreAnswers, scoreRoleAnswers, renderTypeCard,
+  renderContextProfile, renderEvidence, candidatesFrom,
+} from './engines/mbti.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 
-let answers = [];
-let step = 0;
 let pickId = null;     // 選型別時的 -A/-T（null = 不確定）
 let lastResult = null; // 上一次的結果（平手參考、候選比較用；清除儲存後仍保留在記憶體）
 
-const SCREENS = ['mbti-entry', 'mbti-compare', 'mbti-result'];
+/**
+ * 進行中的測驗
+ * { kind: 'natural'|'role', qs, order, answers, step, onDone }
+ */
+let test = null;
+
+const TIPS = {
+  natural: '📌 作答前先想像：<b>放假、沒有壓力、不用顧任何人的時候</b>，你自然會怎麼做？不是上班模式，也不是「應該」怎麼做。',
+  role: '📌 這次相反：想像<b>上班、照顧家人、需要扛責任的時候</b>，你實際會怎麼做？',
+};
+
+const SCREENS = ['mbti-entry', 'mbti-compare', 'mbti-edit', 'mbti-result'];
 function showScreen(id, scroll = true) {
   SCREENS.forEach(s => { $(s).style.display = s === id ? '' : 'none'; });
   if (scroll) $(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -30,31 +40,48 @@ function showMode(mode) {
   $('mbti-test').style.display = mode === 'test' ? '' : 'none';
   $('mode-pick').classList.toggle('active', mode === 'pick');
   $('mode-test').classList.toggle('active', mode === 'test');
-  if (mode === 'test') startTest();
+  if (mode === 'test') startNaturalTest();
 }
 
 // ---------- 結果 ----------
 
-function showResult(type, scores, id, scroll = true) {
+function showResult(type, scores, id, scroll = true, profile = null) {
+  const hasAnswers = Array.isArray(profile?.answers);
+  const hasRole = !!profile?.adaptive;
   $('mbti-result').innerHTML =
     renderTypeCard(type, scores, id) +
+    renderContextProfile(type, scores, profile) +
+    renderEvidence(type, scores, profile) +
     `<div class="mbti-actions">
        <a class="btn-primary" href="result.html">看我的命盤 × MBTI ✦</a>
-       <button type="button" class="btn-ghost" id="mbti-cmp-open">覺得不太像？跟其他型別比較</button>
-       <button type="button" class="btn-ghost" id="mbti-redo">重新選擇／重測</button>
+       <button type="button" class="btn-ghost" data-act="role">${hasRole ? '重做' : '加做'} 16 題責任模式</button>
+       ${hasAnswers ? '<button type="button" class="btn-ghost" data-act="edit">修改測驗答案</button>' : ''}
+       <button type="button" class="btn-ghost" data-act="compare">覺得不太像？跟其他型別比較</button>
+       <button type="button" class="btn-ghost" data-act="redo">重新選擇／重測</button>
      </div>
      <div class="mbti-note">結果已存在這台裝置，命盤結果頁會自動加入「MBTI」分頁與交叉解讀。</div>`;
   showScreen('mbti-result', scroll);
-  $('mbti-redo').addEventListener('click', () => {
-    lastResult = loadMbti() || lastResult;
+}
+
+function onResultClick(e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const saved = loadMbti();
+  if (!saved) return;
+  const a = btn.dataset.act;
+  if (a === 'redo') {
+    lastResult = saved;
     clearMbti();
     $('mbti-result').innerHTML = '';
     showScreen('mbti-entry');
     showMode('pick');
-  });
-  $('mbti-cmp-open').addEventListener('click', () => {
-    openCompare(candidatesFrom(type, scores), { scores, id, testType: null });
-  });
+  } else if (a === 'compare') {
+    openCompare(candidatesFrom(saved.type, saved.scores), { scores: saved.scores, id: saved.id, testType: null, profile: saved.profile });
+  } else if (a === 'role') {
+    startRoleTest(saved);
+  } else if (a === 'edit') {
+    openEditor(saved);
+  }
 }
 
 // ---------- 直接選型別 ----------
@@ -74,26 +101,57 @@ function buildPicker() {
     const btn = e.target.closest('[data-type]');
     if (!btn) return;
     const type = btn.dataset.type;
-    saveMbti(type, 'pick', null, pickId);
-    showResult(type, null, pickId);
+    // 選型別時保留舊的責任模式資料（如果有），其餘清掉
+    const keep = lastResult?.profile?.adaptive ? { adaptive: lastResult.profile.adaptive } : null;
+    saveMbti(type, 'pick', null, pickId, keep);
+    showResult(type, null, pickId, true, keep);
   });
 }
 
-// ---------- 五段式測驗 ----------
+// ---------- 五段式測驗（自然狀態／責任模式共用畫面） ----------
 
-function startTest() {
-  answers = [];
-  step = 0;
+function runTest(t) {
+  test = t;
+  $('mbti-tip').innerHTML = TIPS[t.kind];
+  // 責任模式從結果頁進來，要切回測驗畫面
+  showScreen('mbti-entry', false);
+  $('mbti-pick').style.display = 'none';
+  $('mbti-test').style.display = '';
+  $('mbti-entry').querySelector('.mbti-modes').style.display = t.kind === 'role' ? 'none' : '';
   renderQuestion();
 }
 
+function startNaturalTest() {
+  runTest({
+    kind: 'natural', qs: QUESTIONS, order: ORDER, answers: [], step: 0,
+    onDone: (answers) => finishNatural(answers, lastResult?.profile?.adaptive || null),
+  });
+}
+
+function startRoleTest(saved) {
+  const prev = saved.profile?.adaptive?.answers;
+  runTest({
+    kind: 'role', qs: ROLE_QUESTIONS, order: ROLE_QUESTIONS.map((_, i) => i),
+    answers: Array.isArray(prev) ? prev.slice() : [], step: 0,
+    onDone: (answers) => {
+      const cur = loadMbti() || saved;
+      const r = scoreRoleAnswers(answers, cur.type);
+      const profile = { ...(cur.profile || {}), adaptive: { type: r.type, scores: r.scores, answers: answers.slice() } };
+      saveMbti(cur.type, cur.src, cur.scores, cur.id, profile);
+      $('mbti-entry').querySelector('.mbti-modes').style.display = '';
+      showResult(cur.type, cur.scores, cur.id, true, profile);
+    },
+  });
+}
+
 function renderQuestion() {
-  const total = ORDER.length;
-  if (step >= total) { finishTest(); return; }
-  const qi = ORDER[step]; // 實際題目索引（五軸輪流出題）
-  const q = QUESTIONS[qi];
-  $('mbti-progress-bar').style.width = `${Math.round((step / total) * 100)}%`;
-  $('mbti-progress-text').textContent = `第 ${step + 1} / ${total} 題`;
+  const { qs, order, answers } = test;
+  const total = order.length;
+  if (test.step >= total) { test.onDone(answers); return; }
+  const qi = order[test.step];
+  const q = qs[qi];
+  $('mbti-progress-bar').style.width = `${Math.round((test.step / total) * 100)}%`;
+  $('mbti-progress-text').textContent = `${test.kind === 'role' ? '責任模式・' : ''}第 ${test.step + 1} / ${total} 題`;
   $('mbti-q').innerHTML =
     `<div>${q.q}</div>
      <div class="mbti-pair"><div class="mbti-side"><span>左</span>${q.L}</div><div class="mbti-side"><span>右</span>${q.R}</div></div>`;
@@ -105,22 +163,61 @@ function renderQuestion() {
     b.className = 'mbti-opt' + (answers[qi] === s.v ? ' picked' : '');
     const hint = s.v > 0 ? q.L : s.v < 0 ? q.R : '兩邊都有';
     b.innerHTML = `<b>${s.label}</b><small>${hint}</small>`;
-    b.addEventListener('click', () => { answers[qi] = s.v; step += 1; renderQuestion(); });
+    b.addEventListener('click', () => { answers[qi] = s.v; test.step += 1; renderQuestion(); });
     box.appendChild(b);
   });
-  $('mbti-back').style.visibility = step === 0 ? 'hidden' : 'visible';
+  $('mbti-back').style.visibility = test.step === 0 ? 'hidden' : 'visible';
 }
 
-function finishTest() {
+/** 自然狀態 40 題算完 → 候選比較或直接出結果 */
+function finishNatural(answers, adaptive) {
   const { type, id, scores } = scoreAnswers(answers, lastResult);
+  const profile = { answers: answers.slice() };
+  if (adaptive) profile.adaptive = adaptive;
   const extra = lastResult?.type ? [lastResult.type] : [];
   const cands = candidatesFrom(type, scores, extra);
   if (cands.length >= 2) {
-    openCompare(cands, { scores, id, testType: type });
+    openCompare(cands, { scores, id, testType: type, profile });
   } else {
-    saveMbti(type, 'test', scores, id);
-    showResult(type, scores, id);
+    saveMbti(type, 'test', scores, id, profile);
+    showResult(type, scores, id, true, profile);
   }
+}
+
+// ---------- 修改答案 ----------
+
+function openEditor(saved) {
+  const ans = saved.profile.answers;
+  const opts = (cur) => SCALE.map(s => `<option value="${s.v}"${cur === s.v ? ' selected' : ''}>${s.label}</option>`).join('');
+  const rows = ORDER.map((qi, n) => {
+    const q = QUESTIONS[qi];
+    return `<div class="mbti-edit-row">
+      <div class="mbti-edit-q">${n + 1}. ${q.q}</div>
+      <div class="mbti-edit-lr"><span>左：${q.L}</span><span>右：${q.R}</span></div>
+      <select data-qi="${qi}" aria-label="第 ${n + 1} 題">${opts(Number(ans[qi]))}</select>
+    </div>`;
+  }).join('');
+  $('mbti-edit').innerHTML = `
+    <div class="sig"><div class="kin">EDIT ANSWERS</div><div class="big" style="font-size:1.3rem;">✏ 修改測驗答案</div></div>
+    <div class="mbti-tip">只改覺得答錯的題目就好。改完按最下面「重新計算」。</div>
+    ${rows}
+    <div class="mbti-actions">
+      <button type="button" class="btn-primary" data-act="recalc">重新計算 ✦</button>
+      <button type="button" class="btn-ghost" data-act="cancel">取消</button>
+    </div>`;
+  showScreen('mbti-edit');
+}
+
+function onEditClick(e) {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const saved = loadMbti();
+  if (!saved) return;
+  if (btn.dataset.act === 'cancel') { showResult(saved.type, saved.scores, saved.id, true, saved.profile); return; }
+  const answers = saved.profile.answers.slice();
+  $('mbti-edit').querySelectorAll('select[data-qi]').forEach(sel => { answers[Number(sel.dataset.qi)] = Number(sel.value); });
+  lastResult = saved;
+  finishNatural(answers, saved.profile.adaptive || null);
 }
 
 // ---------- 候選比較 ----------
@@ -142,7 +239,7 @@ function ul(items) { return `<ul>${items.map(i => `<li>${i}</li>`).join('')}</ul
  * cmp.types：候選（已打亂順序）
  * cmp.votes：{ sectionKey: type | NONE }
  * cmp.blind：是否隱藏型別名稱（避免被名稱先入為主）
- * cmp.ctx：{ scores, id, testType } 測驗資料，存檔時一起保留
+ * cmp.ctx：{ scores, id, testType, profile } 測驗資料，存檔時一起保留
  */
 let cmp = null;
 
@@ -244,7 +341,7 @@ function onCompareClick(e) {
     if (a === 'skip') { chooseType(cmp.ctx.testType, 'test'); return; }
     if (a === 'cancel') {
       const s = loadMbti();
-      if (s) showResult(s.type, s.scores, s.id); else showScreen('mbti-entry');
+      if (s) showResult(s.type, s.scores, s.id, true, s.profile); else showScreen('mbti-entry');
       return;
     }
   }
@@ -260,10 +357,10 @@ function onCompareClick(e) {
 
 function chooseType(type, src = 'fit') {
   if (!TYPES[type]) return;
-  const { scores, id } = cmp.ctx;
-  saveMbti(type, src, scores, id);
+  const { scores, id, profile } = cmp.ctx;
+  saveMbti(type, src, scores, id, profile || null);
   cmp = null;
-  showResult(type, scores, id);
+  showResult(type, scores, id, true, profile || null);
 }
 
 // ---------- 初始化 ----------
@@ -273,8 +370,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('mode-pick').addEventListener('click', () => showMode('pick'));
   $('mode-test').addEventListener('click', () => showMode('test'));
   $('mbti-back').addEventListener('click', () => {
-    if (step > 0) { step -= 1; renderQuestion(); }
+    if (test && test.step > 0) { test.step -= 1; renderQuestion(); }
   });
+  $('mbti-result').addEventListener('click', onResultClick);
+  $('mbti-edit').addEventListener('click', onEditClick);
 
   const box = $('mbti-compare');
   box.addEventListener('click', onCompareClick);
@@ -290,6 +389,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const saved = loadMbti();
   lastResult = saved;
-  if (saved) showResult(saved.type, saved.scores, saved.id, false);
+  if (saved) showResult(saved.type, saved.scores, saved.id, false, saved.profile);
   else { showScreen('mbti-entry', false); showMode('pick'); }
 });

@@ -80,6 +80,24 @@
 .cmp-confirm .btn-ghost { padding: 10px; }
 .cmp-skip { display: block; margin: 12px auto 0; background: none; border: none; color: var(--muted); font-size: .78rem; cursor: pointer; text-decoration: underline; }
 
+/* ---------- 判定依據／責任模式／修改答案 ---------- */
+.mbti-evidence { margin-top: 8px; font-size: .82rem; }
+.mbti-evidence summary { cursor: pointer; font-weight: 700; }
+.mbti-evidence ul { margin: 6px 0 0; padding-left: 1.1em; line-height: 1.7; }
+.mbti-evidence li { margin-bottom: 6px; }
+.mbti-context-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.mbti-context-grid > div { padding: 10px; border-radius: 8px; background: rgba(255,255,255,.05); }
+.mbti-context-grid small { display: block; font-size: .72rem; color: var(--muted); }
+.mbti-context-grid b { display: block; margin-top: 2px; }
+.mbti-edit-row { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.mbti-edit-q { font-weight: 700; font-size: .88rem; }
+.mbti-edit-lr { display: flex; flex-direction: column; gap: 2px; font-size: .76rem; color: var(--muted); margin: 4px 0 6px; }
+.mbti-edit-row select {
+  width: 100%; padding: 8px; border-radius: 8px; font-size: .84rem;
+  background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,.18);
+}
+.mbti-edit-row select option, .cmp-tools select option { color: #000; }
+
 .mbti-tip { font-size: .82rem; line-height: 1.8; padding: 10px 12px; border-radius: 8px; background: rgba(245,197,66,.1); margin-bottom: 12px; }
 
 .mbti-back { margin-top: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; }

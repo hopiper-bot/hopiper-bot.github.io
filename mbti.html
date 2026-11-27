@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>MBTI 性格｜人生劇本・玄境</title><meta name="description" content="選擇你的 MBTI 型別，或用 40 題測驗找出來，並與八字、人類圖、星座交叉解讀。"><meta name="theme-color" content="#0f2e2a">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=24"><link rel="stylesheet" href="v2/css/cosmic.css?v=4"><link rel="stylesheet" href="css/mbti.css?v=4">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=24"><link rel="stylesheet" href="v2/css/cosmic.css?v=4"><link rel="stylesheet" href="css/mbti.css?v=5">
 </head>
 <body class="cosmic-v2">
   <div class="wrap">
@@ -19,7 +19,7 @@
           </div>
 
           <div id="mbti-pick">
-            <div class="mbti-id-label">先選你是 -A 還是 -T（不確定可以跳過）</div>
+            <div class="mbti-id-label">延伸維度 -A／-T（非正式 MBTI；不確定可以跳過）</div>
             <div id="mbti-id-row" class="mbti-id-row">
               <button type="button" data-id="" class="active">不確定</button>
               <button type="button" data-id="A">-A 自信型</button>
@@ -29,7 +29,7 @@
           </div>
 
           <div id="mbti-test" style="display:none;">
-            <div class="mbti-tip">📌 作答前先想像：<b>放假、沒有壓力、不用顧任何人的時候</b>，你自然會怎麼做？不是上班模式，也不是「應該」怎麼做。</div>
+            <div id="mbti-tip" class="mbti-tip"></div>
             <div class="mbti-progress" aria-hidden="true"><div id="mbti-progress-bar"></div></div>
             <div id="mbti-progress-text" class="mbti-progress-text"></div>
             <div id="mbti-q" class="mbti-q" aria-live="polite"></div>
@@ -40,11 +40,12 @@
         </div>
 
         <div id="mbti-compare" style="display:none;margin-top:6px;"></div>
+        <div id="mbti-edit" style="display:none;margin-top:6px;"></div>
         <div id="mbti-result" style="display:none;margin-top:6px;"></div>
       </section>
       <nav class="more-explore"><p class="more-explore-title">Other portals・其他入口</p><div class="more-explore-list"><a class="more-item" href="index.html"><span class="more-icon">✦</span><span class="more-text"><b>我的命盤</b><small>五大系統生命解讀</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="name.html"><span class="more-icon">☿</span><span class="more-text"><b>姓名學</b><small>五格三才與八字五行</small></span><span class="more-go">進入 ›</span></a><a class="more-item" href="tarot.html"><span class="more-icon">☾</span><span class="more-text"><b>本命塔羅</b><small>為今天或一件事抽牌</small></span><span class="more-go">揭牌 ›</span></a></div></nav>
     </main>
-    <p class="disclaimer">MBTI 僅供自我探索，不構成心理評估或專業建議。<span style="opacity:.45;"> Cosmic V2</span></p>
+    <p class="disclaimer">MBTI 與 -A／-T 延伸維度僅供自我探索，不構成心理評估或專業建議。-A／-T 為 16Personalities 的延伸設計，不屬於正式 MBTI 四軸。<span style="opacity:.45;"> Cosmic V2</span></p>
   </div>
-  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script><script type="module" src="v2/js/ritual-effects.js?v=1"></script><script type="module" src="js/main.js?v=28"></script><script type="module" src="js/mbti-page.js?v=4"></script>
+  <script type="module" src="v2/js/cosmic-scene.js?v=4"></script><script type="module" src="v2/js/ritual-effects.js?v=1"></script><script type="module" src="js/main.js?v=29"></script><script type="module" src="js/mbti-page.js?v=5"></script>
 </body></html>
